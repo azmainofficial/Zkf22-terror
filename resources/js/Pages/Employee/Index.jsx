@@ -106,9 +106,18 @@ export default function Index({ employees, filters }) {
                                             {employee.department || 'N/A'}
                                         </td>
                                         <td className="px-8 py-5">
+                                            {employee.shift ? (
+                                                <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                                                    {employee.shift.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-gray-300 italic">No Shift</span>
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-5">
                                             <span className={`inline-flex items-center px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${employee.status === 'active'
-                                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                                    : 'bg-rose-50 text-rose-600 border border-rose-100'
+                                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                : 'bg-rose-50 text-rose-600 border border-rose-100'
                                                 }`}>
                                                 {employee.status}
                                             </span>
@@ -158,8 +167,8 @@ export default function Index({ employees, filters }) {
                                         href={link.url || '#'}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                         className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all ${link.active
-                                                ? 'bg-[#22C55E] text-white shadow-md shadow-emerald-100'
-                                                : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50 hover:text-gray-900'
+                                            ? 'bg-[#22C55E] text-white shadow-md shadow-emerald-100'
+                                            : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50 hover:text-gray-900'
                                             } ${!link.url && 'opacity-50 cursor-not-allowed'}`}
                                     />
                                 ))}

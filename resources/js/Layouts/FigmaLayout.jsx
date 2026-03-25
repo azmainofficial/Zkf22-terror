@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
-    HomeIcon,
-    UserGroupIcon,
+    Squares2X2Icon,
+    UsersIcon,
+    ClipboardDocumentCheckIcon,
     ClockIcon,
     Cog6ToothIcon,
     MagnifyingGlassIcon,
@@ -10,7 +11,9 @@ import {
     Bars3Icon,
     XMarkIcon,
     SunIcon,
-    MoonIcon
+    MoonIcon,
+    ChartBarIcon,
+    TableCellsIcon
 } from '@heroicons/react/24/outline';
 
 const PRIMARY_GREEN = '#22C55E';
@@ -21,9 +24,12 @@ export default function FigmaLayout({ children }) {
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     const navItems = [
-        { name: 'Dashboard', icon: HomeIcon, href: route('dashboard'), active: route().current('dashboard') },
-        { name: 'Employees', icon: UserGroupIcon, href: route('employees.index'), active: route().current('employees.*') },
-        { name: 'Attendance', icon: ClockIcon, href: route('attendance.index'), active: route().current('attendance.index') },
+        { name: 'Dashboard', icon: Squares2X2Icon, href: route('dashboard'), active: route().current('dashboard') },
+        { name: 'Employees', icon: UsersIcon, href: route('employees.index'), active: route().current('employees.*') },
+        { name: 'Attendance', icon: ClipboardDocumentCheckIcon, href: route('attendance.index'), active: route().current('attendance.index') },
+        { name: 'Shifts', icon: ClockIcon, href: route('shifts.index'), active: route().current('shifts.index') },
+        { name: 'Reports', icon: ChartBarIcon, href: route('attendance.report'), active: route().current('attendance.report') },
+        { name: 'Daily Sheet', icon: TableCellsIcon, href: route('attendance.sheet'), active: route().current('attendance.sheet') },
         { name: 'Setting', icon: Cog6ToothIcon, href: '#', active: false },
     ];
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,7 +14,7 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Employee::query();
+        $query = Employee::with('shift');
 
         if ($request->has('search')) {
             $query->where('first_name', 'like', '%' . $request->search . '%')
@@ -32,7 +33,9 @@ class EmployeeController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Employee/Create');
+        return Inertia::render('Employee/Create', [
+            'shifts' => Shift::all()
+        ]);
     }
 
     /**
@@ -42,17 +45,20 @@ class EmployeeController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required|unique:employees',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:employees',
-            'department' => 'nullable|string|max:255',
-            'designation' => 'nullable|string|max:255',
+            'first_name' => 'required',
+            'last_name' => 'nullable',
+            'email' => 'required|email|unique:employees',
+            'phone' => 'nullable',
+            'department' => 'nullable',
+            'designation' => 'nullable',
+            'join_date' => 'nullable|date',
             'status' => 'required|in:active,inactive',
+            'shift_id' => 'nullable|exists:shifts,id',
         ]);
 
         Employee::create($validated);
 
-        return redirect()->route('employees.index')->with('success', 'Employee created successfully.');
+        return redirect()->route('employees.index');
     }
 
     /**
@@ -69,7 +75,8 @@ class EmployeeController extends Controller
     public function edit(Employee $employee)
     {
         return Inertia::render('Employee/Edit', [
-            'employee' => $employee
+            'employee' => $employee,
+            'shifts' => Shift::all()
         ]);
     }
 
@@ -80,12 +87,15 @@ class EmployeeController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required|unique:employees,employee_id,' . $employee->id,
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:employees,email,' . $employee->id,
-            'department' => 'nullable|string|max:255',
-            'designation' => 'nullable|string|max:255',
+            'first_name' => 'required',
+            'last_name' => 'nullable',
+            'email' => 'required|email|unique:employees,email,' . $employee->id,
+            'phone' => 'nullable',
+            'department' => 'nullable',
+            'designation' => 'nullable',
+            'join_date' => 'nullable|date',
             'status' => 'required|in:active,inactive',
+            'shift_id' => 'nullable|exists:shifts,id',
         ]);
 
         $employee->update($validated);

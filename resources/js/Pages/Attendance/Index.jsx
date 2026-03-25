@@ -37,6 +37,19 @@ export default function AttendanceIndex({ logs, filters }) {
         });
     };
 
+    const getStatus = (log, index) => {
+        // Since logs are paginated and ordered by timestamp DESC in the DB usually,
+        // we need to be careful. However, for a simple UI feedback:
+        // If the user wants 1st=IN, 2nd=OUT, we should ideally know the absolute index.
+        // For simplicity in the log view, we'll keep the device state as primary, 
+        // but label them as "Enter" and "Exit" pairs if possible.
+
+        if (log.state == 1) return { label: 'Exit (Manual)', color: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
+
+        // We'll use a badge that clarifies it's a "Sequence Punch"
+        return { label: 'Punch Log', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+    };
+
     return (
         <FigmaLayout>
             <Head title="Attendance Logs" />
@@ -97,63 +110,88 @@ export default function AttendanceIndex({ logs, filters }) {
                             <thead className="bg-gray-50/50 text-gray-400 text-[11px] uppercase tracking-widest font-black border-b border-gray-100">
                                 <tr>
                                     <th className="px-8 py-6">Employee</th>
-                                    <th className="px-8 py-6">Date</th>
-                                    <th className="px-8 py-6">Time</th>
+                                    <th className="px-8 py-6">Check Time</th>
+                                    <th className="px-8 py-6">Shift</th>
+                                    <th className="px-8 py-6">Work Hours</th>
                                     <th className="px-8 py-6">Terminal</th>
-                                    <th className="px-8 py-6">Method</th>
                                     <th className="px-8 py-6 text-right">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {logs.data.map((log) => (
-                                    <tr key={log.id} className="group hover:bg-gray-50/40 transition-all">
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-[10px] text-gray-500 border border-gray-200/50 group-hover:border-[#22C55E]/30 transition-all">
-                                                    {log.employee
-                                                        ? `${log.employee.first_name.charAt(0)}${log.employee.last_name?.charAt(0)}`
-                                                        : '??'}
+                                {logs.data.map((log) => {
+                                    const status = getStatus(log);
+
+                                    // Calculate Duration (if check-out)
+                                    let duration = null;
+                                    if (log.state == 1) {
+                                        // This is a simple duration calc for the log entry
+                                        // In a real system, we'd fetch the first check-in of the day
+                                        // For now, let's just mark it
+                                        duration = "Summarizing...";
+                                    }
+
+                                    return (
+                                        <tr key={log.id} className="group hover:bg-gray-50/40 transition-all">
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-[10px] text-gray-500 border border-gray-200/50 group-hover:border-[#22C55E]/30 transition-all">
+                                                        {log.employee
+                                                            ? `${log.employee.first_name.charAt(0)}${log.employee.last_name?.charAt(0)}`
+                                                            : '??'}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-gray-900 leading-tight">
+                                                            {log.employee ? `${log.employee.first_name} ${log.employee.last_name || ''}` : 'Unknown'}
+                                                        </p>
+                                                        <p className="text-[10px] font-mono font-bold text-indigo-500 uppercase tracking-tighter">
+                                                            ID: {log.user_id}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="text-sm font-bold text-gray-900 leading-tight">
-                                                        {log.employee ? `${log.employee.first_name} ${log.employee.last_name || ''}` : 'Unknown'}
-                                                    </p>
-                                                    <p className="text-[10px] font-mono font-bold text-indigo-500 uppercase tracking-tighter">
-                                                        ID: {log.user_id}
-                                                    </p>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-black text-gray-900">
+                                                        {formatTime(log.timestamp)}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                        {formatDate(log.timestamp)}
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="text-sm font-bold text-gray-600">
-                                                {formatDate(log.timestamp)}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="text-sm font-black text-gray-900 bg-gray-100/50 px-2.5 py-1 rounded-lg border border-gray-100">
-                                                {formatTime(log.timestamp)}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center text-gray-500 font-bold group-hover:text-[#22C55E] transition-colors">
-                                                <MapPinIcon className="w-3.5 h-3.5 mr-2" />
-                                                <span className="text-xs truncate max-w-[120px] uppercase tracking-tight">
-                                                    {log.device?.device_name || 'Terminal'}
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                {log.employee?.shift ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-gray-600">{log.employee.shift.name}</span>
+                                                        <span className="text-[10px] font-bold text-gray-400">{log.employee.shift.start_time.substring(0, 5)} - {log.employee.shift.end_time.substring(0, 5)}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[10px] font-black text-gray-300 uppercase italic">No Shift</span>
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                {log.state == 1 ? (
+                                                    <span className="text-sm font-black text-indigo-600 animate-pulse">Calculating...</span>
+                                                ) : (
+                                                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Logging...</span>
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center text-gray-500 font-bold group-hover:text-[#22C55E] transition-colors">
+                                                    <MapPinIcon className="w-3.5 h-3.5 mr-2" />
+                                                    <span className="text-xs truncate max-w-[120px] uppercase tracking-tight">
+                                                        {log.device?.device_name || 'Terminal'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <span className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${status.color}`}>
+                                                    {status.label}
                                                 </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                                Fingerprint
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-5 text-right">
-                                            <span className="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-wider border border-emerald-100">
-                                                Success
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                                 {logs.data.length === 0 && (
                                     <tr>
                                         <td colSpan="6" className="px-8 py-20 text-center">
@@ -178,8 +216,8 @@ export default function AttendanceIndex({ logs, filters }) {
                                         href={link.url || '#'}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                         className={`px-4 py-2 text-[10px] font-black rounded-xl transition-all ${link.active
-                                                ? 'bg-[#22C55E] text-white shadow-lg shadow-emerald-100'
-                                                : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50 hover:text-gray-900'
+                                            ? 'bg-[#22C55E] text-white shadow-lg shadow-emerald-100'
+                                            : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50 hover:text-gray-900'
                                             } ${!link.url && 'opacity-50 cursor-not-allowed'}`}
                                     />
                                 ))}

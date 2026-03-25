@@ -14,7 +14,7 @@ class ZktecoADMSController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AttendanceLog::with(['device', 'employee']);
+        $query = AttendanceLog::with(['device', 'employee.shift']);
 
         if ($request->has('search')) {
             $query->where('user_id', 'like', '%' . $request->search . '%')

@@ -36,6 +36,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/attendance', [ZktecoADMSController::class, 'index'])->name('attendance.index');
     Route::resource('/employees', \App\Http\Controllers\EmployeeController::class);
+    Route::resource('/shifts', \App\Http\Controllers\ShiftController::class);
+    Route::get('attendance/report', [\App\Http\Controllers\AttendanceReportController::class, 'monthly'])->name('attendance.report');
+    Route::get('attendance/sheet', [\App\Http\Controllers\AttendanceReportController::class, 'sheet'])->name('attendance.sheet');
 });
 
 // ZKTeco ADMS Routes

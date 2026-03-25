@@ -17,6 +17,12 @@ class Employee extends Model
         'designation',
         'join_date',
         'status',
-        'photo_path'
+        'photo_path',
+        'shift_id'
     ];
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
 }

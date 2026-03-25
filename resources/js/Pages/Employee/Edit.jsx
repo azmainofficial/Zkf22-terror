@@ -5,7 +5,7 @@ import {
     PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
-export default function Edit({ employee }) {
+export default function Edit({ employee, shifts }) {
     const { data, setData, put, processing, errors } = useForm({
         employee_id: employee.employee_id,
         first_name: employee.first_name,
@@ -14,6 +14,7 @@ export default function Edit({ employee }) {
         department: employee.department || '',
         designation: employee.designation || '',
         status: employee.status,
+        shift_id: employee.shift_id || '',
     });
 
     const submit = (e) => {
@@ -134,6 +135,22 @@ export default function Edit({ employee }) {
                                         onChange={e => setData('department', e.target.value)}
                                         className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm focus:ring-2 focus:ring-[#22C55E]/20 transition-all font-bold"
                                     />
+                                </div>
+
+                                {/* Shift Selection */}
+                                <div className="col-span-1 md:col-span-2 space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-gray-400">Work Shift</label>
+                                    <select
+                                        value={data.shift_id}
+                                        onChange={e => setData('shift_id', e.target.value)}
+                                        className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm focus:ring-2 focus:ring-[#22C55E]/20 transition-all font-bold"
+                                    >
+                                        <option value="">No Shift Assigned</option>
+                                        {shifts.map(shift => (
+                                            <option key={shift.id} value={shift.id}>{shift.name} ({shift.start_time.substring(0, 5)})</option>
+                                        ))}
+                                    </select>
+                                    {errors.shift_id && <p className="text-[10px] font-black text-rose-600 uppercase mt-1">{errors.shift_id}</p>}
                                 </div>
                             </div>
 
