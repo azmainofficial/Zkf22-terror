@@ -14,17 +14,38 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Employee::with('shift');
+        $query = Employee::with(['shift', 'attendances']);
 
-        if ($request->has('search')) {
-            $query->where('first_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('last_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('employee_id', 'like', '%' . $request->search . '%');
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('first_name', 'like', '%' . $request->search . '%')
+                    ->orWhere('last_name', 'like', '%' . $request->search . '%')
+                    ->orWhere('employee_id', 'like', '%' . $request->search . '%')
+                    ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
         }
 
+        if ($request->department && $request->department !== 'All') {
+            $query->where('department', $request->department);
+        }
+
+        if ($request->status && $request->status !== 'All') {
+            $query->where('status', $request->status);
+        }
+
+        $departments = Employee::whereNotNull('department')->distinct()->pluck('department');
+
+        // Fetch recent attendances
+        $attendances = \App\Models\Attendance::with('employee')
+            ->orderBy('date', 'desc')
+            ->paginate(15, ['*'], 'att_page')
+            ->withQueryString();
+
         return Inertia::render('Employee/Index', [
-            'employees' => $query->latest()->paginate(10)->withQueryString(),
-            'filters' => $request->only(['search']),
+            'employees' => $query->latest()->paginate(12)->withQueryString(),
+            'attendances' => $attendances,
+            'departments' => $departments,
+            'filters' => $request->only(['search', 'department', 'status', 'view']),
         ]);
     }
 
@@ -34,7 +55,8 @@ class EmployeeController extends Controller
     public function create()
     {
         return Inertia::render('Employee/Create', [
-            'shifts' => Shift::all()
+            'shifts' => Shift::all(),
+            'departments' => Employee::whereNotNull('department')->distinct()->pluck('department')
         ]);
     }
 
@@ -51,22 +73,35 @@ class EmployeeController extends Controller
             'phone' => 'nullable',
             'department' => 'nullable',
             'designation' => 'nullable',
+            'salary' => 'nullable|numeric',
+            'address' => 'nullable',
             'join_date' => 'nullable|date',
-            'status' => 'required|in:active,inactive',
+            'status' => 'required|in:active,inactive,on_leave',
             'shift_id' => 'nullable|exists:shifts,id',
+            'emergency_contact_name' => 'nullable',
+            'emergency_contact_phone' => 'nullable',
         ]);
 
         Employee::create($validated);
 
-        return redirect()->route('employees.index');
+        return redirect()->route('employees.index')->with('success', 'Employee created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Employee $employee)
     {
-        //
+        $employee->load(['shift', 'attendances', 'tasks', 'leaveApplications', 'performanceReviews', 'documents']);
+
+        return Inertia::render('Employee/Show', [
+            'employee' => $employee,
+            'stats' => [
+                'attendance_rate' => $employee->attendance_rate ?? 0,
+                'completed_tasks' => $employee->tasks()->where('status', 'completed')->count(),
+                'leave_balance' => 15 - $employee->leaveApplications()->where('status', 'approved')->sum('duration'),
+            ]
+        ]);
     }
 
     /**
@@ -76,7 +111,8 @@ class EmployeeController extends Controller
     {
         return Inertia::render('Employee/Edit', [
             'employee' => $employee,
-            'shifts' => Shift::all()
+            'shifts' => Shift::all(),
+            'departments' => Employee::whereNotNull('department')->distinct()->pluck('department')
         ]);
     }
 
@@ -93,9 +129,13 @@ class EmployeeController extends Controller
             'phone' => 'nullable',
             'department' => 'nullable',
             'designation' => 'nullable',
+            'salary' => 'nullable|numeric',
+            'address' => 'nullable',
             'join_date' => 'nullable|date',
-            'status' => 'required|in:active,inactive',
+            'status' => 'required|in:active,inactive,on_leave',
             'shift_id' => 'nullable|exists:shifts,id',
+            'emergency_contact_name' => 'nullable',
+            'emergency_contact_phone' => 'nullable',
         ]);
 
         $employee->update($validated);

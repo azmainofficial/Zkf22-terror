@@ -54,22 +54,22 @@ export default function AttendanceIndex({ logs, filters }) {
         <FigmaLayout>
             <Head title="Attendance Logs" />
 
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tight text-gray-900">Attendance Data</h1>
-                        <p className="text-sm text-gray-500 font-medium mt-1">Real-time synchronized logs from your ZKTeco terminals.</p>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">Attendance Data</h1>
+                        <p className="text-xs md:text-sm text-gray-500 font-medium mt-1">Real-time synchronized logs from your ZKTeco terminals.</p>
                     </div>
-                    <button className="inline-flex items-center px-6 py-3 bg-white border border-gray-200 text-gray-900 rounded-2xl text-sm font-bold shadow-sm hover:bg-gray-50 active:scale-95 transition-all">
+                    <button className="inline-flex items-center justify-center px-6 py-3 bg-white border border-gray-200 text-gray-900 rounded-2xl text-sm font-bold shadow-sm hover:bg-gray-50 active:scale-95 transition-all w-full md:w-auto">
                         <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
                         Download Report
                     </button>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                    <form onSubmit={handleFilter} className="relative group col-span-1 md:col-span-1">
+                <div className="bg-white p-4 md:p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col md:grid md:grid-cols-3 gap-4 items-center">
+                    <form onSubmit={handleFilter} className="relative group w-full col-span-1">
                         <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#22C55E] transition-colors" />
                         <input
                             type="text"
@@ -80,7 +80,7 @@ export default function AttendanceIndex({ logs, filters }) {
                         />
                     </form>
 
-                    <div className="relative group">
+                    <div className="relative group w-full">
                         <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#22C55E] transition-colors shadow-sm" />
                         <input
                             type="date"
@@ -90,7 +90,7 @@ export default function AttendanceIndex({ logs, filters }) {
                         />
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 w-full">
                         <button
                             onClick={handleFilter}
                             className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all flex items-center justify-center"

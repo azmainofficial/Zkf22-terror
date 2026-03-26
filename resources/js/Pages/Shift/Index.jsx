@@ -65,15 +65,16 @@ export default function Index({ shifts }) {
         <FigmaLayout>
             <Head title="Work Shifts" />
 
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tight text-gray-900">Work Shifts</h1>
-                        <p className="text-sm text-gray-500 font-medium mt-1">Define your company working hours and grace periods.</p>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">Work Shifts</h1>
+                        <p className="text-xs md:text-sm text-gray-500 font-medium mt-1">Define and manage working hours for your employees.</p>
                     </div>
                     <button
                         onClick={() => openModal()}
-                        className="inline-flex items-center px-6 py-3 bg-[#22C55E] text-white rounded-2xl text-sm font-bold shadow-lg shadow-emerald-200 hover:scale-[1.02] active:scale-95 transition-all"
+                        className="inline-flex items-center justify-center px-6 py-3 bg-[#22C55E] text-white rounded-2xl text-sm font-bold shadow-lg shadow-emerald-200 hover:scale-[1.02] active:scale-95 transition-all w-full md:w-auto"
                     >
                         <PlusIcon className="w-5 h-5 mr-2 stroke-[3px]" />
                         Create New Shift

@@ -18,10 +18,10 @@ class ZktecoADMSController extends Controller
 
         if ($request->has('search')) {
             $query->where('user_id', 'like', '%' . $request->search . '%')
-                  ->orWhereHas('employee', function($q) use ($request) {
-                      $q->where('first_name', 'like', '%' . $request->search . '%')
+                ->orWhereHas('employee', function ($q) use ($request) {
+                    $q->where('first_name', 'like', '%' . $request->search . '%')
                         ->orWhere('last_name', 'like', '%' . $request->search . '%');
-                  });
+                });
         }
 
         if ($request->has('date')) {
@@ -58,12 +58,13 @@ class ZktecoADMSController extends Controller
 
         // Handle POST (Data Upload)
         $content = $request->getContent();
-        
+
         if ($table === 'ATTLOG') {
             $lines = explode("\n", trim($content));
             foreach ($lines as $line) {
-                if (empty(trim($line))) continue;
-                
+                if (empty(trim($line)))
+                    continue;
+
                 $data = preg_split('/\s+/', trim($line));
                 if (count($data) >= 2) {
                     AttendanceLog::create([
@@ -85,6 +86,13 @@ class ZktecoADMSController extends Controller
      */
     public function handleGetRequest(Request $request)
     {
+        $sn = $request->query('SN');
+        if ($sn) {
+            $device = ZktecoDevice::firstOrCreate(['serial_number' => $sn]);
+            $device->last_seen_at = now();
+            $device->save();
+        }
+
         // For now, always respond with OK to keep the heartbeat alive
         return response("OK", 200)->header('Content-Type', 'text/plain');
     }
