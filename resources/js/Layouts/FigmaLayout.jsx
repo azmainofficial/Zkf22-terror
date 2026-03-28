@@ -31,6 +31,11 @@ import {
     ChevronDoubleLeftIcon,
     ChevronDoubleRightIcon,
     CalendarIcon,
+    BuildingStorefrontIcon,
+    TagIcon,
+    ScaleIcon,
+    PaintBrushIcon,
+    BoltIcon,
 } from '@heroicons/react/24/outline';
 
 const EXPANDED_W = 256;
@@ -39,45 +44,82 @@ const COLLAPSED_W = 72;
 // ─── Nav structure ────────────────────────────────────────────────
 const buildNav = () => [
     {
-        title: t('main_menu'),
+        title: t('dashboard'),
         sectionIcon: ViewColumnsIcon,
         items: [
-            { name: t('home'),        label: t('daily_overview'),      icon: Squares2X2Icon,   href: route('dashboard'),         active: route().current('dashboard') },
+            { name: t('dashboard'),        label: t('daily_overview'),      icon: Squares2X2Icon,   href: route('dashboard'),         active: route().current('dashboard') },
+        ],
+    },
+    {
+        title: t('projects'),
+        sectionIcon: RocketLaunchIcon,
+        items: [
             { name: t('projects'),    label: t('track_work'),       icon: RocketLaunchIcon, href: route('projects.index'),    active: route().current('projects.*') },
+        ],
+    },
+    {
+        title: t('inventory'),
+        sectionIcon: BuildingStorefrontIcon,
+        items: [
             { name: t('inventory'),   label: t('products_stock'),         icon: TableCellsIcon,   href: route('inventory.index'),   active: route().current('inventory.*') },
+        ],
+    },
+    {
+        title: t('clients'),
+        sectionIcon: BuildingOffice2Icon,
+        items: [
+            { name: t('clients'),   label: t('customers'),        icon: BuildingOffice2Icon, href: route('clients.index'),   active: route().current('clients.*') },
+        ],
+    },
+    {
+        title: t('suppliers'),
+        sectionIcon: UserGroupIcon,
+        items: [
+            { name: t('suppliers'),   label: t('partners'),        icon: UserGroupIcon, href: route('suppliers.index'),   active: route().current('suppliers.*') },
         ],
     },
     {
         title: t('hr_team'),
         sectionIcon: UserGroupIcon,
         items: [
-            { name: t('my_team'),      label: t('all_staff'),      icon: UserGroupIcon,             href: route('employees.index'),   active: route().current('employees.*') },
-            { name: t('attendance'),   label: t('who_is_in'),        icon: ClockIcon,                 href: route('attendance.index'),  active: route().current('attendance.index') },
-            { name: t('shift_management'), label: t('work_hour_assignments'), icon: CalendarIcon,           href: route('shifts.index'),      active: route().current('shifts.*') },
+            { name: t('my_team'),      label: t('all_staff'),      icon: UserGroupIcon,             href: route('employees.index'),   active: route().current('employees.index') },
+            { name: t('attendance'),   label: t('who_is_in'),        icon: ClockIcon,                 href: route('attendance.index'),  active: route().current('attendance.*') },
             { name: t('payroll'),      label: t('salaries_payments'),    icon: CurrencyDollarIcon,        href: route('payroll.index'),     active: route().current('payroll.*') },
-            { name: t('days_off'),     label: t('leave_time_off'),       icon: ClipboardDocumentListIcon, href: route('leaves.index'),      active: route().current('leaves.*') },
-            { name: t('performance'),  label: t('staff_goals'),  icon: ChartBarSquareIcon,        href: route('performance.index'), active: route().current('performance.*') },
         ],
     },
     {
         title: t('money'),
         sectionIcon: BanknotesIcon,
         items: [
-            { name: t('invoices'),  label: t('send_track_bills'),    icon: DocumentTextIcon,    href: route('invoices.index'),  active: route().current('invoices.*') },
+            { name: t('money'),   label: t('all_spending'),   icon: BriefcaseIcon,       href: route('expenses.index'),  active: (route().current('expenses.index') || route().current('expense-categories.*')) },
+            { name: t('expense_categories'),   label: t('tiers'),   icon: TagIcon,       href: route('expenses.index'),  active: route().current('expense-categories.*') },
+        ],
+    },
+    {
+        title: t('payments'),
+        sectionIcon: BanknotesIcon,
+        items: [
             { name: t('payments'),  label: t('money_received'),    icon: BanknotesIcon,       href: route('payments.index'),  active: route().current('payments.*') },
-            { name: t('expenses'),  label: t('what_spent'),   icon: BriefcaseIcon,       href: route('expenses.index'),  active: route().current('expenses.*') },
-            { name: t('clients'),   label: t('customers'),        icon: BuildingOffice2Icon, href: route('clients.index'),   active: route().current('clients.*') },
+        ],
+    },
+    {
+        title: t('reports_section'),
+        sectionIcon: ChartBarSquareIcon,
+        items: [
+            { name: t('overview'),    label: t('insights'),      icon: ChartBarSquareIcon,   href: route('reports.index', { view: 'overview' }),         active: route().current('reports.index') && !route().current('reports.index', { view: 'daily' }) && !route().current('reports.index', { view: 'monthly' }) },
+            { name: t('daily_report'),    label: t('day_stats'),      icon: CalendarIcon,   href: route('reports.index', { view: 'daily' }),         active: route().current('reports.index', { view: 'daily' }) },
+            { name: t('monthly_report'),    label: t('month_stats'),      icon: Squares2X2Icon,   href: route('reports.index', { view: 'monthly' }),         active: route().current('reports.index', { view: 'monthly' }) },
         ],
     },
     {
         title: t('admin'),
-        sectionIcon: WrenchScrewdriverIcon,
+        sectionIcon: Cog6ToothIcon,
         items: [
-            { name: t('devices'),     label: t('connected_hardware'),     icon: CpuChipIcon,                href: route('devices.index'),    active: route().current('devices.*') },
-            { name: t('user_accounts'), label: t('who_can_login'),       icon: UsersIcon,                  href: route('users.index'),      active: route().current('users.*') },
-            { name: t('roles'),       label: t('set_access'), icon: ShieldCheckIcon,           href: route('roles.index'),      active: route().current('roles.*') },
-            { name: t('history'),     label: t('see_actions'), icon: ClipboardDocumentCheckIcon, href: route('audit-logs.index'), active: route().current('audit-logs.*') },
-            { name: t('settings'),    label: t('configure_app'),      icon: Cog6ToothIcon,              href: route('settings.index'),   active: route().current('settings.*') },
+            { name: t('settings'),    label: t('configure_app'),      icon: Cog6ToothIcon,              href: route('settings.index'),   active: route().current('settings.index') },
+            { name: t('brands'),    label: t('labels'),      icon: TagIcon,              href: route('brands.index'),   active: route().current('brands.*') },
+            { name: t('units'),    label: t('measures'),      icon: ScaleIcon,              href: route('units.index'),   active: route().current('units.*') },
+            { name: t('designs'),    label: t('visuals'),      icon: PaintBrushIcon,              href: route('settings.index'),   active: false },
+            { name: t('automation'),    label: t('workflows'),      icon: BoltIcon,              href: route('settings.index'),   active: false },
         ],
     },
 ];

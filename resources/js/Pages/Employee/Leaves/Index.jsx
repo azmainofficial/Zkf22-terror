@@ -239,9 +239,10 @@ const secondaryBtn = {
     color: '#6366f1', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
 };
 const navBtn = {
-    width: '32px', height: '32px', borderRadius: '8px',
+    width: '32px', height: '32px', borderRadius: '8px', 
     background: '#f8fafc', border: '1.5px solid #f1f5f9',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+    color: '#6366f1', transition: 'all 0.2s'
 };
 const viewToggle = (active) => ({
     display: 'flex', alignItems: 'center', gap: '6px',
@@ -249,5 +250,6 @@ const viewToggle = (active) => ({
     border: 'none', background: active ? '#fff' : 'transparent',
     color: active ? '#6366f1' : '#94a3b8',
     fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-    boxShadow: active ? '0 2px 8px rgba(99,102,241,0.1)' : 'none'
+    boxShadow: active ? '0 2px 8px rgba(99,102,241,0.1)' : 'none',
+    transition: 'all 0.2s'
 });

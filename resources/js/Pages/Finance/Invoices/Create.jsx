@@ -10,24 +10,25 @@ import {
 
 // ─── Shared Styles ─────────────────────────────────────────────
 const card = {
-    background: '#fff', borderRadius: '24px',
+    background: '#fff', borderRadius: '16px',
     border: '1.5px solid #f0eeff',
     boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
 };
-const onFocus = e => { e.target.style.borderColor = '#8b5cf6'; e.target.style.boxShadow = '0 0 0 4px rgba(139,92,246,0.1)'; };
-const onBlur  = e => { e.target.style.borderColor = '#f0eeff'; e.target.style.boxShadow = 'none'; };
+const onFocus = e => { e.target.style.borderColor = '#8b5cf6'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; };
+const onBlur  = e => { e.target.style.borderColor = '#ede9fe'; e.target.style.boxShadow = 'none'; };
 
 const inputStyle = {
-    width: '100%', height: '52px', padding: '0 1.25rem',
-    borderRadius: '12px', border: '1.5px solid #f0eeff',
-    background: '#f9fafb', fontSize: '0.92rem', fontWeight: 700,
-    outline: 'none', transition: 'all 0.2s', color: '#1e1b4b'
+    width: '100%', boxSizing: 'border-box',
+    padding: '0.65rem 1rem', background: '#f9f7ff',
+    border: '1.5px solid #ede9fe', borderRadius: '10px',
+    fontSize: '0.82rem', color: '#1e1b4b', fontWeight: 700,
+    outline: 'none', fontFamily: 'inherit', transition: 'all 0.2s',
 };
 
 const labelStyle = {
-    fontSize: '0.68rem', fontWeight: 800, color: '#9ca3af',
+    fontSize: '0.68rem', fontWeight: 800, color: '#a78bfa',
     textTransform: 'uppercase', letterSpacing: '0.08em',
-    display: 'block', marginBottom: '8px', paddingLeft: '4px'
+    display: 'block', marginBottom: '6px', paddingLeft: '4px'
 };
 
 export default function Create({ auth, clients }) {
@@ -62,17 +63,13 @@ export default function Create({ auth, clients }) {
                 
                 {/* ── Header ── */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <Link href={route('invoices.index')}>
-                            <button style={iconBtn('#fff', '#64748b', true)}><ArrowLeft size={20} /></button>
-                        </Link>
-                        <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '2px' }}>
-                                <Receipt size={14} color="#a78bfa" />
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Fiscal Authority</span>
-                            </div>
-                            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Instantiate Invoice</h1>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <Receipt size={16} color="#a78bfa" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Fiscal Authority</span>
                         </div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Instantiate Invoice</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Creating a new financial manifest for client records</p>
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.625rem' }}>
@@ -92,7 +89,7 @@ export default function Create({ auth, clients }) {
                         {/* Personnel Target */}
                         <div style={{ ...card, padding: '1.5rem' }}>
                             <div style={sectionHeader}><Users size={16} color="#6366f1" /> TARGET CLIENT</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1.5fr) 1fr', gap: '1.25rem' }}>
                                 <div>
                                     <label style={labelStyle}>Select Entity</label>
                                     <select value={data.client_id} onChange={e => setData('client_id', e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
@@ -103,7 +100,7 @@ export default function Create({ auth, clients }) {
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Manifest State</label>
-                                    <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
+                                    <div style={{ display: 'flex', background: '#f5f3ff', padding: '4px', borderRadius: '12px', gap: '4px', border: '1.5px solid #ede9fe' }}>
                                         {['draft', 'sent'].map(s => (
                                             <button key={s} type="button" onClick={() => setData('status', s)}
                                                 style={toggleBtn(data.status === s)}>
