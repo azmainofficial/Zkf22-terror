@@ -1,515 +1,212 @@
 import React, { useState, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    Save,
-    Package,
-    Building2,
-    DollarSign,
-    Plus,
-    Loader2,
-    Activity,
-    ShieldCheck,
-    Zap,
-    Briefcase,
-    TrendingUp,
-    Layers,
-    PlusCircle,
-    Check,
-    FileUp,
-    ChevronDown,
-    MapPin,
-    Mail,
-    Phone,
-    X,
-    User,
-    Building,
-    Scale,
-    PieChart,
-    Target
-} from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
+import { ArrowLeft, Save, Package, Building2, DollarSign, Plus, Loader2, X, Hash, Tag, Layers, Truck, CheckCircle2, AlertCircle } from 'lucide-react';
 import Modal from '@/Components/Modal';
 
-export default function Create({ auth, brands = [], suppliers = [], projects = [], clients = [], selected_project_id, units = [] }) {
-    const { data, setData, post, processing, errors } = useForm({
-        name: '',
-        brand_id: '',
-        unit: units.length > 0 ? units[0].abbreviation : 'pcs',
-        quantity_in_stock: '',
-        reorder_level: '0',
-        unit_price: '',
-        status: 'active',
-        supplier_id: '',
-        client_id: '',
-        project_id: selected_project_id || '',
-    });
+const fs = { width:'100%', boxSizing:'border-box', padding:'0.65rem 1rem 0.65rem 2.4rem', background:'#f9f7ff', border:'1.5px solid #ede9fe', borderRadius:'12px', fontSize:'0.88rem', color:'#1e1b4b', outline:'none', transition:'all 0.2s', fontFamily:'inherit' };
+const fni = { ...fs, paddingLeft:'1rem' };
+const oF = e => { e.target.style.borderColor='#8b5cf6'; e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)'; };
+const oB = e => { e.target.style.borderColor='#ede9fe'; e.target.style.boxShadow='none'; };
+const lbl = (t,r) => <label style={{fontSize:'0.78rem',fontWeight:700,color:'#4b5563',display:'block',marginBottom:'5px'}}>{t}{r&&<span style={{color:'#ef4444',marginLeft:'3px'}}>*</span>}</label>;
+const Fld = ({icon:I,error,children}) => <div style={{position:'relative'}}>{I&&<I size={14} color="#a78bfa" style={{position:'absolute',left:'12px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>}{children}{error&&<p style={{color:'#ef4444',fontSize:'0.7rem',marginTop:'4px',display:'flex',alignItems:'center',gap:'3px'}}><AlertCircle size={11}/>{error}</p>}</div>;
+const Card = ({title,sub,icon:I,acc='#6366f1',children}) => <div style={{background:'#fff',borderRadius:'18px',border:'1.5px solid #f0eeff',boxShadow:'0 2px 12px rgba(99,102,241,0.05)',overflow:'hidden'}}><div style={{padding:'1rem 1.5rem',borderBottom:'1px solid #f5f3ff',display:'flex',alignItems:'center',gap:'0.75rem'}}><div style={{width:'34px',height:'34px',borderRadius:'10px',background:`${acc}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><I size={17} color={acc}/></div><div><p style={{fontSize:'0.9rem',fontWeight:800,color:'#1e1b4b',margin:0}}>{title}</p>{sub&&<p style={{fontSize:'0.7rem',color:'#9ca3af',margin:0}}>{sub}</p>}</div></div><div style={{padding:'1.25rem 1.5rem'}}>{children}</div></div>;
+const saveBtn = (proc) => ({width:'100%',padding:'0.875rem',background:proc?'#a78bfa':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'14px',color:'#fff',fontSize:'0.95rem',fontWeight:800,cursor:proc?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',boxShadow:'0 6px 20px rgba(99,102,241,0.35)'});
 
+export default function Create({ auth, brands=[], suppliers=[], projects=[], clients=[], selected_project_id, units=[] }) {
+    const { data, setData, post, processing, errors } = useForm({ name:'', brand_id:'', unit:units[0]?.abbreviation||'pcs', quantity_in_stock:'', reorder_level:'0', unit_price:'', status:'active', supplier_id:'', client_id:'', project_id:selected_project_id||'' });
     const [totalValue, setTotalValue] = useState(0);
     const [filteredProjects, setFilteredProjects] = useState(projects);
-    const [showUnitModal, setShowUnitModal] = useState(false);
-    const [showBrandModal, setShowBrandModal] = useState(false);
-    const [showSupplierModal, setShowSupplierModal] = useState(false);
+    const [showUnit, setShowUnit] = useState(false);
+    const [showBrand, setShowBrand] = useState(false);
+    const [showSupplier, setShowSupplier] = useState(false);
+    const unitForm = useForm({ name:'', abbreviation:'' });
+    const brandForm = useForm({ name:'' });
+    const supplierForm = useForm({ name:'', company_name:'', email:'', phone:'', address:'', status:'active' });
 
-    const unitForm = useForm({ name: '', abbreviation: '' });
-    const brandForm = useForm({ name: '', image: null });
-    const supplierForm = useForm({
-        name: '',
-        company_name: '',
-        email: '',
-        phone: '',
-        address: '',
-        status: 'active'
-    });
-
-    useEffect(() => {
-        if (data.client_id) {
-            setFilteredProjects(projects.filter(p => p.client_id == data.client_id));
-        } else {
-            setFilteredProjects(projects);
-        }
-    }, [data.client_id, projects]);
-
-    useEffect(() => {
-        if (data.project_id) {
-            const selectedProject = projects.find(p => p.id == data.project_id);
-            if (selectedProject && selectedProject.client_id) {
-                setData('client_id', selectedProject.client_id);
-            }
-        }
-    }, [data.project_id]);
-
-    useEffect(() => {
-        const price = parseFloat(data.unit_price) || 0;
-        const stock = parseFloat(data.quantity_in_stock) || 0;
-        setTotalValue(price * stock);
-    }, [data.unit_price, data.quantity_in_stock]);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        post(route('inventory.store'));
-    };
-
-    const handleCreateUnit = (e) => {
-        e.preventDefault();
-        unitForm.post(route('units.store'), {
-            onSuccess: () => {
-                setShowUnitModal(false);
-                unitForm.reset();
-                router.reload({ only: ['units'] });
-            },
-            preserveScroll: true,
-        });
-    };
-
-    const handleCreateBrand = (e) => {
-        e.preventDefault();
-        brandForm.post(route('brands.store'), {
-            onSuccess: () => {
-                setShowBrandModal(false);
-                brandForm.reset();
-                router.reload({ only: ['brands'] });
-            },
-            preserveScroll: true,
-        });
-    };
-
-    const handleCreateSupplier = (e) => {
-        e.preventDefault();
-        supplierForm.post(route('suppliers.store'), {
-            onSuccess: () => {
-                setShowSupplierModal(false);
-                supplierForm.reset();
-                router.reload({ only: ['suppliers'] });
-            },
-            preserveScroll: true,
-        });
-    };
+    useEffect(() => { setFilteredProjects(data.client_id ? projects.filter(p=>p.client_id==data.client_id) : projects); }, [data.client_id, projects]);
+    useEffect(() => { if(data.project_id){ const p=projects.find(p=>p.id==data.project_id); if(p?.client_id) setData('client_id',p.client_id); } }, [data.project_id]);
+    useEffect(() => { setTotalValue((parseFloat(data.unit_price)||0)*(parseFloat(data.quantity_in_stock)||0)); }, [data.unit_price, data.quantity_in_stock]);
+    const submit = e => { e.preventDefault(); post(route('inventory.store')); };
+    const STATUS_OPTS = [{value:'active',label:'Active',color:'#16a34a',bg:'#f0fdf4'},{value:'inactive',label:'Inactive',color:'#6b7280',bg:'#f3f4f6'},{value:'discontinued',label:'Discontinued',color:'#dc2626',bg:'#fff1f2'}];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Initialize Resource Node" />
-
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
+            <Head title="Add Inventory Item" />
+            <div style={{maxWidth:'1100px',margin:'0 auto',display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+                {/* Header */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'0.875rem'}}>
                         <Link href={route('inventory.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
-                                <ArrowLeft size={20} />
-                            </Button>
+                            <button style={{width:'38px',height:'38px',borderRadius:'10px',background:'#fff',border:'1.5px solid #ede9fe',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#6366f1'}}><ArrowLeft size={17}/></button>
                         </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                Initialize Resource
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <Activity size={12} className="text-indigo-600" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">New Supply Chain Integration</p>
-                            </div>
+                        <div>
+                            <div style={{display:'flex',alignItems:'center',gap:'0.4rem',marginBottom:'2px'}}><Package size={14} color="#a78bfa"/><span style={{fontSize:'0.68rem',fontWeight:700,color:'#a78bfa',textTransform:'uppercase',letterSpacing:'0.08em'}}>Inventory</span></div>
+                            <h1 style={{fontSize:'1.4rem',fontWeight:800,color:'#1e1b4b',margin:0}}>Add New Item</h1>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className="px-5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-2 border-indigo-100 dark:border-indigo-800 font-black text-[10px] uppercase tracking-widest shadow-sm">
-                            Status: Initializing
-                        </div>
-                    </div>
+                    <button form="inv-form" type="submit" disabled={processing} style={{display:'flex',alignItems:'center',gap:'6px',padding:'0.65rem 1.5rem',background:processing?'#a78bfa':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'12px',color:'#fff',fontSize:'0.88rem',fontWeight:700,cursor:processing?'not-allowed':'pointer',boxShadow:'0 4px 14px rgba(99,102,241,0.35)'}}>
+                        {processing?<Loader2 size={15} className="animate-spin"/>:<Save size={15}/>} {processing?'Saving…':'Save Item'}
+                    </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Main Synthesis Panel */}
-                    <div className="lg:col-span-8 space-y-10">
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none rotate-12">
-                                <Package size={240} className="text-indigo-600" />
-                            </div>
-
-                            <CardContent className="p-10 md:p-14 space-y-12 relative z-10">
-                                {/* Core Information */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Resource Core synthesis</h3>
+                <form id="inv-form" onSubmit={submit}>
+                    <div style={{display:'grid',gap:'1.25rem'}} className="inv-grid">
+                        {/* LEFT */}
+                        <div style={{display:'flex',flexDirection:'column',gap:'1.25rem'}}>
+                            <Card title="Item Details" sub="Basic information about this item" icon={Package}>
+                                <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+                                    <div>
+                                        {lbl('Item Name',true)}
+                                        <Fld icon={Hash} error={errors.name}>
+                                            <input type="text" value={data.name} onChange={e=>setData('name',e.target.value)} placeholder="e.g. Steel Rod 10mm, Cement Bag 50kg…" style={fs} onFocus={oF} onBlur={oB} required/>
+                                        </Fld>
                                     </div>
-
-                                    <div className="space-y-6">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Resource Identifier (Name)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Zap size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="text"
-                                                    className="w-full h-18 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] font-black text-lg text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all uppercase italic tracking-tight"
-                                                    value={data.name}
-                                                    onChange={e => setData('name', e.target.value)}
-                                                    placeholder="RESOURCE DESCRIPTION / MODEL"
-                                                    required
-                                                />
-                                            </div>
-                                            <InputError message={errors.name} className="mt-2" />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between pl-4">
-                                                    <InputLabel value="Brand Architecture" className="text-[10px] font-black uppercase tracking-widest text-slate-500" />
-                                                    <Button type="button" onClick={() => setShowBrandModal(true)} variant="ghost" className="h-6 px-3 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 gap-1 active:scale-95 transition-all">
-                                                        <PlusCircle size={10} /> New Brand
-                                                    </Button>
-                                                </div>
-                                                <select
-                                                    className="w-full h-16 px-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all uppercase tracking-widest text-xs"
-                                                    value={data.brand_id}
-                                                    onChange={e => setData('brand_id', e.target.value)}
-                                                    required
-                                                >
-                                                    <option value="">Select Architecture</option>
-                                                    {brands.map(brand => (
-                                                        <option key={brand.id} value={brand.id}>{brand.name.toUpperCase()}</option>
-                                                    ))}
+                                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
+                                        <div>
+                                            {lbl('Brand',true)}
+                                            <Fld icon={Tag} error={errors.brand_id}>
+                                                <select value={data.brand_id} onChange={e=>setData('brand_id',e.target.value)} style={{...fs,appearance:'none',cursor:'pointer'}} onFocus={oF} onBlur={oB} required>
+                                                    <option value="">Select brand</option>
+                                                    {brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
                                                 </select>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between pl-4">
-                                                    <InputLabel value="Measurement Protocol" className="text-[10px] font-black uppercase tracking-widest text-slate-500" />
-                                                    <Button type="button" onClick={() => setShowUnitModal(true)} variant="ghost" className="h-6 px-3 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 gap-1 active:scale-95 transition-all">
-                                                        <PlusCircle size={10} /> New Unit
-                                                    </Button>
-                                                </div>
-                                                <select
-                                                    className="w-full h-16 px-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all uppercase tracking-widest text-xs"
-                                                    value={data.unit}
-                                                    onChange={e => setData('unit', e.target.value)}
-                                                >
-                                                    {units.map(unit => (
-                                                        <option key={unit.id} value={unit.abbreviation}>{unit.name.toUpperCase()} ({unit.abbreviation.toUpperCase()})</option>
-                                                    ))}
+                                            </Fld>
+                                            <button type="button" onClick={()=>setShowBrand(true)} style={{marginTop:'5px',background:'none',border:'none',color:'#6366f1',fontSize:'0.72rem',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'3px',padding:0}}><Plus size={11}/>Add brand</button>
+                                        </div>
+                                        <div>
+                                            {lbl('Unit of Measure')}
+                                            <Fld icon={Layers}>
+                                                <select value={data.unit} onChange={e=>setData('unit',e.target.value)} style={{...fs,appearance:'none',cursor:'pointer'}} onFocus={oF} onBlur={oB}>
+                                                    {units.map(u=><option key={u.id} value={u.abbreviation}>{u.name} ({u.abbreviation})</option>)}
                                                 </select>
-                                            </div>
+                                            </Fld>
+                                            <button type="button" onClick={()=>setShowUnit(true)} style={{marginTop:'5px',background:'none',border:'none',color:'#6366f1',fontSize:'0.72rem',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'3px',padding:0}}><Plus size={11}/>Add unit</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {lbl('Status')}
+                                        <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                                            {STATUS_OPTS.map(o=><button key={o.value} type="button" onClick={()=>setData('status',o.value)} style={{padding:'0.4rem 0.875rem',borderRadius:'20px',border:'1.5px solid',fontSize:'0.75rem',fontWeight:700,cursor:'pointer',transition:'all 0.15s',borderColor:data.status===o.value?'#8b5cf6':'#ede9fe',background:data.status===o.value?o.bg:'#fff',color:data.status===o.value?o.color:'#9ca3af'}}>{o.label}</button>)}
                                         </div>
                                     </div>
                                 </div>
+                            </Card>
 
-                                {/* Flow Parameters */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-emerald-500" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Flow & Capital Parameters</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Tactical Magnitude (Quantity)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Layers size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="number"
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all italic text-right"
-                                                    value={data.quantity_in_stock}
-                                                    onChange={e => setData('quantity_in_stock', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
+                            <Card title="Stock & Price" sub="Quantity and unit cost" icon={DollarSign} acc="#22c55e">
+                                <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+                                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
+                                        <div>
+                                            {lbl('Quantity in Stock',true)}
+                                            <Fld icon={Layers} error={errors.quantity_in_stock}>
+                                                <input type="number" min="0" value={data.quantity_in_stock} onChange={e=>setData('quantity_in_stock',e.target.value)} placeholder="0" style={{...fs,textAlign:'right'}} onFocus={oF} onBlur={oB} required/>
+                                            </Fld>
                                         </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Unit Capital Cost (Price)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <DollarSign size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="number"
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all italic text-right"
-                                                    value={data.unit_price}
-                                                    onChange={e => setData('unit_price', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
+                                        <div>
+                                            {lbl('Price per Unit (৳)',true)}
+                                            <Fld icon={DollarSign} error={errors.unit_price}>
+                                                <input type="number" min="0" step="0.01" value={data.unit_price} onChange={e=>setData('unit_price',e.target.value)} placeholder="0.00" style={{...fs,textAlign:'right'}} onFocus={oF} onBlur={oB} required/>
+                                            </Fld>
                                         </div>
                                     </div>
-
-                                    <div className="p-10 bg-indigo-600 rounded-[3rem] text-white flex items-center justify-between shadow-2xl shadow-indigo-100 dark:shadow-none relative overflow-hidden group">
-                                        <TrendingUp size={120} className="absolute -bottom-10 -right-10 text-white/10 group-hover:scale-110 transition-transform duration-700" />
-                                        <div className="space-y-1 relative z-10">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 italic">Total Resource Magnitude</p>
-                                            <p className="text-sm font-bold text-white uppercase tracking-widest">Liquid Asset Value</p>
-                                        </div>
-                                        <p className="text-4xl font-black italic tracking-tighter relative z-10">
-                                            ৳{new Intl.NumberFormat().format(totalValue)}
-                                        </p>
-                                    </div>
+                                    {totalValue>0&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0.875rem 1rem',background:'linear-gradient(135deg,#ede9fe,#f5f3ff)',borderRadius:'12px',border:'1.5px solid #c4b5fd'}}><span style={{fontSize:'0.82rem',fontWeight:700,color:'#6d28d9'}}>Total Stock Value</span><span style={{fontSize:'1.15rem',fontWeight:800,color:'#4338ca'}}>৳{new Intl.NumberFormat().format(totalValue)}</span></div>}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </Card>
 
-                        {/* Strategic Assignment */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 md:p-14 space-y-10">
-                                <div className="flex items-center gap-3 pl-2 mb-2">
-                                    <div className="w-2 h-8 rounded-full bg-rose-500" />
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Strategic Vector Assignment</h3>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    <div className="space-y-4">
-                                        <InputLabel value="Entity Vector (Client)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <div className="relative group">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                <Building2 size={18} />
-                                            </div>
-                                            <select
-                                                className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white dark:disabled:text-slate-500 appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all uppercase truncate"
-                                                value={data.client_id}
-                                                onChange={e => setData('client_id', e.target.value)}
-                                                disabled={!!data.project_id}
-                                            >
-                                                <option value="">STOCK BUFFER (STATIC)</option>
-                                                {clients.map(client => (
-                                                    <option key={client.id} value={client.id}>{client.company_name.toUpperCase()}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Operational Vector (Project)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <div className="relative group">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                <Target size={18} />
-                                            </div>
-                                            <select
-                                                className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all uppercase truncate"
-                                                value={data.project_id}
-                                                onChange={e => setData('project_id', e.target.value)}
-                                            >
-                                                <option value="">FREE RESOURCE (UNASSIGNED)</option>
-                                                {filteredProjects.map(project => (
-                                                    <option key={project.id} value={project.id}>{project.title.toUpperCase()}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Lateral Source Panel */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8">
-                        {/* Source Intelligence */}
-                        <Card className="rounded-[44px] border-none bg-slate-900 shadow-2xl shadow-slate-200 dark:shadow-none overflow-hidden relative">
-                            <CardContent className="p-10 space-y-8 relative z-10 text-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-6 rounded-full bg-indigo-500" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 italic">Source Intelligence</h3>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between px-2">
-                                            <InputLabel value="Provider Entity" className="text-[9px] font-black uppercase tracking-widest text-white/40" />
-                                            <Button type="button" onClick={() => setShowSupplierModal(true)} variant="ghost" className="h-6 px-3 rounded-xl text-[8px] font-black uppercase tracking-widest text-indigo-400 bg-white/5 hover:bg-white/10 transition-all">
-                                                Initialize Supplier
-                                            </Button>
-                                        </div>
-                                        <select
-                                            className="w-full h-16 px-8 bg-white/10 border-none rounded-[1.8rem] font-bold text-white focus:ring-4 focus:ring-white/5 transition-all uppercase text-[10px] tracking-widest"
-                                            value={data.supplier_id}
-                                            onChange={e => setData('supplier_id', e.target.value)}
-                                        >
-                                            <option value="" className="text-slate-900">Direct Source / No Supplier</option>
-                                            {suppliers.map(supplier => (
-                                                <option key={supplier.id} value={supplier.id} className="text-slate-900">{supplier.company_name.toUpperCase()}</option>
-                                            ))}
+                            <Card title="Assignment" sub="Assign to a client or project" icon={Layers} acc="#f59e0b">
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
+                                    <div>
+                                        {lbl('Client')}
+                                        <select value={data.client_id} onChange={e=>setData('client_id',e.target.value)} disabled={!!data.project_id} style={{...fni,appearance:'none',cursor:data.project_id?'not-allowed':'pointer',opacity:data.project_id?0.6:1}} onFocus={oF} onBlur={oB}>
+                                            <option value="">No client (stock)</option>
+                                            {clients.map(c=><option key={c.id} value={c.id}>{c.company_name}</option>)}
                                         </select>
                                     </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Lifecycle Status" className="text-[9px] font-black uppercase tracking-widest text-white/40 px-2" />
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {['active', 'inactive', 'discontinued'].map(s => (
-                                                <button
-                                                    key={s}
-                                                    type="button"
-                                                    onClick={() => setData('status', s)}
-                                                    className={cn(
-                                                        "px-4 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border-2 transition-all",
-                                                        data.status === s
-                                                            ? "bg-white text-slate-900 border-white"
-                                                            : "bg-white/5 text-white/30 border-white/5 hover:bg-white/10 hover:text-white/60"
-                                                    )}
-                                                >
-                                                    {s}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    <div>
+                                        {lbl('Project')}
+                                        <select value={data.project_id} onChange={e=>setData('project_id',e.target.value)} style={{...fni,appearance:'none',cursor:'pointer'}} onFocus={oF} onBlur={oB}>
+                                            <option value="">No project</option>
+                                            {filteredProjects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}
+                                        </select>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </Card>
+                        </div>
 
-                        {/* Submission Protocols */}
-                        <div className="space-y-4 pt-4">
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full h-20 rounded-[2.2rem] bg-indigo-600 hover:bg-slate-900 text-white font-black text-xl shadow-2xl shadow-indigo-100 dark:shadow-none gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                                {processing ? (
-                                    <Loader2 className="animate-spin" size={24} />
-                                ) : (
-                                    <>
-                                        <ShieldCheck size={28} />
-                                        <span className="uppercase italic tracking-tighter">Commit Resource</span>
-                                    </>
-                                )}
-                            </Button>
-
-                            <div className="flex items-center gap-3 justify-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2rem]">
-                                <Activity size={14} className="text-indigo-500 animate-pulse" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 italic">Initiating supply stream</p>
-                            </div>
+                        {/* RIGHT */}
+                        <div style={{display:'flex',flexDirection:'column',gap:'1.25rem'}}>
+                            <Card title="Supplier" sub="Who provides this item?" icon={Truck} acc="#3b82f6">
+                                <select value={data.supplier_id} onChange={e=>setData('supplier_id',e.target.value)} style={{...fni,appearance:'none',cursor:'pointer',width:'100%',boxSizing:'border-box'}} onFocus={oF} onBlur={oB}>
+                                    <option value="">No supplier / Direct</option>
+                                    {suppliers.map(s=><option key={s.id} value={s.id}>{s.company_name}</option>)}
+                                </select>
+                                <button type="button" onClick={()=>setShowSupplier(true)} style={{marginTop:'8px',background:'none',border:'none',color:'#3b82f6',fontSize:'0.72rem',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'3px',padding:0}}><Plus size={11}/>Add supplier</button>
+                            </Card>
+                            <button form="inv-form" type="submit" disabled={processing} style={saveBtn(processing)}>
+                                {processing?<Loader2 size={17} className="animate-spin"/>:<Save size={17}/>} {processing?'Saving…':'Save Item'}
+                            </button>
+                            <Link href={route('inventory.index')} style={{textAlign:'center'}}>
+                                <button type="button" style={{width:'100%',padding:'0.7rem',background:'#fff',border:'1.5px solid #ede9fe',borderRadius:'14px',color:'#9ca3af',fontSize:'0.85rem',fontWeight:600,cursor:'pointer'}}>Cancel</button>
+                            </Link>
                         </div>
                     </div>
                 </form>
             </div>
 
-            {/* Sub-Synthesis Modals (Unit, Brand, Supplier) */}
-            {/* Same patterns as Clients/Suppliers create pages */}
-            <Modal show={showUnitModal} onClose={() => setShowUnitModal(false)} maxWidth="md">
-                <div className="p-10 space-y-8 bg-white dark:bg-slate-900 rounded-[3rem]">
-                    <h3 className="text-xl font-black uppercase italic tracking-tighter">New Measurement Unit</h3>
-                    <form onSubmit={handleCreateUnit} className="space-y-6">
-                        <div className="space-y-4">
-                            <InputLabel value="Unit Name" className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                            <TextInput
-                                className="w-full h-14 px-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold italic"
-                                value={unitForm.data.name}
-                                onChange={e => unitForm.setData('name', e.target.value)}
-                                placeholder="e.g. Kilograms"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-4">
-                            <InputLabel value="Protocol Identifier (Abbreviation)" className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                            <TextInput
-                                className="w-full h-14 px-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold uppercase italic"
-                                value={unitForm.data.abbreviation}
-                                onChange={e => unitForm.setData('abbreviation', e.target.value)}
-                                placeholder="KG"
-                                required
-                            />
-                        </div>
-                        <Button type="submit" disabled={unitForm.processing} className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest">
-                            Synthesize Unit
-                        </Button>
+            {/* Unit Modal */}
+            <Modal show={showUnit} onClose={()=>setShowUnit(false)} maxWidth="md">
+                <div style={{background:'#fff',borderRadius:'18px',overflow:'hidden'}}>
+                    <div style={{padding:'1rem 1.5rem',borderBottom:'1px solid #f5f3ff',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <p style={{fontWeight:800,color:'#1e1b4b',margin:0}}>Add Unit of Measure</p>
+                        <button onClick={()=>setShowUnit(false)} style={{background:'#f3f4f6',border:'none',borderRadius:'7px',padding:'5px',cursor:'pointer',color:'#9ca3af',display:'flex'}}><X size={14}/></button>
+                    </div>
+                    <form onSubmit={e=>{e.preventDefault();unitForm.post(route('units.store'),{onSuccess:()=>{setShowUnit(false);unitForm.reset();router.reload({only:['units']});},preserveScroll:true});}} style={{padding:'1.25rem 1.5rem',display:'flex',flexDirection:'column',gap:'0.875rem'}}>
+                        <div>{lbl('Unit Name',true)}<input value={unitForm.data.name} onChange={e=>unitForm.setData('name',e.target.value)} placeholder="e.g. Kilogram" style={fni} onFocus={oF} onBlur={oB} required/></div>
+                        <div>{lbl('Abbreviation',true)}<input value={unitForm.data.abbreviation} onChange={e=>unitForm.setData('abbreviation',e.target.value)} placeholder="e.g. kg" style={fni} onFocus={oF} onBlur={oB} required/></div>
+                        <button type="submit" disabled={unitForm.processing} style={{padding:'0.7rem',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
+                            {unitForm.processing?<Loader2 size={14} className="animate-spin"/>:<CheckCircle2 size={14}/>} Save Unit
+                        </button>
                     </form>
                 </div>
             </Modal>
 
-            <Modal show={showBrandModal} onClose={() => setShowBrandModal(false)} maxWidth="md">
-                <div className="p-10 space-y-8 bg-white dark:bg-slate-900 rounded-[3rem]">
-                    <h3 className="text-xl font-black uppercase italic tracking-tighter">New Brand Identity</h3>
-                    <form onSubmit={handleCreateBrand} className="space-y-6">
-                        <div className="space-y-4">
-                            <InputLabel value="Brand Identifier" className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                            <TextInput
-                                className="w-full h-14 px-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold uppercase italic"
-                                value={brandForm.data.name}
-                                onChange={e => brandForm.setData('name', e.target.value)}
-                                placeholder="BRAND NAME"
-                                required
-                            />
-                        </div>
-                        <Button type="submit" disabled={brandForm.processing} className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest">
-                            Synthesize Brand
-                        </Button>
+            {/* Brand Modal */}
+            <Modal show={showBrand} onClose={()=>setShowBrand(false)} maxWidth="md">
+                <div style={{background:'#fff',borderRadius:'18px',overflow:'hidden'}}>
+                    <div style={{padding:'1rem 1.5rem',borderBottom:'1px solid #f5f3ff',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <p style={{fontWeight:800,color:'#1e1b4b',margin:0}}>Add Brand</p>
+                        <button onClick={()=>setShowBrand(false)} style={{background:'#f3f4f6',border:'none',borderRadius:'7px',padding:'5px',cursor:'pointer',color:'#9ca3af',display:'flex'}}><X size={14}/></button>
+                    </div>
+                    <form onSubmit={e=>{e.preventDefault();brandForm.post(route('brands.store'),{onSuccess:()=>{setShowBrand(false);brandForm.reset();router.reload({only:['brands']});},preserveScroll:true});}} style={{padding:'1.25rem 1.5rem',display:'flex',flexDirection:'column',gap:'0.875rem'}}>
+                        <div>{lbl('Brand Name',true)}<input value={brandForm.data.name} onChange={e=>brandForm.setData('name',e.target.value)} placeholder="e.g. Samsung, 3M…" style={fni} onFocus={oF} onBlur={oB} required/></div>
+                        <button type="submit" disabled={brandForm.processing} style={{padding:'0.7rem',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
+                            {brandForm.processing?<Loader2 size={14} className="animate-spin"/>:<CheckCircle2 size={14}/>} Save Brand
+                        </button>
                     </form>
                 </div>
             </Modal>
 
-            <Modal show={showSupplierModal} onClose={() => setShowSupplierModal(false)} maxWidth="xl">
-                <div className="p-10 space-y-8 bg-white dark:bg-slate-900 rounded-[3rem]">
-                    <h3 className="text-xl font-black uppercase italic tracking-tighter">New Supplier Genesis</h3>
-                    <form onSubmit={handleCreateSupplier} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <InputLabel value="Company Title" />
-                            <TextInput className="w-full" value={supplierForm.data.company_name} onChange={e => supplierForm.setData('company_name', e.target.value)} required />
+            {/* Supplier Modal */}
+            <Modal show={showSupplier} onClose={()=>setShowSupplier(false)} maxWidth="lg">
+                <div style={{background:'#fff',borderRadius:'18px',overflow:'hidden'}}>
+                    <div style={{padding:'1rem 1.5rem',borderBottom:'1px solid #f5f3ff',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <p style={{fontWeight:800,color:'#1e1b4b',margin:0}}>Add Supplier</p>
+                        <button onClick={()=>setShowSupplier(false)} style={{background:'#f3f4f6',border:'none',borderRadius:'7px',padding:'5px',cursor:'pointer',color:'#9ca3af',display:'flex'}}><X size={14}/></button>
+                    </div>
+                    <form onSubmit={e=>{e.preventDefault();supplierForm.post(route('suppliers.store'),{onSuccess:()=>{setShowSupplier(false);supplierForm.reset();router.reload({only:['suppliers']});},preserveScroll:true});}} style={{padding:'1.25rem 1.5rem',display:'flex',flexDirection:'column',gap:'0.875rem'}}>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.875rem'}}>
+                            <div>{lbl('Company Name',true)}<input value={supplierForm.data.company_name} onChange={e=>supplierForm.setData('company_name',e.target.value)} style={fni} onFocus={oF} onBlur={oB} required/></div>
+                            <div>{lbl('Contact Name',true)}<input value={supplierForm.data.name} onChange={e=>supplierForm.setData('name',e.target.value)} style={fni} onFocus={oF} onBlur={oB} required/></div>
+                            <div>{lbl('Phone',true)}<input value={supplierForm.data.phone} onChange={e=>supplierForm.setData('phone',e.target.value)} style={fni} onFocus={oF} onBlur={oB} required/></div>
+                            <div>{lbl('Email')}<input type="email" value={supplierForm.data.email} onChange={e=>supplierForm.setData('email',e.target.value)} style={fni} onFocus={oF} onBlur={oB}/></div>
                         </div>
-                        <div className="space-y-2">
-                            <InputLabel value="Liaison Name" />
-                            <TextInput className="w-full" value={supplierForm.data.name} onChange={e => supplierForm.setData('name', e.target.value)} required />
-                        </div>
-                        <div className="space-y-2">
-                            <InputLabel value="Contact Protocol (Phone)" />
-                            <TextInput className="w-full" value={supplierForm.data.phone} onChange={e => supplierForm.setData('phone', e.target.value)} required />
-                        </div>
-                        <div className="space-y-2">
-                            <InputLabel value="Digital Node (Email)" />
-                            <TextInput className="w-full" value={supplierForm.data.email} onChange={e => supplierForm.setData('email', e.target.value)} />
-                        </div>
-                        <div className="md:col-span-2 flex items-center gap-4 pt-4">
-                            <Button type="submit" disabled={supplierForm.processing} className="flex-1 h-14 bg-indigo-600 text-white font-black uppercase italic tracking-widest">
-                                Initialize Genesis
-                            </Button>
-                        </div>
+                        <button type="submit" disabled={supplierForm.processing} style={{padding:'0.7rem',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
+                            {supplierForm.processing?<Loader2 size={14} className="animate-spin"/>:<CheckCircle2 size={14}/>} Save Supplier
+                        </button>
                     </form>
                 </div>
             </Modal>
+
+            <style>{`.inv-grid{grid-template-columns:1fr}@media(min-width:900px){.inv-grid{grid-template-columns:1fr 300px!important}}.animate-spin{animation:spin 1s linear infinite}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
         </FigmaLayout>
     );
 }
-

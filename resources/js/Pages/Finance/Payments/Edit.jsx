@@ -3,33 +3,67 @@ import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    Save,
-    CreditCard,
+    Plus,
+    Trash2,
     Calendar,
-    Hash,
-    User,
-    FileText,
-    Receipt,
-    Upload,
-    Check,
-    Activity,
-    ShieldCheck,
-    Zap,
+    Users,
+    CreditCard,
+    CheckCircle2,
     DollarSign,
-    Briefcase,
-    Building,
-    FileUp,
-    X,
     Loader2,
+    Receipt,
     History,
-    TrendingUp
+    FileCheck,
+    Briefcase,
+    FileText,
+    Percent,
+    ArrowRight,
+    Plane,
+    Target,
+    Settings,
+    Building,
+    Hash,
+    FileUp,
+    Zap,
+    ShieldCheck,
+    Check,
+    Save
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2rem',
+    position: 'relative',
+    overflow: 'hidden'
+};
+
+const inputStyle = {
+    width: '100%',
+    height: '52px',
+    padding: '0 1.25rem',
+    borderRadius: '12px',
+    border: '1.5px solid #f0eeff',
+    background: '#f8fafc',
+    fontSize: '0.95rem',
+    fontWeight: 700,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
+
+const labelStyle = {
+    fontSize: '0.75rem',
+    fontWeight: 800,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    display: 'block',
+    marginBottom: '8px',
+    paddingLeft: '4px'
+};
 
 export default function Edit({ auth, payment, clients, invoices, paymentMethods = [] }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -62,293 +96,191 @@ export default function Edit({ auth, payment, clients, invoices, paymentMethods 
         setData(prev => ({ ...prev, client_id: clientId, project_id: '' }));
     };
 
-    const handleProjectSelect = (project) => {
-        setData('project_id', project.id);
-    };
-
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('payments.update', payment.id));
+        post(route('payments.update', payment.id), {
+            forceFormData: true,
+        });
     };
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Refine Transaction - ${payment.payment_number}`} />
+            <Head title={`Edit Payment - ${payment.payment_number}`} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
-                        <Link href={route('payments.show', payment.id)}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
+            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+                
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <Link href={route('payments.show', payment.id)} style={{ textDecoration: 'none' }}>
+                            <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1.5px solid #f0eeff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }} className="back-btn">
                                 <ArrowLeft size={20} />
-                            </Button>
+                            </button>
                         </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                Refine Record
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <History size={12} className="text-indigo-600" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">Adjusting Fiscal Receipt: {payment.payment_number}</p>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Edit Payment</h1>
+                                <span style={{ background: '#f1f5f9', padding: '4px 12px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 900, color: '#6366f1' }}>{payment.payment_number}</span>
                             </div>
+                            <p style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Adjust the details of this payment record</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="px-5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-2 border-indigo-100 dark:border-indigo-800 font-black text-[10px] uppercase tracking-widest shadow-sm">
-                            Hysteresis: {payment.status.toUpperCase()}
-                        </div>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={() => window.history.back()} style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#64748b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer' }}>
+                            Cancel
+                        </button>
+                        <button onClick={handleSubmit} disabled={processing}
+                            style={{ height: '48px', padding: '0 2rem', background: '#6366f1', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(99,102,241,0.2)' }}>
+                            {processing ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            Update Payment
+                        </button>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Main Synthesis Panel */}
-                    <div className="lg:col-span-8 space-y-10">
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none rotate-12">
-                                <History size={240} className="text-indigo-600" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2rem' }} className="form-grid">
+                    {/* Left Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        
+                        {/* Client & Project Section */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <Building size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Client & Project</h3>
                             </div>
-
-                            <CardContent className="p-10 md:p-14 space-y-12 relative z-10">
-                                {/* Vector Alignment */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Capital Vector Alignment</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Capital Origin (Client)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Building size={18} />
-                                                </div>
-                                                <select
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.client_id}
-                                                    onChange={e => handleClientChange(e.target.value)}
-                                                    required
-                                                >
-                                                    <option value="">Select Origin Entity</option>
-                                                    {clients.map(client => (
-                                                        <option key={client.id} value={client.id}>{client.company_name || client.name}</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-indigo-600">
-                                                    <Check size={18} />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Allocation Vector (Project)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Briefcase size={18} />
-                                                </div>
-                                                <select
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.project_id}
-                                                    onChange={e => setData('project_id', e.target.value)}
-                                                >
-                                                    <option value="">General Ledger</option>
-                                                    {filteredProjects.map(project => (
-                                                        <option key={project.id} value={project.id}>{project.title}</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-indigo-600">
-                                                    <Check size={18} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Client Name</label>
+                                    <select value={data.client_id} onChange={(e) => handleClientChange(e.target.value)} style={inputStyle}>
+                                        <option value="">Select a Client</option>
+                                        {clients.map((client) => <option key={client.id} value={client.id}>{client.company_name || client.name}</option>)}
+                                    </select>
+                                    {errors.client_id && <p style={{ color: '#e11d48', fontSize: '0.75rem', fontWeight: 800, margin: '8px 4px 0' }}>{errors.client_id}</p>}
                                 </div>
-
-                                {/* Modal Parameters */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-emerald-500" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Temporal & Modal Parameters</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Realization Date" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Calendar size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="date"
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.payment_date}
-                                                    onChange={e => setData('payment_date', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Capital Gateway (Method)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <CreditCard size={18} />
-                                                </div>
-                                                <select
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.payment_method}
-                                                    onChange={e => setData('payment_method', e.target.value)}
-                                                    required
-                                                >
-                                                    <option value="">Select Gateway</option>
-                                                    {paymentMethods.map(method => (
-                                                        <option key={method.id} value={method.code}>{method.name}</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-indigo-600">
-                                                    <Check size={18} />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Reference Vector (Auth No.)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Hash size={18} />
-                                                </div>
-                                                <TextInput
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.reference_number}
-                                                    onChange={e => setData('reference_number', e.target.value)}
-                                                    placeholder="e.g. TXN-9901-X"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Lifecycle Status" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <select
-                                                className="w-full h-16 px-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-slate-300 appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                value={data.status}
-                                                onChange={e => setData('status', e.target.value)}
-                                            >
-                                                <option value="completed">COMPLETED OPS</option>
-                                                <option value="pending">PENDING VERIFICATION</option>
-                                                <option value="failed">FAILED PROTOCOL</option>
-                                                <option value="refunded">REFUNDEDmag</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <label style={labelStyle}>Associate with Project</label>
+                                    <select value={data.project_id} disabled={!data.client_id} onChange={(e) => setData('project_id', e.target.value)} style={{ ...inputStyle, opacity: !data.client_id ? 0.5 : 1 }}>
+                                        <option value="">General Payment (No Project)</option>
+                                        {filteredProjects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}
+                                    </select>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm p-10 md:p-14 space-y-10">
-                            <div className="space-y-4">
-                                <InputLabel value="Fiscal Intelligence Notes" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                <div className="relative group">
-                                    <div className="absolute left-6 top-6 text-slate-300 group-focus-within:text-indigo-600 transition-colors pointer-events-none">
-                                        <FileText size={20} />
-                                    </div>
-                                    <textarea
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] p-8 pl-16 font-bold text-slate-600 dark:text-slate-300 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner min-h-[200px] transition-all"
-                                        value={data.notes}
-                                        onChange={e => setData('notes', e.target.value)}
-                                        placeholder="Enter strategic context or transaction details..."
-                                    />
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Magnitude & Receipt Lateral */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8">
-                        {/* Capital Magnitude Card */}
-                        <Card className="rounded-[44px] border-none bg-emerald-600 shadow-2xl shadow-emerald-100 dark:shadow-none overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none -rotate-12 translate-x-12 -translate-y-12">
-                                <DollarSign size={240} />
-                            </div>
-
-                            <CardContent className="p-10 space-y-8 relative z-10 text-white">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <InputLabel value="Capital Magnitude" className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-100/60 pl-2" />
-                                        <Zap size={16} className="text-emerald-300 animate-pulse" />
-                                    </div>
-                                    <div className="relative group">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40 font-black text-2xl pointer-events-none">৳</div>
-                                        <input
-                                            type="number"
-                                            value={data.amount}
-                                            onChange={e => setData('amount', e.target.value)}
-                                            className="w-full bg-white/10 border-none rounded-[1.8rem] pl-16 pr-8 py-8 text-4xl font-black text-white focus:ring-4 focus:ring-white/20 outline-none transition-all placeholder:text-white/20 tracking-tighter italic"
-                                            placeholder="0.00"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-8 space-y-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100/50">Fiscal Receipt Document</p>
-                                    <div className="relative group">
-                                        <div className={cn(
-                                            "w-full h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all px-4 text-center",
-                                            (data.receipt || payment.receipt) ? "bg-white/20 border-white/40" : "bg-white/5 border-white/20 hover:border-white/40 group-hover:bg-white/10"
-                                        )}>
-                                            {data.receipt ? (
-                                                <div className="text-center space-y-2">
-                                                    <Check size={24} className="mx-auto text-white" />
-                                                    <p className="text-[9px] font-black uppercase tracking-widest truncate max-w-full italic">{data.receipt.name}</p>
-                                                    <button type="button" onClick={() => setData('receipt', null)} className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors underline decoration-dotted">FORGET UPLOAD</button>
-                                                </div>
-                                            ) : payment.receipt ? (
-                                                <div className="text-center space-y-2">
-                                                    <ShieldCheck size={24} className="mx-auto text-white" />
-                                                    <p className="text-[9px] font-black uppercase tracking-widest italic">Document Verified</p>
-                                                    <a href={`/storage/${payment.receipt}`} target="_blank" className="text-[9px] font-black uppercase tracking-widest text-white underline decoration-dotted">VIEW EXISTING</a>
-                                                    <p className="text-[8px] font-medium text-white/40 mt-1 uppercase">Drop file to replace</p>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <FileUp size={24} className="text-white/40 mb-2 group-hover:scale-110 group-hover:text-white transition-all" />
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white font-medium">Upload Receipt</p>
-                                                </>
-                                            )}
-                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setData('receipt', e.target.files[0])} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Submission Protocols */}
-                        <div className="space-y-4 pt-4">
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full h-20 rounded-[2.2rem] bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 text-white font-black text-xl shadow-2xl shadow-indigo-100 dark:shadow-none gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                                {processing ? (
-                                    <Loader2 className="animate-spin" size={24} />
-                                ) : (
-                                    <>
-                                        <ShieldCheck size={28} />
-                                        <span className="uppercase italic tracking-tighter">Commit Refinement</span>
-                                    </>
-                                )}
-                            </Button>
-
-                            <div className="flex items-center gap-3 justify-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2rem]">
-                                <Activity size={14} className="text-emerald-500 animate-pulse" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 italic">Adjusting Corporate Ledger</p>
                             </div>
                         </div>
+
+                        {/* Transaction Details */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <CreditCard size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Transaction Details</h3>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Payment Date</label>
+                                    <input type="date" value={data.payment_date} onChange={(e) => setData('payment_date', e.target.value)} style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Payment Method</label>
+                                    <select value={data.payment_method} onChange={(e) => setData('payment_method', e.target.value)} style={inputStyle}>
+                                        <option value="">Select Method</option>
+                                        {paymentMethods.map((method) => <option key={method.id} value={method.code}>{method.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Reference Number</label>
+                                    <input type="text" value={data.reference_number} onChange={(e) => setData('reference_number', e.target.value)} placeholder="e.g. TXN-12345" style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Payment Status</label>
+                                    <select value={data.status} onChange={(e) => setData('status', e.target.value)} style={inputStyle}>
+                                        <option value="completed">Completed</option>
+                                        <option value="pending">Pending Verification</option>
+                                        <option value="failed">Failed</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Notes Section */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                                <FileText size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Additional Notes</h3>
+                            </div>
+                            <textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="Add any extra details about this transaction..."
+                                style={{ ...inputStyle, height: '120px', padding: '1rem', resize: 'none' }} />
+                        </div>
                     </div>
-                </form>
+
+                    {/* Right Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        
+                        {/* Amount Card */}
+                        <div style={{ ...cardStyle, background: '#1e1b4b', color: '#fff', border: 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Amount Received</h3>
+                                <Zap size={16} className="animate-pulse" color="#fff" />
+                            </div>
+                            
+                            <div style={{ position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1.5rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)' }}>৳</span>
+                                <input type="number" value={data.amount} onChange={(e) => setData('amount', e.target.value)} placeholder="0.00"
+                                    style={{ width: '100%', height: '80px', background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '0 1.25rem 0 3rem', fontSize: '2.5rem', fontWeight: 900, color: '#fff', outline: 'none' }} />
+                            </div>
+
+                            <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, textAlign: 'center' }}>
+                                Your fiscal records are securely synchronized.
+                            </p>
+                        </div>
+
+                        {/* Receipt Upload */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <Receipt size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Update Attachment</h3>
+                            </div>
+                            
+                            {payment.receipt && (
+                                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '16px', border: '1.5px solid #f0eeff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <FileText size={20} color="#6366f1" />
+                                    <a href={`/storage/${payment.receipt}`} target="_blank" style={{ fontSize: '0.85rem', fontWeight: 800, color: '#6366f1', textDecoration: 'none' }}>View Current Document</a>
+                                </div>
+                            )}
+
+                            <div style={{ position: 'relative' }}>
+                                <div style={{ width: '100%', height: '140px', borderRadius: '20px', border: '2px dashed #f0eeff', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', transition: 'all 0.2s', overflow: 'hidden' }} className="upload-box">
+                                    {data.receipt ? (
+                                        <div style={{ textAlign: 'center', padding: '1rem' }}>
+                                            <Check size={32} color="#10b981" />
+                                            <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e1b4b', margin: '8px 0', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.receipt.name}</p>
+                                            <button type="button" onClick={() => setData('receipt', null)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>Remove Upload</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <FileUp size={32} color="#94a3b8" />
+                                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>Upload new document</p>
+                                        </>
+                                    )}
+                                    <input type="file" onChange={(e) => setData('receipt', e.target.files[0])} 
+                                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </div>
+
+            <style>{`
+                .back-btn:hover { background: #f8fafc !important; transform: translateX(-4px); }
+                .upload-box:hover { border-color: #6366f1; background: #f5f3ff; }
+                .form-grid { grid-template-columns: 1.6fr 1fr; }
+                @media (max-width: 1000px) {
+                    .form-grid { grid-template-columns: 1fr !important; }
+                }
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `}</style>
         </FigmaLayout>
     );
 }

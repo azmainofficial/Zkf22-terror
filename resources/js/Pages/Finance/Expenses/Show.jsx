@@ -16,328 +16,278 @@ import {
     CheckCircle2,
     XCircle,
     Clock,
-    User,
     ShieldCheck,
-    Truck,
     Box,
-    ChevronLeft,
     ExternalLink,
-    PieChart,
-    Activity,
     DollarSign,
     Building2,
     Zap,
-    History
+    History,
+    FileCheck,
+    MoreVertical
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { Badge } from '@/Components/ui/Badge';
-import { cn } from '@/lib/utils';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2.5rem',
+    position: 'relative',
+    overflow: 'hidden'
+};
+
+const badgeStyle = (status) => {
+    const styles = {
+        approved: { bg: '#ecfdf5', color: '#059669', label: 'Approved', icon: CheckCircle2 },
+        paid: { bg: '#eff6ff', color: '#2563eb', label: 'Paid', icon: ShieldCheck },
+        pending: { bg: '#fffbeb', color: '#d97706', label: 'Pending Approval', icon: Clock },
+        rejected: { bg: '#fff1f2', color: '#e11d48', label: 'Rejected', icon: XCircle },
+    };
+    const s = styles[status] || styles.pending;
+    return {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 16px',
+        borderRadius: '20px',
+        fontSize: '0.8rem',
+        fontWeight: 800,
+        background: s.bg,
+        color: s.color,
+        textTransform: 'uppercase',
+        letterSpacing: '0.02em',
+        border: `1.5px solid ${s.color}20`,
+        ...s
+    };
+};
 
 export default function Show({ auth, expense }) {
     const handleDelete = () => {
-        if (confirm('Decommission this expenditure record from the corporate ledger?')) {
+        if (confirm('Are you sure you want to delete this expense record?')) {
             router.delete(route('expenses.destroy', expense.id));
         }
     };
 
     const handleApprove = () => {
-        if (confirm('Authorize this expenditure and commit to financial history?')) {
+        if (confirm('Authorize this expense and save to your history?')) {
             router.post(route('expenses.approve', expense.id));
         }
     };
 
     const handleReject = () => {
-        const reason = prompt('Specify rejection rationale for audit audit trail:');
+        const reason = prompt('Please provide a reason for rejecting this expense:');
         if (reason) {
             router.post(route('expenses.reject', expense.id), { approval_notes: reason });
         }
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('en-BD', {
             style: 'currency',
             currency: 'BDT',
             minimumFractionDigits: 2,
         }).format(amount).replace('BDT', '৳');
     };
 
-    const statusConfig = {
-        approved: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle2, label: 'AUTHORIZED' },
-        paid: { color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: ShieldCheck, label: 'SETTLED' },
-        rejected: { color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20', icon: XCircle, label: 'REJECTED' },
-        pending: { color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Clock, label: 'PENDING AUDIT' },
-    };
-
-    const config = statusConfig[expense.status] || statusConfig.pending;
+    const currentBadge = badgeStyle(expense.status);
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Expenditure Dossier - ${expense.expense_number}`} />
+            <Head title={`Expense Details - ${expense.expense_number}`} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-                    <div className="flex items-center gap-6">
-                        <Link href={route('expenses.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
+            <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }} className="no-print">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <Link href={route('expenses.index')} style={{ textDecoration: 'none' }}>
+                            <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1.5px solid #f0eeff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                                 <ArrowLeft size={20} />
-                            </Button>
+                            </button>
                         </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                Expense Dossier
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <History size={12} className="text-indigo-600" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">Record: {expense.expense_number}</p>
-                            </div>
+                        <div>
+                            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Expense Details</h1>
+                            <p style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Expense ID: {expense.expense_number}</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={() => window.print()}
-                            className="h-12 px-6 rounded-2xl border-none bg-white dark:bg-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 font-black text-[10px] uppercase tracking-widest gap-2"
-                        >
-                            <Printer size={16} /> PRINT MANIFEST
-                        </Button>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={() => window.print()} style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#64748b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Printer size={18} />
+                            Print
+                        </button>
                         <Link href={route('expenses.edit', expense.id)}>
-                            <Button
-                                className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-indigo-100 dark:shadow-none"
-                            >
-                                <Edit size={16} /> REFINE LOG
-                            </Button>
+                            <button style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#1e1b4b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Edit size={18} />
+                                Edit
+                            </button>
                         </Link>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Main Synthesis Panel */}
-                    <div className="lg:col-span-8 space-y-10">
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-14 opacity-5 pointer-events-none rotate-12">
-                                <Wallet size={240} className="text-indigo-600" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }} className="details-grid">
+                    {/* Main Information */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#f5f3ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Wallet size={32} />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 4px' }}>{expense.title}</h2>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#6366f1' }}>{expense.category?.name || 'Uncategorized'}</span>
+                                            <span style={{ color: '#cbd5e1' }}>•</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(expense.expense_date).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Amount</p>
+                                    <h3 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{formatCurrency(expense.amount)}</h3>
+                                </div>
                             </div>
 
-                            <CardContent className="p-10 md:p-14 space-y-12 relative z-10">
-                                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-slate-50 dark:border-slate-800">
-                                    <div className="space-y-6">
-                                        <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-100 dark:shadow-none">
-                                            <Wallet size={36} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-none">{expense.title}</h2>
-                                            <div className="flex items-center gap-3">
-                                                <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-500 font-black text-[9px] uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border-none">
-                                                    {expense.category?.name || 'Uncategorized'}
-                                                </Badge>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logged: {new Date(expense.expense_date).toLocaleDateString()}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div style={{ background: '#f8fafc', borderRadius: '20px', padding: '2rem', marginBottom: '2.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
+                                    <FileText size={16} color="#94a3b8" />
+                                    <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Description</h4>
+                                </div>
+                                <p style={{ fontSize: '1rem', fontWeight: 600, color: '#4b5563', lineHeight: 1.6, margin: 0 }}>
+                                    {expense.description || 'No description provided for this expense.'}
+                                </p>
+                            </div>
 
-                                    <div className="text-left md:text-right space-y-2">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] pl-1">Capital Magnitude</p>
-                                        <p className="text-6xl font-black text-indigo-600 tracking-tighter italic">{formatCurrency(expense.amount)}</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                        <Building2 size={20} />
+                                    </div>
+                                    <div>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Vendor</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{expense.vendor_name || 'Not Specified'}</p>
                                     </div>
                                 </div>
-
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Strategic Analysis</h3>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                      <Briefcase size={20} />
                                     </div>
-                                    <div className="p-10 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800/50 relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-                                            <FileText size={120} />
-                                        </div>
-                                        <p className="text-lg font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic relative z-10">
-                                            {expense.description || 'No descriptive technical brief provided for this outflow event.'}
-                                        </p>
+                                    <div>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Project</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{expense.project?.title || 'General / Core'}</p>
                                     </div>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                    <div className="space-y-6">
-                                        <div className="flex gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                                <Building2 size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Counterparty Entity</p>
-                                                <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic">{expense.vendor_name || 'Anonymous Supplier'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                                <Box size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mission Correlation</p>
-                                                <p className="text-sm font-black text-indigo-600 uppercase tracking-tight italic">{expense.project?.title || 'Core Infrastructure'}</p>
-                                            </div>
-                                        </div>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                      <CreditCard size={20} />
                                     </div>
-
-                                    <div className="space-y-6">
-                                        <div className="flex gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                                <CreditCard size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Settlement Protocol</p>
-                                                <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic">{expense.payment_method?.replace('_', ' ') || 'Petty Cash'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                                <ShieldCheck size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ledger Entry Type</p>
-                                                <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Operational Outflow</p>
-                                            </div>
-                                        </div>
+                                    <div>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Payment Method</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0, textTransform: 'capitalize' }}>{expense.payment_method?.replace('_', ' ') || 'Cash'}</p>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                      <Box size={20} />
+                                    </div>
+                                    <div>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Expense Type</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Operational Cost</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Fiscal Command Lateral */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8 no-print">
-                        {/* Audit Status Card */}
-                        <Card className={cn(
-                            "rounded-[44px] border-none shadow-2xl p-10 space-y-8 relative overflow-hidden",
-                            expense.status === 'approved' ? "bg-emerald-500 shadow-emerald-100" :
-                                expense.status === 'paid' ? "bg-indigo-600 shadow-indigo-100" :
-                                    expense.status === 'rejected' ? "bg-rose-500 shadow-rose-100" :
-                                        "bg-amber-500 shadow-amber-100"
-                        )}>
-                            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none -rotate-12 translate-x-8 -translate-y-8">
-                                <config.icon size={160} className="text-white" />
+                    {/* Sidebar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {/* Status Card */}
+                        <div style={{ ...cardStyle, background: expense.status === 'rejected' ? '#fff1f2' : '#fffbeb', border: 'none' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
+                                <currentBadge.icon size={24} color={currentBadge.color} />
+                                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: currentBadge.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Status</h3>
                             </div>
 
-                            <div className="space-y-8 relative z-10 text-white">
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Current Audit State</p>
-                                    <div className="flex items-center gap-4">
-                                        <config.icon size={32} />
-                                        <h4 className="text-3xl font-black italic tracking-tighter">{config.label}</h4>
-                                    </div>
-                                </div>
+                            <span style={{ fontSize: '1.5rem', fontWeight: 900, color: currentBadge.color, display: 'block', marginBottom: '1.5rem' }}>{currentBadge.label}</span>
 
-                                <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-8 space-y-6">
-                                    {expense.status === 'pending' ? (
-                                        <div className="space-y-4">
-                                            <Button
-                                                onClick={handleApprove}
-                                                className="w-full h-14 bg-white text-emerald-600 hover:bg-emerald-50 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl border-none"
-                                            >
-                                                AUTHORIZE LOG
-                                            </Button>
-                                            <Button
-                                                onClick={handleReject}
-                                                variant="ghost"
-                                                className="w-full h-12 text-white hover:bg-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 border-white/20"
-                                            >
-                                                REJECT PROTOCOL
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-4 px-2 py-2 bg-white/5 rounded-2xl border border-white/10">
-                                            <ShieldCheck size={18} className="text-white/40" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Audit Terminal Verified</p>
-                                        </div>
-                                    )}
-
-                                    {expense.is_reimbursable && (
-                                        <div className="flex items-center gap-4 px-4 py-3 bg-white/20 rounded-2xl border border-white/20 shadow-inner">
-                                            <Zap size={16} className="text-amber-300 animate-pulse" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-white italic">Reimbursable Asset</p>
-                                        </div>
-                                    )}
+                            {expense.status === 'pending' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <button onClick={handleApprove} style={{ width: '100%', height: '48px', borderRadius: '12px', background: '#059669', color: '#fff', border: 'none', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(5,150,105,0.2)' }}>
+                                        Approve
+                                    </button>
+                                    <button onClick={handleReject} style={{ width: '100%', height: '48px', borderRadius: '12px', background: '#fff', color: '#e11d48', border: '1.5px solid #fff1f2', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer' }}>
+                                        Reject
+                                    </button>
                                 </div>
-                            </div>
-                        </Card>
-
-                        {/* Digitized Evidence */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 p-10 space-y-8 shadow-sm group">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
-                                        <Receipt size={18} />
-                                    </div>
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white italic">Artifact Proof</h4>
+                            ) : (
+                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.5)', borderRadius: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <ShieldCheck size={16} color={currentBadge.color} />
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: currentBadge.color }}>Verified Record</span>
                                 </div>
-                                {expense.receipt && (
-                                    <a href={`/storage/${expense.receipt}`} target="_blank" className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 hover:scale-110 transition-transform">
-                                        <ExternalLink size={16} />
-                                    </a>
-                                )}
+                            )}
+
+                            {expense.is_reimbursable && (
+                                <div style={{ marginTop: '1.5rem', padding: '12px', background: 'rgba(255,255,255,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Zap size={14} color="#d97706" />
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#d97706' }}>Reimbursable</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Receipt Card */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <Receipt size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Receipt</h3>
                             </div>
 
                             {expense.receipt ? (
-                                <div className="relative group/receipt rounded-[2rem] overflow-hidden border-2 border-slate-50 dark:border-slate-800 aspect-[4/3] bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center gap-4 hover:border-indigo-100 transition-all cursor-pointer">
-                                    <div className="w-20 h-20 rounded-3xl bg-white dark:bg-slate-900 shadow-sm flex items-center justify-center text-slate-200 group-hover/receipt:scale-110 group-hover/receipt:text-indigo-600 transition-all">
-                                        <FileCheck size={40} />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 italic">Reference Secured</p>
-                                        <p className="text-[9px] font-bold text-slate-300 uppercase truncate px-4">SHA-256: {expense.receipt.split('/').pop().substring(0, 16)}...</p>
-                                    </div>
-                                    <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/receipt:opacity-100 transition-opacity flex items-center justify-center">
-                                        <a href={`/storage/${expense.receipt}`} target="_blank" className="bg-white text-slate-950 h-14 px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                                            <Download size={18} /> Download Proof
-                                        </a>
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{ width: '100%', height: '200px', borderRadius: '20px', background: '#f8fafc', border: '1.5px solid #f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', overflow: 'hidden' }} className="receipt-view">
+                                        <FileCheck size={40} color="#10b981" />
+                                        <div style={{ textAlign: 'center' }}>
+                                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e1b4b', margin: '0 0 4px' }}>Proof Verified</p>
+                                            <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>ID: {expense.receipt.split('/').pop().substring(0, 10)}...</p>
+                                        </div>
+                                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(30,27,75,0.6)', opacity: 0, transition: 'all 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="receipt-overlay">
+                                            <a href={`/storage/${expense.receipt}`} target="_blank" style={{ padding: '10px 20px', background: '#fff', color: '#1e1b4b', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Download size={16} /> View Receipt
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="py-14 border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[2.5rem] text-center">
-                                    <XCircle size={36} className="mx-auto text-slate-100 mb-4" />
-                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] italic leading-relaxed">Proof Artifact Missing<br />from Digital Manifest</p>
+                                <div style={{ width: '100%', padding: '2rem 0', borderRadius: '20px', border: '2px dashed #f1f5f9', textAlign: 'center', opacity: 0.5 }}>
+                                    <XCircle size={32} color="#cbd5e1" style={{ marginBottom: '10px' }} />
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', margin: 0 }}>Receipt Missing</p>
                                 </div>
                             )}
-                        </Card>
+                        </div>
 
-                        {/* Risk Metric / System Log */}
-                        <div className="space-y-4 pt-4">
-                            <div className="p-8 rounded-[2.5rem] bg-slate-950 text-white space-y-6 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 p-6 opacity-10">
-                                    <Activity size={48} className="text-indigo-500 animate-pulse" />
-                                </div>
-                                <div className="space-y-1 relative z-10">
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">System Registry Hash</p>
-                                    <p className="text-xs font-mono font-black text-indigo-400 group-hover:text-white transition-colors">OMS-EXP-{expense.expense_number}</p>
-                                </div>
-                                <Button
-                                    onClick={handleDelete}
-                                    variant="ghost"
-                                    className="w-full h-14 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] border border-white/5 hover:border-rose-500/30 transition-all gap-4"
-                                >
-                                    <Trash2 size={16} /> DECOMMISSION RECORD
-                                </Button>
-                            </div>
+                        {/* Delete Action */}
+                        <div style={{ ...cardStyle, background: '#1e1b4b', border: 'none', padding: '1.5rem' }}>
+                           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Danger Zone</p>
+                           <button onClick={handleDelete} style={{ width: '100%', height: '48px', borderRadius: '12px', background: 'rgba(225,29,72,0.1)', color: '#fb7185', border: '1.5px solid rgba(225,29,72,0.2)', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                               <Trash2 size={16} />
+                               Delete Record
+                           </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
+            <style>{`
+                .receipt-view:hover .receipt-overlay { opacity: 1 !important; }
+                @media (max-width: 900px) {
+                    .details-grid { grid-template-columns: 1fr !important; }
+                }
                 @media print {
                     .no-print { display: none !important; }
-                    body { background: white !important; padding: 0 !important; color: black !important; }
-                    .FigmaLayout { margin: 0 !important; padding: 0 !important; }
-                    .Card { border: 2px solid #f1f5f9 !important; box-shadow: none !important; margin-bottom: 2rem !important; }
-                    .bg-indigo-600 { color: black !important; background: #f8fafc !important; border: 2px solid #e2e8f0 !important; }
-                    .text-indigo-600 { color: black !important; }
-                    .shadow-2xl, .shadow-lg, .shadow-sm { box-shadow: none !important; }
+                    body { background: #fff !important; }
                 }
-            `}} />
+            `}</style>
         </FigmaLayout>
     );
 }

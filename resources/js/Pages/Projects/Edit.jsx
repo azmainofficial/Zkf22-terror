@@ -10,35 +10,90 @@ import {
     Upload,
     Pencil,
     FileText,
-    Activity,
-    ShieldCheck,
-    Zap,
-    Briefcase,
-    Building,
     Calendar,
     DollarSign,
     Clock,
-    TrendingUp,
     Layers,
     PlusCircle,
     Check,
     Loader2,
-    FileUp,
-    ChevronDown,
-    Image as ImageIcon
+    Image as ImageIcon,
+    AlertCircle,
+    Building2,
+    Target
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
+
+const fieldStyle = {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '0.65rem 1rem 0.65rem 2.4rem',
+    background: '#f9f7ff',
+    border: '1.5px solid #ede9fe',
+    borderRadius: '12px',
+    fontSize: '0.88rem',
+    color: '#1e1b4b',
+    outline: 'none',
+    transition: 'all 0.2s',
+    fontFamily: 'inherit'
+};
+
+const textAreaStyle = {
+    ...fieldStyle,
+    padding: '1rem',
+    minHeight: '120px',
+    resize: 'vertical'
+};
+
+const onFocus = e => {
+    e.target.style.borderColor = '#8b5cf6';
+    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
+};
+
+const onBlur = e => {
+    e.target.style.borderColor = '#ede9fe';
+    e.target.style.boxShadow = 'none';
+};
+
+const labelStyle = {
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    color: '#4b5563',
+    display: 'block',
+    marginBottom: '5px'
+};
+
+function Field({ icon: Icon, error, children }) {
+    return (
+        <div style={{ position: 'relative', width: '100%' }}>
+            {Icon && <Icon size={14} color="#a78bfa" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 10 }} />}
+            {children}
+            {error && <p style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}><AlertCircle size={11} /> {error}</p>}
+        </div>
+    );
+}
+
+function SectionCard({ title, subtitle, icon: Icon, children, accent = '#6366f1' }) {
+    return (
+        <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #f0eeff', boxShadow: '0 2px 12px rgba(99,102,241,0.05)', overflow: 'hidden', marginBottom: '1.25rem' }}>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #f5f3ff', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: `${accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={17} color={accent} />
+                </div>
+                <div>
+                    <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{title}</p>
+                    {subtitle && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>}
+                </div>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem' }}>{children}</div>
+        </div>
+    );
+}
 
 export default function Edit({ auth, project, clients }) {
     const [preview, setPreview] = useState(project.image ? `/storage/${project.image}` : null);
-    const [contractDetails, setContractDetails] = useState(project.contract_details || []);
-    const [editingDetail, setEditingDetail] = useState(null);
-    const [detailForm, setDetailForm] = useState({ description: '', amount: '' });
+    const [milestones, setMilestones] = useState(project.contract_details || []);
+    const [editingMilestone, setEditingMilestone] = useState(null);
+    const [milestoneForm, setMilestoneForm] = useState({ description: '', amount: '' });
 
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
@@ -57,67 +112,36 @@ export default function Edit({ auth, project, clients }) {
         contract_amount: project.contract_amount || 0,
     });
 
-    // Handle legacy parsing if needed (from reference logic)
     useEffect(() => {
-        if ((!project.contract_details || project.contract_details.length === 0) && project.description) {
-            const marker = "Contract Breakdown:";
-            if (project.description.includes(marker)) {
-                const parts = project.description.split(marker);
-                const legacyDetails = parts[1];
-                const cleanDescription = parts[0].trim();
-
-                if (contractDetails.length === 0) {
-                    const lines = legacyDetails.split('\n').filter(line => line.trim().startsWith('-'));
-                    const parsed = lines.map(line => {
-                        const content = line.trim().substring(2);
-                        const lastColon = content.lastIndexOf(':');
-                        if (lastColon > 0) {
-                            const desc = content.substring(0, lastColon).trim();
-                            const amt = content.substring(lastColon + 1).replace(/,/g, '').trim();
-                            return { description: desc, amount: amt };
-                        }
-                        return null;
-                    }).filter(item => item !== null);
-
-                    if (parsed.length > 0) {
-                        setContractDetails(parsed);
-                        setData(prev => ({ ...prev, description: cleanDescription }));
-                    }
-                }
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        const total = contractDetails.reduce((sum, detail) => sum + parseFloat(detail.amount || 0), 0);
+        const total = milestones.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0);
         setData(prev => ({
             ...prev,
-            contract_details: JSON.stringify(contractDetails),
+            contract_details: JSON.stringify(milestones),
             contract_amount: total
         }));
-    }, [contractDetails]);
+    }, [milestones]);
 
-    const handleAddDetail = () => {
-        if (detailForm.description && detailForm.amount) {
-            if (editingDetail !== null) {
-                const updated = [...contractDetails];
-                updated[editingDetail] = detailForm;
-                setContractDetails(updated);
-                setEditingDetail(null);
+    const handleAddMilestone = () => {
+        if (milestoneForm.description && milestoneForm.amount) {
+            if (editingMilestone !== null) {
+                const updated = [...milestones];
+                updated[editingMilestone] = milestoneForm;
+                setMilestones(updated);
+                setEditingMilestone(null);
             } else {
-                setContractDetails([...contractDetails, detailForm]);
+                setMilestones([...milestones, milestoneForm]);
             }
-            setDetailForm({ description: '', amount: '' });
+            setMilestoneForm({ description: '', amount: '' });
         }
     };
 
-    const handleEditDetail = (index) => {
-        setDetailForm(contractDetails[index]);
-        setEditingDetail(index);
+    const handleEditMilestone = (index) => {
+        setMilestoneForm(milestones[index]);
+        setEditingMilestone(index);
     };
 
-    const handleDeleteDetail = (index) => {
-        setContractDetails(contractDetails.filter((_, i) => i !== index));
+    const handleDeleteMilestone = (index) => {
+        setMilestones(milestones.filter((_, i) => i !== index));
     };
 
     const handleImageChange = (e) => {
@@ -135,364 +159,248 @@ export default function Edit({ auth, project, clients }) {
         });
     };
 
-    const totalContractAmount = contractDetails.reduce((sum, detail) => sum + parseFloat(detail.amount || 0), 0);
+    const STATUS_OPTIONS = [
+        { value: 'pending', label: 'Pending', color: '#f59e0b', bg: '#fffbeb' },
+        { value: 'ongoing', label: 'In Progress', color: '#6366f1', bg: '#f5f3ff' },
+        { value: 'on_hold', label: 'On Hold', color: '#6b7280', bg: '#f3f4f6' },
+        { value: 'completed', label: 'Completed', color: '#10b981', bg: '#ecfdf5' },
+        { value: 'cancelled', label: 'Cancelled', color: '#ef4444', bg: '#fef2f2' },
+    ];
+
+    const PRIORITY_OPTIONS = [
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' },
+        { value: 'critical', label: 'Critical' },
+    ];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Refine Portfolio Node - ${project.title}`} />
+            <Head title={`Edit Project - ${project.title}`} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
+            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <Link href={route('projects.show', project.id)}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
-                                <ArrowLeft size={20} />
-                            </Button>
+                            <button style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', border: '1.5px solid #ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6366f1', transition: 'all 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                                <ArrowLeft size={18} />
+                            </button>
                         </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                Refine Project
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <Activity size={12} className="text-indigo-600" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">Adjusting Resonance Parameters</p>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '2px' }}>
+                                <Target size={14} color="#a78bfa" />
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Projects</span>
                             </div>
+                            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Edit Project</h1>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className={cn(
-                            "px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm border-2",
-                            project.status === 'completed' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                                project.status === 'ongoing' ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
-                                    "bg-amber-50 text-amber-600 border-amber-100"
-                        )}>
-                            Lifecycle: {project.status.toUpperCase()}
-                        </div>
+                    
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={submit} disabled={processing} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.7rem 1.5rem', background: processing ? '#a78bfa' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: processing ? 'not-allowed' : 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3) transition: all 0.2s' }}>
+                            {processing ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            {processing ? 'Saving...' : 'Save Changes'}
+                        </button>
                     </div>
                 </div>
 
-                <form onSubmit={submit} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Main Synthesis Panel */}
-                    <div className="lg:col-span-8 space-y-10">
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none rotate-12">
-                                <Layers size={240} className="text-indigo-600" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }} className="project-grid">
+                    
+                    {/* Left Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        
+                        <SectionCard title="Basic Information" subtitle="Project name, client and description" icon={FileText}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Project Name</label>
+                                    <Field icon={Target} error={errors.title}>
+                                        <input type="text" value={data.title} onChange={e => setData('title', e.target.value)}
+                                            placeholder="Enter project title" style={fieldStyle} onFocus={onFocus} onBlur={onBlur} required />
+                                    </Field>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label style={labelStyle}>Client</label>
+                                        <Field icon={Building2} error={errors.client_id}>
+                                            <select value={data.client_id} onChange={e => setData('client_id', e.target.value)}
+                                                style={{ ...fieldStyle, appearance: 'none', cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur} required>
+                                                <option value="">Select a client</option>
+                                                {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.name}</option>)}
+                                            </select>
+                                        </Field>
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Priority</label>
+                                        <Field>
+                                            <select value={data.priority} onChange={e => setData('priority', e.target.value)}
+                                                style={{ ...fieldStyle, paddingLeft: '1rem', appearance: 'none', cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
+                                                {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                                            </select>
+                                        </Field>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={labelStyle}>Description</label>
+                                    <Field error={errors.description}>
+                                        <textarea value={data.description} onChange={e => setData('description', e.target.value)}
+                                            placeholder="Describe what this project is about..." style={textAreaStyle} onFocus={onFocus} onBlur={onBlur} />
+                                    </Field>
+                                </div>
+                            </div>
+                        </SectionCard>
+
+                        <SectionCard title="Timeline & Dates" subtitle="Set start and end dates" icon={Calendar} accent="#10b981">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Start Date</label>
+                                    <Field icon={Calendar} error={errors.start_date}>
+                                        <input type="date" value={data.start_date} onChange={e => setData('start_date', e.target.value)}
+                                            style={fieldStyle} onFocus={onFocus} onBlur={onBlur} required />
+                                    </Field>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Deadline</label>
+                                    <Field icon={Clock} error={errors.deadline}>
+                                        <input type="date" value={data.deadline} onChange={e => setData('deadline', e.target.value)}
+                                            style={fieldStyle} onFocus={onFocus} onBlur={onBlur} required />
+                                    </Field>
+                                </div>
+                            </div>
+                        </SectionCard>
+
+                        <SectionCard title="Payment Milestones" subtitle="Break down the project into payments" icon={Layers} accent="#8b5cf6">
+                            <div style={{ background: '#f9f7ff', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem', border: '1.5px dashed #dcd7ff' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 50px', gap: '1rem', alignItems: 'flex-end' }}>
+                                    <div>
+                                        <label style={{ ...labelStyle, color: '#6366f1' }}>Milestone Description</label>
+                                        <input type="text" value={milestoneForm.description} onChange={e => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
+                                            placeholder="e.g. Initial Deposit, Final Delivery" style={{ ...fieldStyle, paddingLeft: '1rem', background: '#fff' }} onFocus={onFocus} onBlur={onBlur} />
+                                    </div>
+                                    <div>
+                                        <label style={{ ...labelStyle, color: '#6366f1' }}>Amount (৳)</label>
+                                        <input type="number" value={milestoneForm.amount} onChange={e => setMilestoneForm({ ...milestoneForm, amount: e.target.value })}
+                                            placeholder="0.00" style={{ ...fieldStyle, paddingLeft: '1rem', background: '#fff', textAlign: 'right' }} onFocus={onFocus} onBlur={onBlur} />
+                                    </div>
+                                    <button type="button" onClick={handleAddMilestone} disabled={!milestoneForm.description || !milestoneForm.amount}
+                                        style={{ height: '42px', width: '42px', borderRadius: '10px', background: '#6366f1', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', opacity: (!milestoneForm.description || !milestoneForm.amount) ? 0.5 : 1 }}>
+                                        {editingMilestone !== null ? <Check size={20} /> : <Plus size={20} />}
+                                    </button>
+                                </div>
                             </div>
 
-                            <CardContent className="p-10 md:p-14 space-y-12 relative z-10">
-                                {/* Core Resonance Parameters */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Adjust Resonance Parameters</h3>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Project Tactical Title" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Zap size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="text"
-                                                    className="w-full h-18 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] font-black text-lg text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all uppercase italic tracking-tight"
-                                                    value={data.title}
-                                                    onChange={e => setData('title', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                            <InputError message={errors.title} className="mt-2" />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {milestones.map((m, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', background: '#fff', borderRadius: '12px', border: '1.5px solid #f0eeff' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#f5f3ff', color: '#6366f1', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>{m.description}</span>
                                         </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                            <div className="space-y-4">
-                                                <InputLabel value="Resource Node (Client)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                                <div className="relative group">
-                                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                        <Building size={18} />
-                                                    </div>
-                                                    <select
-                                                        className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                        value={data.client_id}
-                                                        onChange={e => setData('client_id', e.target.value)}
-                                                        required
-                                                    >
-                                                        {clients.map(client => (
-                                                            <option key={client.id} value={client.id}>
-                                                                {client.company_name} ({client.name})
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <InputLabel value="Priority Magnitude" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                                <select
-                                                    className="w-full h-16 px-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-slate-300 appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.priority}
-                                                    onChange={e => setData('priority', e.target.value)}
-                                                >
-                                                    <option value="low">LOW PRIORITY</option>
-                                                    <option value="medium">MEDIUM VECTOR</option>
-                                                    <option value="high">HIGH MAGNITUDE</option>
-                                                    <option value="critical">CRITICAL RESONANCE</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Strategic Objective (Description)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <textarea
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] p-8 text-sm font-bold text-slate-600 dark:text-slate-300 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all resize-none min-h-[160px]"
-                                                value={data.description}
-                                                onChange={e => setData('description', e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Temporal Trajectories */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-emerald-500" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Temporal Trajectories</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Initialization Date" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Calendar size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="date"
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.start_date}
-                                                    onChange={e => setData('start_date', e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Realization Deadline" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Clock size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="date"
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.deadline}
-                                                    onChange={e => setData('deadline', e.target.value)}
-                                                    required
-                                                />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6366f1' }}>৳{new Intl.NumberFormat().format(m.amount)}</span>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                <button type="button" onClick={() => handleEditMilestone(i)} style={{ color: '#9ca3af', background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}><Pencil size={14} /></button>
+                                                <button type="button" onClick={() => handleDeleteMilestone(i)} style={{ color: '#ef4444', background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}><Trash2 size={14} /></button>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Contract Breakdown Surface */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 md:p-14 space-y-10">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                                    <div className="flex items-center gap-3 pl-2">
-                                        <div className="w-2 h-8 rounded-full bg-rose-500" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Adjust Milestone Matrix</h3>
+                                ))}
+                                
+                                {milestones.length > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: '#1e1b4b', borderRadius: '12px', marginTop: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#a5b4fc' }}>Total Project Value</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>৳{new Intl.NumberFormat().format(data.contract_amount)}</span>
                                     </div>
-                                    {totalContractAmount > 0 && (
-                                        <div className="px-6 py-2 rounded-2xl bg-slate-900 text-white font-black text-lg tracking-tighter italic shadow-sm">
-                                            ৳{new Intl.NumberFormat().format(totalContractAmount)}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Milestone Integration Form */}
-                                <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                                        <div className="md:col-span-8 space-y-3">
-                                            <InputLabel value="Milestone / Phase Identifier" className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                            <input
-                                                type="text"
-                                                value={detailForm.description}
-                                                onChange={e => setDetailForm({ ...detailForm, description: e.target.value })}
-                                                placeholder="e.g. Initial Sprint Realization, Prototype Deployment..."
-                                                className="w-full h-14 px-6 bg-white dark:bg-slate-900 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-sm"
-                                            />
-                                        </div>
-                                        <div className="md:col-span-3 space-y-3">
-                                            <InputLabel value="Capital Magnitude" className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">৳</span>
-                                                <input
-                                                    type="number"
-                                                    value={detailForm.amount}
-                                                    onChange={e => setDetailForm({ ...detailForm, amount: e.target.value })}
-                                                    placeholder="0.00"
-                                                    className="w-full h-14 pl-10 pr-6 bg-white dark:bg-slate-900 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-sm text-right"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="md:col-span-1">
-                                            <Button
-                                                type="button"
-                                                onClick={handleAddDetail}
-                                                className="w-full h-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none hover:scale-105 transition-all"
-                                                disabled={!detailForm.description || !detailForm.amount}
-                                            >
-                                                {editingDetail !== null ? <Pencil size={18} /> : <PlusCircle size={22} />}
-                                            </Button>
-                                        </div>
+                                )}
+                                
+                                {milestones.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af', fontSize: '0.85rem', background: '#f9f9fb', borderRadius: '12px' }}>
+                                        No milestones added yet.
                                     </div>
-                                </div>
-
-                                {/* Milestone List */}
-                                <div className="space-y-4">
-                                    {contractDetails.map((detail, index) => (
-                                        <div key={index} className="group flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/30 rounded-3xl border border-transparent hover:border-indigo-100 transition-all">
-                                            <div className="flex items-center gap-6">
-                                                <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-300 italic shadow-sm">
-                                                    #{index + 1}
-                                                </div>
-                                                <p className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase italic">{detail.description}</p>
-                                            </div>
-                                            <div className="flex items-center gap-6">
-                                                <p className="text-lg font-black text-indigo-600 tracking-tighter italic">৳{new Intl.NumberFormat().format(detail.amount)}</p>
-                                                <div className="flex items-center gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button type="button" onClick={() => handleEditDetail(index)} variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-indigo-600 shadow-sm">
-                                                        <Pencil size={14} />
-                                                    </Button>
-                                                    <Button type="button" onClick={() => handleDeleteDetail(index)} variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 hover:bg-rose-100 shadow-sm">
-                                                        <Trash2 size={14} />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                )}
+                            </div>
+                        </SectionCard>
                     </div>
 
-                    {/* Operational & Protocol Lateral */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8">
-                        {/* Status Lifecycle command */}
-                        <Card className="rounded-[44px] border-none bg-indigo-600 shadow-2xl shadow-indigo-100 dark:shadow-none overflow-hidden relative">
-                            <CardContent className="p-10 space-y-8 relative z-10 text-white">
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-1.5 h-6 rounded-full bg-white/20" />
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 italic">Lifecycle Status Command</h3>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {['pending', 'ongoing', 'on_hold', 'completed', 'cancelled'].map(s => (
-                                            <button
-                                                key={s}
-                                                type="button"
-                                                onClick={() => setData('status', s)}
-                                                className={cn(
-                                                    "px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all",
-                                                    data.status === s
-                                                        ? "bg-white text-indigo-600 border-white shadow-lg"
-                                                        : "bg-white/10 text-white/60 border-white/5 hover:bg-white/20"
-                                                )}
-                                            >
-                                                {s.replace('_', ' ')}
+                    {/* Right Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        <SectionCard title="Status & Progress" subtitle="Set current project state" icon={Loader2}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <label style={labelStyle}>Project Status</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {STATUS_OPTIONS.map(s => (
+                                            <button key={s.value} type="button" onClick={() => setData('status', s.value)}
+                                                style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '10px', border: '1.5px solid', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', background: data.status === s.value ? s.bg : '#fff', borderColor: data.status === s.value ? s.color : '#f0eeff', color: data.status === s.value ? s.color : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                {s.label}
+                                                {data.status === s.value && <Check size={14} />}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="space-y-6 pt-4 border-t border-white/10">
-                                    <div className="space-y-2">
-                                        <InputLabel value="Capital Synthesis (Actual Cost)" className="text-[10px] font-black uppercase tracking-widest text-white/50 pl-2" />
-                                        <div className="relative">
-                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30 font-bold text-xs">৳</span>
-                                            <input
-                                                type="number"
-                                                className="w-full h-16 pl-12 pr-6 bg-white/10 border-none rounded-[1.8rem] font-black text-white focus:ring-4 focus:ring-white/10 transition-all text-right italic"
-                                                value={data.actual_cost}
-                                                onChange={e => setData('actual_cost', e.target.value)}
-                                            />
-                                        </div>
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <label style={labelStyle}>Progress</label>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#6366f1' }}>{data.progress}%</span>
                                     </div>
+                                    <input type="range" min="0" max="100" value={data.progress} onChange={e => setData('progress', e.target.value)}
+                                        style={{ width: '100%', height: '6px', background: '#ede9fe', borderRadius: '10px', appearance: 'none', cursor: 'pointer', outline: 'none' }} />
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Project Visual Identity */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 space-y-6">
-                                <div className="flex items-center gap-3 pl-2">
-                                    <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Visual Identity Node</h3>
-                                </div>
-
-                                <div className="space-y-6 text-center">
-                                    {preview ? (
-                                        <div className="relative group w-full h-48 rounded-[2.5rem] overflow-hidden shadow-inner bg-slate-50 dark:bg-slate-800 border-4 border-white dark:border-slate-700">
-                                            <img src={preview} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 shadow-sm" alt="Project preview" />
-                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                <Pencil className="text-white" size={32} />
-                                            </div>
-                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageChange} accept="image/*" />
-                                        </div>
-                                    ) : (
-                                        <label className="flex flex-col items-center justify-center w-full h-48 bg-slate-50 dark:bg-slate-800 border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2.5rem] cursor-pointer hover:bg-white transition-all group overflow-hidden relative shadow-inner">
-                                            <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <div className="text-center relative z-10 space-y-3">
-                                                <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto text-slate-400 group-hover:text-indigo-600 transition-colors shadow-sm">
-                                                    <ImageIcon size={28} />
-                                                </div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Initialize Visual Node</p>
-                                            </div>
-                                            <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
-                                        </label>
-                                    )}
-                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none">High-Fidelity JPG / PNG Only</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Submission Protocols */}
-                        <div className="space-y-4">
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full h-20 rounded-[2.2rem] bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-black text-xl shadow-2xl shadow-indigo-100 dark:shadow-none gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                                {processing ? (
-                                    <Loader2 className="animate-spin" size={24} />
-                                ) : (
-                                    <>
-                                        <ShieldCheck size={28} />
-                                        <span className="uppercase italic tracking-tighter">Adjust Record</span>
-                                    </>
-                                )}
-                            </Button>
-
-                            <div className="flex items-center gap-3 justify-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2rem]">
-                                <Activity size={14} className="text-indigo-500 animate-pulse" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 italic">Adjusting Tactical Node</p>
                             </div>
+                        </SectionCard>
+
+                        <SectionCard title="Project Image" subtitle="Display thumbnail" icon={ImageIcon} accent="#f43f5e">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+                                {preview ? (
+                                    <div style={{ width: '100%', height: '180px', borderRadius: '14px', overflow: 'hidden', position: 'relative', border: '2px solid #f0eeff' }}>
+                                        <img src={preview} style={{ width: '100%', height: '100%', objectCover: 'cover' }} alt="Preview" />
+                                        <button onClick={() => { setData('image', null); setPreview(null); }}
+                                            style={{ position: 'absolute', top: '8px', right: '8px', padding: '6px', background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label style={{ width: '100%', height: '180px', borderRadius: '14px', border: '2px dashed #ede9fe', background: '#f9f7ff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: '10px', transition: 'all 0.2s' }}
+                                        onMouseEnter={e => e.currentTarget.style.borderColor = '#c4b5fd'}
+                                        onMouseLeave={e => e.currentTarget.style.borderColor = '#ede9fe'}>
+                                        <Upload size={24} color="#a78bfa" />
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#a78bfa' }}>Upload Main Image</span>
+                                        <input type="file" onChange={handleImageChange} style={{ display: 'none' }} accept="image/*" />
+                                    </label>
+                                )}
+                            </div>
+                        </SectionCard>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                            <button onClick={submit} disabled={processing} style={{ width: '100%', padding: '0.9rem', background: processing ? '#a78bfa' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '1rem', fontWeight: 800, cursor: processing ? 'not-allowed' : 'pointer', boxShadow: '0 6px 20px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                {processing ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                                {processing ? 'Saving...' : 'Save All Changes'}
+                            </button>
+                            <Link href={route('projects.show', project.id)} style={{ textDecoration: 'none' }}>
+                                <button style={{ width: '100%', padding: '0.8rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '14px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#fecaca'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.borderColor = '#ede9fe'; }}>
+                                    Cancel & Return
+                                </button>
+                            </Link>
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
+
+            <style>{`
+                @media (max-width: 992px) {
+                    .project-grid { grid-template-columns: 1fr !important; }
+                }
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `}</style>
         </FigmaLayout>
     );
-}
-
-function User({ className, size }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-        </svg>
-    )
 }

@@ -13,7 +13,13 @@ class Payroll extends Model
         'employee_id',
         'month',
         'year',
+        'total_days',
+        'present_days',
+        'absent_days',
+        'late_days',
         'base_salary',
+        'late_deduction',
+        'absent_deduction',
         'bonus',
         'deductions',
         'total',
@@ -25,6 +31,8 @@ class Payroll extends Model
 
     protected $casts = [
         'base_salary' => 'decimal:2',
+        'late_deduction' => 'decimal:2',
+        'absent_deduction' => 'decimal:2',
         'bonus' => 'decimal:2',
         'deductions' => 'decimal:2',
         'total' => 'decimal:2',

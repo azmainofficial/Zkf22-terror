@@ -1,18 +1,40 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/Card';
-import { Button } from '@/Components/ui/Button';
-import { ArrowLeft, User, Calendar, Activity, MapPin, Monitor, FileText } from 'lucide-react';
-import { useAppStore } from '@/store/useAppStore';
+import FigmaLayout from '@/Layouts/FigmaLayout';
+import { Head, router, Link } from '@inertiajs/react';
+import { 
+    History, 
+    ArrowLeft, 
+    User, 
+    Calendar, 
+    Activity, 
+    MapPin, 
+    Monitor, 
+    FileText,
+    ChevronLeft,
+    Clock,
+    Globe,
+    Cpu,
+    GitBranch,
+    RefreshCw,
+    Plus,
+    Trash2,
+    MousePointer,
+    Eye
+} from 'lucide-react';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2rem',
+    position: 'relative',
+    overflow: 'hidden'
+};
 
 export default function Show({ auth, log }) {
-    const { language } = useAppStore();
-    const tr = (en, bn) => language === 'bn' ? bn : en;
-
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleString('en-US', {
+        return new Date(dateString).toLocaleString('en-US', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -23,188 +45,159 @@ export default function Show({ auth, log }) {
         });
     };
 
-    const getActionColor = (action) => {
-        const colors = {
-            'created': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-            'updated': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-            'deleted': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-            'viewed': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-            'accessed': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    const getActionConfig = (action) => {
+        const configs = {
+            'created': { icon: Plus, bg: '#ecfdf5', color: '#10b981', label: 'Added', border: '#a7f3d0' },
+            'updated': { icon: RefreshCw, bg: '#eff6ff', color: '#3b82f6', label: 'Modified', border: '#bfdbfe' },
+            'deleted': { icon: Trash2, bg: '#fff1f2', color: '#ef4444', label: 'Removed', border: '#fecdd3' },
+            'viewed': { icon: Eye, bg: '#f8fafc', color: '#94a3b8', label: 'Viewed', border: '#e2e8f0' },
+            'accessed': { icon: MousePointer, bg: '#f5f3ff', color: '#8b5cf6', label: 'Accessed', border: '#ddd6fe' },
         };
-        return colors[action] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return configs[action] || { icon: Activity, bg: '#f9faff', color: '#64748b', label: action, border: '#e2e8f0' };
     };
 
-    return (
-        <AuthenticatedLayout user={auth.user}>
-            <Head title="Activity Details" />
+    const actionCfg = getActionConfig(log.action);
+    const ActionIcon = actionCfg.icon;
 
-            <div className="py-12">
-                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                    {/* Header */}
-                    <div className="mb-6">
-                        <Button
-                            variant="outline"
-                            onClick={() => router.get(route('audit-logs.index'))}
-                            className="gap-2 mb-4"
-                        >
-                            <ArrowLeft size={16} />
-                            {tr('Back to Activity Log', 'কার্যকলাপ লগে ফিরে যান')}
-                        </Button>
-                        <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            {tr('Activity Details', 'কার্যকলাপের বিস্তারিত')}
-                        </h2>
+    return (
+        <FigmaLayout user={auth.user}>
+            <Head title="Event Details" />
+
+            <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                    <Link href={route('audit-logs.index')} style={{ textDecoration: 'none' }}>
+                        <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1.5px solid #f0eeff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                            <ChevronLeft size={20} />
+                        </button>
+                    </Link>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: actionCfg.bg, border: `1.5px solid ${actionCfg.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: actionCfg.color }}>
+                            <ActionIcon size={28} />
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
+                                {log.description || `${actionCfg.label} Record`}
+                            </h1>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Detailed overview of the recorded system event</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Information Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                    <div style={{ ...cardStyle }}>
+                        <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <User size={16} color="#6366f1" /> Actor Information
+                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f8fafc', border: '1.5px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontWeight: 900, fontSize: '1.1rem' }}>
+                                {(log.user?.name || 'S').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{log.user?.name || 'System Auto-Processor'}</p>
+                                {log.user?.email && <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700, margin: '2px 0 0' }}>{log.user.email}</p>}
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginTop: '6px' }}>{log.user ? 'Authenticated User' : 'System Automation'}</p>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Main Info Card */}
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-xl">
-                                    {log.description || `${log.action} ${log.auditable_type?.split('\\').pop() || 'item'}`}
-                                </CardTitle>
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getActionColor(log.action)}`}>
-                                    {log.action.charAt(0).toUpperCase() + log.action.slice(1)}
-                                </span>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* User Info */}
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                                    <User className="text-blue-600 dark:text-blue-400" size={20} />
-                                </div>
+                    <div style={{ ...cardStyle }}>
+                        <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Clock size={16} color="#6366f1" /> Event Details
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                <Calendar size={16} color="#cbd5e1" style={{ marginTop: '2px' }} />
                                 <div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        {tr('Performed by', 'সম্পাদিত করেছেন')}
-                                    </p>
-                                    <p className="font-semibold text-gray-900 dark:text-white">
-                                        {log.user?.name || 'System'}
-                                    </p>
-                                    {log.user?.email && (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {log.user.email}
-                                        </p>
-                                    )}
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 2px' }}>Timestamp</p>
+                                    <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{formatDate(log.created_at)}</p>
                                 </div>
                             </div>
-
-                            {/* Timestamp */}
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                                    <Calendar className="text-purple-600 dark:text-purple-400" size={20} />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        {tr('When', 'কখন')}
-                                    </p>
-                                    <p className="font-semibold text-gray-900 dark:text-white">
-                                        {formatDate(log.created_at)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Item Type */}
                             {log.auditable_type && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                                        <Activity className="text-green-600 dark:text-green-400" size={20} />
-                                    </div>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                    <Activity size={16} color="#cbd5e1" style={{ marginTop: '2px' }} />
                                     <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            {tr('Item Type', 'আইটেমের ধরন')}
-                                        </p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            {log.auditable_type.split('\\').pop()}
-                                        </p>
-                                        {log.auditable_id && (
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                ID: {log.auditable_id}
-                                            </p>
-                                        )}
+                                        <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 2px' }}>Category</p>
+                                        <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{log.auditable_type.split('\\').pop()} #{log.auditable_id}</p>
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
 
-                            {/* IP Address */}
+                    <div style={{ ...cardStyle }}>
+                        <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Globe size={16} color="#6366f1" /> Device & Network
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {log.ip_address && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                        <MapPin className="text-orange-600 dark:text-orange-400" size={20} />
-                                    </div>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                    <MapPin size={16} color="#cbd5e1" style={{ marginTop: '2px' }} />
                                     <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            {tr('IP Address', 'আইপি ঠিকানা')}
-                                        </p>
-                                        <p className="font-semibold text-gray-900 dark:text-white font-mono">
-                                            {log.ip_address}
-                                        </p>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 2px' }}>IP Address</p>
+                                        <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e1b4b', fontFamily: 'monospace', margin: 0 }}>{log.ip_address}</p>
                                     </div>
                                 </div>
                             )}
-
-                            {/* User Agent */}
                             {log.user_agent && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-900/30">
-                                        <Monitor className="text-pink-600 dark:text-pink-400" size={20} />
-                                    </div>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                    <Cpu size={16} color="#cbd5e1" style={{ marginTop: '2px' }} />
                                     <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            {tr('Browser/Device', 'ব্রাউজার/ডিভাইস')}
-                                        </p>
-                                        <p className="text-sm text-gray-900 dark:text-white break-all">
-                                            {log.user_agent}
-                                        </p>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 2px' }}>Browser Info</p>
+                                        <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b', margin: 0, lineHeight: 1.5, wordBreak: 'break-all' }}>{log.user_agent}</p>
                                     </div>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Changes Card */}
-                    {(log.old_values || log.new_values) && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <FileText size={20} />
-                                    {tr('Changes Made', 'পরিবর্তন করা হয়েছে')}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    {/* Old Values */}
-                                    {log.old_values && Object.keys(log.old_values).length > 0 && (
-                                        <div>
-                                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                                                {tr('Before', 'আগে')}
-                                            </h4>
-                                            <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                                                <pre className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-                                                    {JSON.stringify(log.old_values, null, 2)}
-                                                </pre>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* New Values */}
-                                    {log.new_values && Object.keys(log.new_values).length > 0 && (
-                                        <div>
-                                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                                                {tr('After', 'পরে')}
-                                            </h4>
-                                            <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                                                <pre className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-                                                    {JSON.stringify(log.new_values, null, 2)}
-                                                </pre>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                        </div>
+                    </div>
                 </div>
+
+                {/* Changes Delta Block */}
+                {(log.old_values || log.new_values) && (
+                    <div style={{ ...cardStyle }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f5f3ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <GitBranch size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Recorded Changes</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 700, margin: '2px 0 0' }}>Data snapshot representing exactly what was altered</p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            {log.old_values && Object.keys(log.old_values).length > 0 && (
+                                <div style={{ border: '1.5px solid #fecdd3', borderRadius: '16px', overflow: 'hidden' }}>
+                                    <div style={{ background: '#fff1f2', padding: '12px 16px', borderBottom: '1.5px solid #fecdd3' }}>
+                                        <h4 style={{ fontSize: '0.75rem', fontWeight: 900, color: '#ef4444', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Previous State</h4>
+                                    </div>
+                                    <div style={{ background: '#fdf2f8', padding: '16px', overflowX: 'auto' }}>
+                                        <pre style={{ fontSize: '0.85rem', color: '#831843', margin: 0, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontWeight: 600 }}>
+                                            {JSON.stringify(log.old_values, null, 2)}
+                                        </pre>
+                                    </div>
+                                </div>
+                            )}
+
+                            {log.new_values && Object.keys(log.new_values).length > 0 && (
+                                <div style={{ border: '1.5px solid #a7f3d0', borderRadius: '16px', overflow: 'hidden' }}>
+                                    <div style={{ background: '#ecfdf5', padding: '12px 16px', borderBottom: '1.5px solid #a7f3d0' }}>
+                                        <h4 style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>New State</h4>
+                                    </div>
+                                    <div style={{ background: '#f0fdf4', padding: '16px', overflowX: 'auto' }}>
+                                        <pre style={{ fontSize: '0.85rem', color: '#064e3b', margin: 0, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontWeight: 600 }}>
+                                            {JSON.stringify(log.new_values, null, 2)}
+                                        </pre>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
-        </AuthenticatedLayout>
+        </FigmaLayout>
     );
 }
+

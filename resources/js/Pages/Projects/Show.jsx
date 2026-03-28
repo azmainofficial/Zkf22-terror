@@ -35,353 +35,362 @@ import {
     PieChart,
     Target
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '20px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '1.5rem',
+    overflow: 'hidden'
+};
+
+const badgeStyle = (bg, color) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    background: bg,
+    color: color
+});
 
 export default function Show({ auth, project, connectedInventory, designs }) {
-    const [selectedTab, setSelectedTab] = useState('intelligence');
+    const [selectedTab, setSelectedTab] = useState('overview');
 
     const budget = Number(project.budget) || 0;
     const actualCost = Number(project.actual_cost) || 0;
     const contractAmount = Number(project.contract_amount) || 0;
-    const realizedCapital = Number(project.realized_capital) || 0; // Assuming this might be calculated or passed
+    const realizedCapital = Number(project.realized_capital) || 0;
     const remainingCapital = contractAmount - realizedCapital;
 
-    const getStatusStyle = (status) => {
-        const styles = {
-            completed: "bg-emerald-50 text-emerald-600 border-emerald-100",
-            ongoing: "bg-indigo-50 text-indigo-600 border-indigo-100",
-            pending: "bg-amber-50 text-amber-600 border-amber-100",
-            cancelled: "bg-rose-50 text-rose-600 border-rose-100",
-            on_hold: "bg-slate-100 text-slate-500 border-slate-200",
+    const getStatusInfo = (status) => {
+        const stats = {
+            completed: { label: 'Completed', color: '#10b981', bg: '#ecfdf5', icon: CheckCircle2 },
+            ongoing: { label: 'In Progress', color: '#6366f1', bg: '#f5f3ff', icon: Activity },
+            pending: { label: 'Pending', color: '#f59e0b', bg: '#fffbeb', icon: Clock },
+            cancelled: { label: 'Cancelled', color: '#ef4444', bg: '#fef2f2', icon: X },
+            on_hold: { label: 'On Hold', color: '#6b7280', bg: '#f3f4f6', icon: AlertCircle },
         };
-        return styles[status] || styles.pending;
+        return stats[status] || stats.pending;
     };
 
+    const statusInfo = getStatusInfo(project.status);
+
     const tabs = [
-        { id: 'intelligence', label: 'Tactical Intelligence', icon: Zap },
-        { id: 'milestones', label: 'Realization Matrix', icon: Layers },
-        { id: 'artifacts', label: 'Design Artifacts', icon: ImageIcon },
-        { id: 'inventory', label: 'Resource Flux', icon: Package },
+        { id: 'overview', label: 'Overview', icon: Zap },
+        { id: 'milestones', label: 'Milestones', icon: Layers },
+        { id: 'inventory', label: 'Link Inventory', icon: Package },
+        { id: 'gallery', label: 'Gallery', icon: ImageIcon },
+    ];
+
+    const stats = [
+        { label: 'Contract Value', value: `৳${new Intl.NumberFormat().format(contractAmount)}`, icon: DollarSign, color: '#6366f1', bg: '#f5f3ff' },
+        { label: 'Amount Paid', value: `৳${new Intl.NumberFormat().format(realizedCapital || 0)}`, icon: CheckCircle2, color: '#10b981', bg: '#ecfdf5' },
+        { label: 'Remaining', value: `৳${new Intl.NumberFormat().format(remainingCapital)}`, icon: AlertCircle, color: '#f43f5e', bg: '#fff1f2' },
+        { label: 'Progress', value: `${project.progress || 0}%`, icon: PieChart, color: '#8b5cf6', bg: '#f9f7ff' },
     ];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Project Dossier - ${project.title}`} />
+            <Head title={`Project - ${project.title}`} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div className="flex items-center gap-6">
+            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                         <Link href={route('projects.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
-                                <ArrowLeft size={20} />
-                            </Button>
+                            <button style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fff', border: '1.5px solid #ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6366f1', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                                <ArrowLeft size={18} />
+                            </button>
                         </Link>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                    {project.title}
-                                </h1>
-                                <div className={cn("px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest border shadow-sm", getStatusStyle(project.status))}>
-                                    {project.status.replace('_', ' ')}
-                                </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '4px' }}>
+                                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>{project.title}</h1>
+                                <span style={badgeStyle(statusInfo.bg, statusInfo.color)}>
+                                    <statusInfo.icon size={12} />
+                                    {statusInfo.label}
+                                </span>
                             </div>
-                            <div className="flex items-center gap-6">
-                                <div className="flex items-center gap-2">
-                                    <Building size={14} className="text-slate-400" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">
-                                        {project.client?.company_name || project.client?.name}
-                                    </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Building size={14} color="#9ca3af" />
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b7280' }}>{project.client?.company_name || project.client?.name}</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Calendar size={14} className="text-slate-400" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">
-                                        Deadline: {project.deadline || 'unspecified'}
-                                    </p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Calendar size={14} color="#9ca3af" />
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b7280' }}>Deadline: {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No date'}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <Link href={route('projects.edit', project.id)}>
-                            <Button className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest italic shadow-xl shadow-slate-200 dark:shadow-none gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <Link href={route('projects.edit', project.id)} style={{ textDecoration: 'none' }}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.7rem 1.5rem', background: '#1e1b4b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(30,27,75,0.2) transition: all 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#312e81'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#1e1b4b'}>
                                 <Pencil size={18} />
-                                Refine Record
-                            </Button>
+                                Edit Project
+                            </button>
                         </Link>
                     </div>
                 </div>
 
-                {/* Magnitude Pulse Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm p-8 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
-                                <Scale size={20} />
+                {/* Summary Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }} className="stats-grid">
+                    {stats.map((s, i) => (
+                        <div key={i} style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <s.icon size={20} color={s.color} />
+                                </div>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Metrics</span>
                             </div>
-                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Capital magnitude</div>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 4px' }}>{s.label}</p>
+                            <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{s.value}</p>
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic leading-none">
-                                ৳{new Intl.NumberFormat().format(contractAmount)}
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Gross Contract Value</p>
-                        </div>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm p-8 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                                <TrendingUp size={20} />
-                            </div>
-                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Realized Capital</div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-3xl font-black text-emerald-600 tracking-tighter italic leading-none">
-                                ৳{new Intl.NumberFormat().format(realizedCapital || 0)}
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Liquidated Magnitude</p>
-                        </div>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm p-8 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
-                                <AlertCircle size={20} />
-                            </div>
-                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Capital Latency</div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-3xl font-black text-rose-600 tracking-tighter italic leading-none">
-                                ৳{new Intl.NumberFormat().format(remainingCapital)}
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Outstanding Magnitude</p>
-                        </div>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-indigo-600 shadow-xl shadow-indigo-100 dark:shadow-none p-8 space-y-4 text-white">
-                        <div className="flex items-center justify-between">
-                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                                <PieChart size={20} />
-                            </div>
-                            <div className="text-[9px] font-black text-white/60 uppercase tracking-widest italic">Resonance Index</div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-3xl font-black tracking-tighter italic leading-none">
-                                {project.progress || 0}%
-                            </p>
-                            <p className="text-[10px] font-bold text-white/60 uppercase">Realization Velocity</p>
-                        </div>
-                    </Card>
+                    ))}
                 </div>
 
-                {/* Interface Tabs */}
-                <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800 rounded-[2rem] w-fit border border-slate-100 dark:border-slate-700 shadow-inner">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setSelectedTab(tab.id)}
-                            className={cn(
-                                "flex items-center gap-3 px-8 py-3.5 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all",
-                                selectedTab === tab.id
-                                    ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-sm"
-                                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            )}
-                        >
-                            <tab.icon size={14} />
-                            {tab.label}
+                {/* Navigation Tabs */}
+                <div style={{ display: 'flex', gap: '2px', padding: '4px', background: '#f5f3ff', borderRadius: '14px', width: 'fit-content' }}>
+                    {tabs.map(t => (
+                        <button key={t.id} onClick={() => setSelectedTab(t.id)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.6rem 1.25rem', borderRadius: '10px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', background: selectedTab === t.id ? '#fff' : 'transparent', color: selectedTab === t.id ? '#6366f1' : '#9ca3af', boxShadow: selectedTab === t.id ? '0 2px 8px rgba(99,102,241,0.1)' : 'none' }}>
+                            <t.icon size={16} />
+                            {t.label}
                         </button>
                     ))}
                 </div>
 
-                {/* Sub-Surface Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    <div className="lg:col-span-8 space-y-10">
-                        {selectedTab === 'intelligence' && (
-                            <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden min-h-[500px]">
-                                <CardContent className="p-10 md:p-14 space-y-10">
-                                    <div className="space-y-8">
-                                        <div className="flex items-center gap-3 pl-2">
-                                            <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                            <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Strategic Narrative</h3>
+                {/* Tab Content */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }} className="content-grid">
+                    
+                    {/* Main Content Area */}
+                    <div style={{ minHeight: '400px' }}>
+                        
+                        {selectedTab === 'overview' && (
+                            <div style={cardStyle}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
+                                    <FileText size={18} color="#6366f1" />
+                                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Project Description</h3>
+                                </div>
+                                <p style={{ fontSize: '0.95rem', color: '#4b5563', lineHeight: '1.6', margin: 0 }}>{project.description || "No description provided for this project."}</p>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '2rem' }}>
+                                    <div style={{ background: '#f9f7ff', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #f0eeff' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                                            <Calendar size={16} color="#6366f1" />
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e1b4b' }}>Timeline</span>
                                         </div>
-                                        <div className="p-10 bg-slate-50 dark:bg-slate-800/50 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-indigo-100 transition-all">
-                                            <Target size={120} className="absolute -bottom-10 -right-10 text-slate-100/50 dark:text-slate-700/50 group-hover:scale-110 transition-transform duration-700" />
-                                            <p className="text-lg font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic relative z-10">
-                                                {project.description || "Synthesizing tactical data..."}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-4">
-                                        <div className="space-y-6">
-                                            <div className="flex items-center gap-3 pl-2">
-                                                <div className="w-1.5 h-6 rounded-full bg-emerald-500" />
-                                                <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Temporal Windows</h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af' }}>Start Date</span>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151' }}>{project.start_date || 'Not set'}</span>
                                             </div>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/30 rounded-3xl">
-                                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Initialization</p>
-                                                    <p className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase italic tracking-tighter">{project.start_date || 'N/A'}</p>
-                                                </div>
-                                                <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/30 rounded-3xl">
-                                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Realization</p>
-                                                    <p className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase italic tracking-tighter">{project.deadline || 'N/A'}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-6">
-                                            <div className="flex items-center gap-3 pl-2">
-                                                <div className="w-1.5 h-6 rounded-full bg-indigo-500" />
-                                                <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Resonance priority</h4>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/30 rounded-3xl">
-                                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Magnitude</p>
-                                                    <div className={cn(
-                                                        "px-4 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border",
-                                                        project.priority === 'critical' ? "bg-rose-50 text-rose-600 border-rose-100" :
-                                                            project.priority === 'high' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                                                                "bg-indigo-50 text-indigo-600 border-indigo-100"
-                                                    )}>
-                                                        {project.priority || 'MEDIUM'}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/30 rounded-3xl">
-                                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Project UUID</p>
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase mono tracking-tighter">#{project.id.toString().padStart(6, '0')}</p>
-                                                </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af' }}>Deadline</span>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151' }}>{project.deadline || 'Not set'}</span>
                                             </div>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                    
+                                    <div style={{ background: '#f9f7ff', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #f0eeff' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                                            <Target size={16} color="#6366f1" />
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e1b4b' }}>Priority & ID</span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af' }}>Priority</span>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>{project.priority || 'Medium'}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af' }}>Project ID</span>
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e1b4b', fontFamily: 'monospace' }}>#{project.id.toString().padStart(5, '0')}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         )}
 
                         {selectedTab === 'milestones' && (
-                            <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden min-h-[500px]">
-                                <CardContent className="p-10 md:p-14 space-y-10">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pl-2">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-2 h-8 rounded-full bg-rose-500" />
-                                            <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Milestone Matrix</h3>
-                                        </div>
-                                        <div className="px-6 py-2 rounded-2xl bg-slate-900 text-white font-black text-lg tracking-tighter italic">
-                                            ৳{new Intl.NumberFormat().format(contractAmount)} Gross
-                                        </div>
+                            <div style={cardStyle}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <Layers size={18} color="#8b5cf6" />
+                                        <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Payment Milestones</h3>
                                     </div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6366f1' }}>Total: ৳{new Intl.NumberFormat().format(contractAmount)}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    {project.contract_details?.map((m, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: '#f9f9fb', borderRadius: '16px', border: '1px solid #f0eeff' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fff', border: '1.5px solid #f0f3ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800 }}>{i + 1}</div>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#374151' }}>{m.description}</span>
+                                            </div>
+                                            <span style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b' }}>৳{new Intl.NumberFormat().format(m.amount)}</span>
+                                        </div>
+                                    ))}
+                                    {(!project.contract_details || project.contract_details.length === 0) && (
+                                        <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#f9f9fb', borderRadius: '20px', border: '2px dashed #ede9fe' }}>
+                                            <Layers size={32} color="#d1d5db" style={{ marginBottom: '1rem' }} />
+                                            <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>No milestones defined for this project.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {selectedTab === 'inventory' && (
+                            <div style={cardStyle}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
+                                    <Package size={18} color="#3b82f6" />
+                                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Connected Inventory</h3>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                                    {connectedInventory?.length > 0 ? (
+                                        connectedInventory.map(item => (
+                                            <Link key={item.id} href={route('inventory.show', item.id)} style={{ textDecoration: 'none' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', padding: '1rem', borderRadius: '14px', border: '1.5px solid #f0eeff', transition: 'all 0.2s', cursor: 'pointer' }}
+                                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#f5f3ff'; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.background = 'transparent'; }}>
+                                                    <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '1rem' }}>
+                                                        <Package size={16} color="#3b82f6" />
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151', margin: 0 }}>{item.name}</p>
+                                                        <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>SKU: {item.sku || 'N/A'}</p>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{item.quantity_in_stock} {item.unit}</p>
+                                                        <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>৳{new Intl.NumberFormat().format(item.unit_price)}/unit</p>
+                                                    </div>
+                                                    <ChevronRight size={16} color="#d1d5db" style={{ marginLeft: '1rem' }} />
+                                                </div>
+                                            </Link>
+                                        ))
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#f9f9fb', borderRadius: '20px', border: '2px dashed #ede9fe' }}>
+                                            <Package size={32} color="#d1d5db" style={{ marginBottom: '1rem' }} />
+                                            <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>No inventory items linked to this project.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
-                                    <div className="space-y-4">
-                                        {project.contract_details?.map((milestone, index) => (
-                                            <div key={index} className="group flex items-center justify-between p-8 bg-slate-50 dark:bg-slate-800/30 rounded-[2.5rem] border border-transparent hover:border-indigo-100 transition-all hover:bg-white dark:hover:bg-slate-800 shadow-sm">
-                                                <div className="flex items-center gap-8">
-                                                    <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-xs font-black text-slate-300 italic shadow-sm">
-                                                        #{index + 1}
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">{milestone.description}</h4>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Realization Target</p>
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1 text-right">
-                                                    <p className="text-xl font-black text-indigo-600 tracking-tighter italic leading-none">৳{new Intl.NumberFormat().format(milestone.amount)}</p>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gross Yield</p>
-                                                </div>
+                        {selectedTab === 'gallery' && (
+                            <div style={cardStyle}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
+                                    <ImageIcon size={18} color="#f43f5e" />
+                                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Project Gallery</h3>
+                                </div>
+                                {designs?.length > 0 ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
+                                        {designs.map(d => (
+                                            <div key={d.id} style={{ borderRadius: '14px', overflow: 'hidden', border: '1.5px solid #f0eeff', position: 'relative', aspectRatio: '1' }}>
+                                                <img src={`/storage/${d.image}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Design" />
                                             </div>
                                         ))}
-                                        {!project.contract_details?.length && (
-                                            <div className="py-24 text-center space-y-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
-                                                <FileText size={64} className="mx-auto text-slate-200" />
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none italic">Record Offline</p>
-                                                    <p className="text-xs font-bold text-slate-300 italic mt-2">No milestone parameters defined for this node.</p>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
-                                </CardContent>
-                            </Card>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#f9f9fb', borderRadius: '20px', border: '2px dashed #ede9fe' }}>
+                                        <ImageIcon size={32} color="#d1d5db" style={{ marginBottom: '1rem' }} />
+                                        <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>No images or designs uploaded for this project.</p>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 
-                    {/* Right column (Sub-details) */}
-                    <div className="lg:col-span-4 space-y-10">
-                        {/* Resource Intelligence */}
-                        <Card className="rounded-[44px] border-none bg-indigo-600 shadow-2xl shadow-indigo-100 dark:shadow-none p-10 space-y-10 text-white">
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-6 rounded-full bg-white/20" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 italic">Resource Intelligence</h3>
+                    {/* Right Column (Side Details) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        {/* Client Info Card */}
+                        <div style={{ ...cardStyle, background: 'linear-gradient(135deg, #1e1b4b, #312e81)', border: 'none' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Building size={16} color="#fff" />
                                 </div>
-
-                                <div className="space-y-4 group">
-                                    <div className="flex items-center gap-6 p-6 bg-white/10 rounded-[2rem] border border-white/5 group-hover:bg-white/20 transition-all cursor-pointer">
-                                        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-xl shadow-indigo-900/40">
-                                            <Building size={28} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h4 className="text-sm font-black uppercase italic tracking-tight leading-none truncate w-40">
-                                                {project.client?.company_name || 'N/A'}
-                                            </h4>
-                                            <p className="text-[9px] font-black text-white/50 uppercase tracking-widest italic">Host Entity</p>
-                                        </div>
-                                    </div>
-                                    <Link
-                                        href={project.client ? route('clients.show', project.client.id) : '#'}
-                                        className="w-full flex items-center justify-between px-6 py-4 bg-white/10 rounded-2xl hover:bg-white/20 transition-all"
-                                    >
-                                        <span className="text-[9px] font-black uppercase tracking-widest italic">View Profile</span>
-                                        <ChevronRight size={14} className="text-white/40" />
-                                    </Link>
-                                </div>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff', margin: 0 }}>Client Info</h3>
                             </div>
-                        </Card>
-
-                        {/* Visual Artifact Node */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 space-y-8">
-                                <div className="flex items-center gap-3 pl-2">
-                                    <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Visual Identity</h3>
-                                </div>
-
-                                {project.image ? (
-                                    <div className="relative group w-full h-80 rounded-[2.5rem] overflow-hidden shadow-inner bg-slate-50 dark:bg-slate-800 border-4 border-white dark:border-slate-800">
-                                        <img src={`/storage/${project.image}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={project.title} />
-                                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-4">
-                                            <Button variant="ghost" size="icon" className="w-14 h-14 rounded-2xl bg-white text-slate-900">
-                                                <Eye size={24} />
-                                            </Button>
-                                            <p className="text-[10px] font-black text-white uppercase tracking-widest italic leading-none">Identity Node Pulse</p>
-                                        </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, color: '#1e1b4b' }}>
+                                        {(project.client?.company_name || project.client?.name || 'C').charAt(0)}
                                     </div>
+                                    <div>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff', margin: 0 }}>{project.client?.company_name || project.client?.name || 'Unassigned'}</p>
+                                        <p style={{ fontSize: '0.75rem', color: '#a5b4fc', margin: '2px 0 0' }}>Host Entity</p>
+                                    </div>
+                                </div>
+                                
+                                {project.client && (
+                                    <Link href={route('clients.show', project.client.id)} style={{ textDecoration: 'none' }}>
+                                        <button style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
+                                            View Client Profile <ChevronRight size={14} />
+                                        </button>
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Project Thumbnail */}
+                        <div style={cardStyle}>
+                            <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e1b4b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <ImageIcon size={14} color="#6366f1" />
+                                Project Thumbnail
+                            </h3>
+                            <div style={{ width: '100%', height: '200px', borderRadius: '14px', overflow: 'hidden', border: '1.5px solid #f0eeff' }}>
+                                {project.image ? (
+                                    <img src={`/storage/${project.image}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Project" />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center w-full h-80 bg-slate-50/50 dark:bg-slate-800/30 border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] space-y-4">
-                                        <ImageIcon size={64} className="text-slate-200" />
-                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">No Visual Record</p>
+                                    <div style={{ width: '100%', height: '100%', background: '#f9f9fb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                        <ImageIcon size={32} color="#d1d5db" />
+                                        <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>No project image</span>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Integration pulse */}
-                        <div className="p-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <Activity size={24} className="text-emerald-500 animate-pulse" />
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Integration Stream</p>
-                                    <p className="text-[8px] font-black text-slate-300 uppercase leading-none">Automated Sync Operational</p>
-                                </div>
                             </div>
-                            <LucideChevronRight size={18} className="text-slate-200" />
+                        </div>
+
+                        {/* Status Pulse */}
+                        <div style={{ padding: '1rem', borderRadius: '16px', background: '#ecfdf5', border: '1.5px solid #d1fae5', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }}></div>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#065f46', margin: 0 }}>System Sync: Operational</p>
+                                <p style={{ fontSize: '0.65rem', color: '#059669', margin: 0 }}>Last updated: {new Date(project.updated_at).toLocaleTimeString()}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <style>{`
+                @media (max-width: 992px) {
+                    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+                    .content-grid { grid-template-columns: 1fr !important; }
+                }
+                @media (max-width: 576px) {
+                    .stats-grid { grid-template-columns: 1fr !important; }
+                }
+                @keyframes pulse {
+                    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+                    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+                }
+            `}</style>
         </FigmaLayout>
     );
 }

@@ -1,21 +1,85 @@
-import React, { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, router } from '@inertiajs/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/Card';
-import { Button } from '@/Components/ui/Button';
+import React, { useState, useEffect, useRef } from 'react';
+import FigmaLayout from '@/Layouts/FigmaLayout';
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import { 
+    Shield, 
+    Users, 
+    Plus, 
+    Edit, 
+    Trash2, 
+    Lock, 
+    ShieldCheck, 
+    Settings, 
+    Smartphone, 
+    History,
+    Fingerprint,
+    X,
+    ChevronRight,
+    Award,
+    Search,
+    Info,
+    ExternalLink,
+    Zap,
+    Layout,
+    Activity
+} from 'lucide-react';
 import Modal from '@/Components/Modal';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
-import { Shield, Users, Key, Plus, Edit, Trash2, Lock } from 'lucide-react';
-import { useAppStore } from '@/store/useAppStore';
+
+// ─── Shared styles from Inventory patterns ──────────────────────
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '16px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '1rem 1.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1.5rem',
+    transition: 'all 0.2s ease-in-out'
+};
+
+const inputStyle = {
+    width: '100%',
+    height: '42px',
+    padding: '0 1rem',
+    borderRadius: '10px',
+    border: '1.5px solid #ede9fe',
+    background: '#f9f7ff',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
+
+const onFocus = e => {
+    e.target.style.borderColor = '#8b5cf6';
+    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
+};
+
+const onBlur = e => {
+    e.target.style.borderColor = '#ede9fe';
+    e.target.style.boxShadow = 'none';
+};
+
+const iconBtn = (bg, color) => ({
+    width: '36px',
+    height: '36px',
+    borderRadius: '10px',
+    background: bg,
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color,
+    transition: 'all 0.2s'
+});
 
 export default function Index({ auth, roles }) {
-    const { language } = useAppStore();
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [editingRole, setEditingRole] = useState(null);
-
-    const tr = (en, bn) => language === 'bn' ? bn : en;
+    const [searchTerm, setSearchTerm] = useState('');
+    const initialMount = useRef(true);
 
     const createForm = useForm({
         name: '',
@@ -35,187 +99,228 @@ export default function Index({ auth, roles }) {
 
     const handleDelete = (role) => {
         if (role.is_system) {
-            alert('Cannot delete system roles');
+            alert('Cannot modify core system roles.');
             return;
         }
-
-        if (confirm(`Are you sure you want to delete the role "${role.display_name}"?`)) {
+        if (confirm(`Remove the "${role.display_name}" permissions tier? This will affect all assigned users.`)) {
             router.delete(route('roles.destroy', role.id));
         }
     };
 
+    const filteredRoles = roles.filter(r => 
+        r.display_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.description && r.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    const statCards = [
+        { label: 'Total Tiers', value: roles.length, icon: Shield, bg: '#f5f3ff', color: '#6366f1' },
+        { label: 'System Tiers', value: roles.filter(r => r.is_system).length, icon: Lock, bg: '#fffbeb', color: '#d97706' },
+        { label: 'Active Users', value: roles.reduce((acc, r) => acc + (r.users_count || 0), 0), icon: Users, bg: '#f0fdf4', color: '#16a34a' },
+    ];
+
     return (
-        <AuthenticatedLayout user={auth.user}>
-            <Head title="Roles & Permissions" />
+        <FigmaLayout user={auth.user}>
+            <Head title="Access Tiers" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    {/* Header */}
-                    <div className="mb-6 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                {tr('Roles & Permissions', 'ভূমিকা এবং অনুমতি')}
-                            </h2>
-                            <p className="text-gray-600 dark:text-gray-400 mt-1">
-                                {tr('Manage user roles and their permissions', 'ব্যবহারকারীর ভূমিকা এবং অনুমতি পরিচালনা করুন')}
-                            </p>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '4rem' }}>
+                
+                {/* ── Header (Inventory Style) ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <ShieldCheck size={16} color="#a78bfa" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Security & Access</span>
                         </div>
-                        <Button onClick={() => setShowCreateModal(true)} className="gap-2">
-                            <Plus size={16} />
-                            {tr('Create Role', 'ভূমিকা তৈরি করুন')}
-                        </Button>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Permissions Matrix</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Manage organizational access tiers and rule boundaries</p>
                     </div>
-
-                    {/* Roles Grid */}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {roles.map((role) => (
-                            <Card key={role.id} className="hover:shadow-lg transition-shadow">
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-3 rounded-lg ${role.is_system
-                                                ? 'bg-blue-100 dark:bg-blue-900/30'
-                                                : 'bg-gray-100 dark:bg-gray-800'
-                                                }`}>
-                                                <Shield className={
-                                                    role.is_system
-                                                        ? 'text-blue-600 dark:text-blue-400'
-                                                        : 'text-gray-600 dark:text-gray-400'
-                                                } size={24} />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-lg flex items-center gap-2">
-                                                    {role.display_name}
-                                                    {role.is_system && (
-                                                        <Lock size={14} className="text-blue-500" title="System Role" />
-                                                    )}
-                                                </CardTitle>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    {role.name}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                                        {role.description || 'No description'}
-                                    </p>
-
-                                    <div className="flex items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                            <Users size={16} />
-                                            <span>{role.users_count || 0} {tr('users', 'ব্যবহারকারী')}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                            <Key size={16} />
-                                            <span>{role.permissions_count || 0} {tr('permissions', 'অনুমতি')}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2 pt-2 border-t dark:border-gray-700">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 gap-2"
-                                            onClick={() => router.get(route('roles.show', role.id))}
-                                        >
-                                            <Edit size={14} />
-                                            {tr('Manage', 'পরিচালনা')}
-                                        </Button>
-                                        {!role.is_system && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="gap-2 text-red-600 hover:text-red-700"
-                                                onClick={() => handleDelete(role)}
-                                            >
-                                                <Trash2 size={14} />
-                                            </Button>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                    <div style={{ display: 'flex', gap: '0.625rem' }}>
+                        <button onClick={() => setShowCreateModal(true)} style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '0.6rem 1.25rem',
+                            background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                            border: 'none', borderRadius: '12px', color: '#fff',
+                            fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                            boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+                        }}>
+                            <Plus size={16} /> Create New Tier
+                        </button>
                     </div>
+                </div>
 
-                    {/* Empty State */}
-                    {roles.length === 0 && (
-                        <Card>
-                            <CardContent className="text-center py-12">
-                                <Shield className="mx-auto mb-4 text-gray-300" size={64} />
-                                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                                    {tr('No roles found', 'কোন ভূমিকা পাওয়া যায়নি')}
+                {/* ── Stats Row (Inventory Style) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1rem' }}>
+                    {statCards.map((s, i) => (
+                        <div key={i} style={{ ...cardStyle, boxShadow: 'none', padding: '1.25rem', border: '1.5px solid #f0eeff' }}>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <s.icon size={22} color={s.color} />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* ── Filter Row ── */}
+                <div style={{ background: '#fff', borderRadius: '16px', border: '1.5px solid #f0eeff', padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                         <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+                            <Search size={16} color="#a78bfa" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                            <input 
+                                type="text" 
+                                placeholder="Search tiers by name or description..." 
+                                style={{ ...inputStyle, paddingLeft: '2.75rem' }}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                onFocus={onFocus}
+                                onBlur={onBlur}
+                            />
+                        </div>
+                        <div style={{ flex: 1 }}></div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                             {[
+                                { name: 'Devices', icon: Smartphone, href: route('devices.index'), color: '#3b82f6' },
+                                { name: 'Users', icon: Users, href: route('users.index'), color: '#10b981' },
+                            ].map((item, idx) => (
+                                <Link key={idx} href={item.href} style={{ textDecoration: 'none' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '10px', background: '#f5f3ff', color: '#6366f1', fontSize: '0.75rem', fontWeight: 800 }}>
+                                        <item.icon size={14} /> {item.name}
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Roles List (Row Pattern) ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {filteredRoles.map((role) => (
+                        <div 
+                            key={role.id} 
+                            style={{ ...cardStyle, background: '#fff', cursor: 'default' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(99,102,241,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                            {/* Icon */}
+                            <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: role.is_system ? '#fffbeb' : '#f5f3ff', color: role.is_system ? '#d97706' : '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${role.is_system ? '#fef3c7' : '#ede9fe'}` }}>
+                                {role.is_system ? <Award size={24} /> : <Fingerprint size={24} />}
+                            </div>
+
+                            {/* Info */}
+                            <div style={{ flex: 2, minWidth: '200px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <p style={{ fontSize: '1rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>{role.display_name}</p>
+                                    {role.is_system && (
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#d97706', background: '#fef3c7', padding: '2px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Lock size={10} strokeWidth={3} /> SYSTEM
+                                        </span>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '400px' }}>
+                                    {role.description || 'No specialized description for this access tier.'}
                                 </p>
-                                <Button onClick={() => setShowCreateModal(true)} className="gap-2">
-                                    <Plus size={16} />
-                                    {tr('Create First Role', 'প্রথম ভূমিকা তৈরি করুন')}
-                                </Button>
-                            </CardContent>
-                        </Card>
+                            </div>
+
+                            {/* Users Count */}
+                            <div style={{ minWidth: '100px', textAlign: 'center' }}>
+                                <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>Assigned</p>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '2px' }}>
+                                    <Users size={14} color="#6366f1" />
+                                    <span style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b' }}>{role.users_count || 0}</span>
+                                </div>
+                            </div>
+
+                            {/* Permissions Count */}
+                            <div style={{ minWidth: '100px', textAlign: 'center' }}>
+                                <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>Rules</p>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '2px' }}>
+                                    <Shield size={14} color="#10b981" />
+                                    <span style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b' }}>{role.permissions_count || 0}</span>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                                <button
+                                    onClick={() => router.get(route('roles.show', role.id))}
+                                    style={iconBtn('#f5f3ff', '#6366f1')}
+                                    title="Manage Rules"
+                                >
+                                    <Settings size={18} />
+                                </button>
+                                {!role.is_system && (
+                                    <button
+                                        onClick={() => handleDelete(role)}
+                                        style={iconBtn('#fff1f2', '#ef4444')}
+                                        title="Delete Tier"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
+                                <div style={{ width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', color: '#cbd5e1' }}>
+                                    <ChevronRight size={20} />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {filteredRoles.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '4rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px', background: '#faf9ff' }}>
+                            <Shield size={40} color="#e0d9ff" style={{ margin: '0 auto 1.5rem' }} />
+                            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e1b4b', margin: '0 0 0.4rem' }}>No access tiers found</h3>
+                            <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>Try adjusting your search query.</p>
+                        </div>
                     )}
                 </div>
             </div>
 
             {/* Create Role Modal */}
-            <Modal show={showCreateModal} onClose={() => setShowCreateModal(false)} maxWidth="lg">
-                <div className="p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-                        {tr('Create New Role', 'নতুন ভূমিকা তৈরি করুন')}
-                    </h2>
-                    <form onSubmit={handleCreate} className="space-y-4">
+            <Modal show={showCreateModal} onClose={() => setShowCreateModal(false)} maxWidth="md">
+                <div style={{ padding: '2.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '2.5rem' }}>
+                        <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: '#fff7ed', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #ffedd5' }}>
+                            <Shield size={24} strokeWidth={2.5} />
+                        </div>
                         <div>
-                            <InputLabel value={tr('Role Name (slug)', 'ভূমিকার নাম (স্লাগ)')} />
-                            <TextInput
-                                type="text"
-                                className="w-full"
-                                value={createForm.data.name}
-                                onChange={(e) => createForm.setData('name', e.target.value)}
-                                placeholder="e.g., project_manager"
-                                required
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                {tr('Lowercase, no spaces, use underscores', 'ছোট হাতের অক্ষর, স্পেস নেই, আন্ডারস্কোর ব্যবহার করুন')}
-                            </p>
-                            <InputError message={createForm.errors.name} />
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Register Access Tier</h2>
+                            <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600, margin: '2px 0 0' }}>Establish a new organizational permission level.</p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+                        <div>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', marginBottom: '8px', display: 'block', letterSpacing: '0.05em' }}>Unique System Key (slug)</label>
+                            <input type="text" value={createForm.data.name} onChange={e => createForm.setData('name', e.target.value)} placeholder="e.g. branch_manager" style={inputStyle} onFocus={onFocus} onBlur={onBlur} required />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', padding: '8px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                <Info size={12} color="#94a3b8" />
+                                <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, margin: 0 }}>Lowercase with underscores only. This is used in code logic.</p>
+                            </div>
                         </div>
 
                         <div>
-                            <InputLabel value={tr('Display Name', 'প্রদর্শন নাম')} />
-                            <TextInput
-                                type="text"
-                                className="w-full"
-                                value={createForm.data.display_name}
-                                onChange={(e) => createForm.setData('display_name', e.target.value)}
-                                placeholder="e.g., Project Manager"
-                                required
-                            />
-                            <InputError message={createForm.errors.display_name} />
+                            <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', marginBottom: '8px', display: 'block', letterSpacing: '0.05em' }}>Visual Label (Public)</label>
+                            <input type="text" value={createForm.data.display_name} onChange={e => createForm.setData('display_name', e.target.value)} placeholder="e.g. Branch Manager" style={inputStyle} onFocus={onFocus} onBlur={onBlur} required />
                         </div>
 
                         <div>
-                            <InputLabel value={tr('Description', 'বিবরণ')} />
-                            <textarea
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                rows="3"
-                                value={createForm.data.description}
-                                onChange={(e) => createForm.setData('description', e.target.value)}
-                                placeholder={tr('Describe the role...', 'ভূমিকা বর্ণনা করুন...')}
-                            />
-                            <InputError message={createForm.errors.description} />
+                            <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', marginBottom: '8px', display: 'block', letterSpacing: '0.05em' }}>Operational Responsibility</label>
+                            <textarea value={createForm.data.description} onChange={e => createForm.setData('description', e.target.value)} placeholder="Describe what actions users assigned to this tier are responsible for..." style={{ ...inputStyle, height: '120px', padding: '12px', resize: 'none' }} onFocus={onFocus} onBlur={onBlur} />
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-4">
-                            <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
-                                {tr('Cancel', 'বাতিল')}
-                            </Button>
-                            <Button type="submit" disabled={createForm.processing}>
-                                {createForm.processing ? tr('Creating...', 'তৈরি হচ্ছে...') : tr('Create Role', 'ভূমিকা তৈরি করুন')}
-                            </Button>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                            <button type="submit" disabled={createForm.processing} style={{ flex: 2, height: '56px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', border: 'none', borderRadius: '16px', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 20px rgba(30,27,75,0.2)', transition: 'all 0.2s' }}>
+                                {createForm.processing ? 'Establishing Tier...' : 'Deploy Access Level'}
+                            </button>
+                            <button type="button" onClick={() => setShowCreateModal(false)} style={{ flex: 1, height: '56px', background: '#fff', color: '#94a3b8', border: '1.5px solid #ede9fe', borderRadius: '16px', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#faf9ff'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                                Cancel
+                            </button>
                         </div>
                     </form>
                 </div>
             </Modal>
-        </AuthenticatedLayout>
+        </FigmaLayout>
     );
 }

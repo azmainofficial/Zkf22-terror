@@ -32,7 +32,7 @@ class UserManagementController extends Controller
             });
         }
 
-        $users = $query->paginate(20);
+        $users = $query->latest()->paginate(20)->withQueryString();
         $roles = Role::all();
 
         return Inertia::render('Users/Index', [

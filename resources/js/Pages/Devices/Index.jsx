@@ -1,19 +1,72 @@
+import React, { useState, useRef } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
-import { Head, useForm } from '@inertiajs/react';
-import {
-    SignalIcon,
-    SignalSlashIcon,
-    MapPinIcon,
-    CpuChipIcon,
-    PencilSquareIcon,
-    CheckIcon,
-    XMarkIcon
-} from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { Head, useForm, Link } from '@inertiajs/react';
+import { 
+    Cpu, 
+    Smartphone, 
+    Signal, 
+    SignalLow, 
+    MapPin, 
+    Check, 
+    X,
+    Activity,
+    ShieldCheck,
+    Globe,
+    Clock,
+    HardDrive,
+    Monitor,
+    Edit3,
+    Server,
+    Zap,
+    ChevronRight,
+    Wifi,
+    WifiOff,
+    MoreVertical,
+    Save
+} from 'lucide-react';
 
-export default function DevicesIndex({ devices }) {
+// ─── Shared styles from Inventory patterns ──────────────────────
+const card = {
+    background: '#fff', 
+    borderRadius: '16px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+};
+
+const onFocus = e => { 
+    e.target.style.borderColor = '#8b5cf6'; 
+    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; 
+};
+
+const onBlur = e => { 
+    e.target.style.borderColor = '#ede9fe'; 
+    e.target.style.boxShadow = 'none'; 
+};
+
+const inputStyle = {
+    height: '42px',
+    padding: '0 1rem',
+    borderRadius: '10px',
+    border: '1.5px solid #ede9fe',
+    background: '#f9f7ff',
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    outline: 'none',
+    color: '#1e1b4b',
+    width: '240px',
+    transition: 'all 0.2s'
+};
+
+const iconBtn = (bg, color) => ({
+    width: '36px', height: '36px', borderRadius: '10px',
+    background: bg, border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color,
+    transition: 'all 0.2s'
+});
+
+export default function DevicesIndex({ auth, devices }) {
     const [editingId, setEditingId] = useState(null);
-    const { data, setData, patch, processing, errors, reset } = useForm({
+    const { data, setData, patch, processing, reset } = useForm({
         device_name: '',
     });
 
@@ -31,133 +84,175 @@ export default function DevicesIndex({ devices }) {
         e.preventDefault();
         patch(route('devices.update', editingId), {
             onSuccess: () => setEditingId(null),
+            preserveScroll: true
         });
     };
 
+    const onlineCount = devices.filter(d => d.is_online).length;
+    const offlineCount = devices.length - onlineCount;
+
+    const statCards = [
+        { label: 'Active Terminals', value: onlineCount, icon: Wifi, bg: '#f0fdf4', color: '#16a34a' },
+        { label: 'Idle Hardware', value: offlineCount, icon: WifiOff, bg: '#fff1f2', color: '#dc2626' },
+        { label: 'Net Registered', value: devices.length, icon: Server, bg: '#f5f3ff', color: '#6366f1' },
+    ];
+
     return (
-        <FigmaLayout>
-            <Head title="Device Management" />
+        <FigmaLayout user={auth.user}>
+            <Head title="Hardware Matrix" />
 
-            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+
+                {/* ── Header (Inventory Style) ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">Terminals & Devices</h1>
-                        <p className="text-xs md:text-sm text-gray-500 font-medium mt-1">Monitor connection status and customize device locations.</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <Monitor size={16} color="#0ea5e9" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Network Infrastructure</span>
+                        </div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Terminals & Devices</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Monitor physical installation status and machine communication health</p>
                     </div>
                 </div>
 
-                {/* Device Status Grid/Table */}
-                <div className="grid grid-cols-1 gap-6">
-                    <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50/50 text-gray-400 text-[11px] uppercase tracking-widest font-black border-b border-gray-100">
-                                    <tr>
-                                        <th className="px-8 py-6">Device Location / Name</th>
-                                        <th className="px-8 py-6">Serial Number</th>
-                                        <th className="px-8 py-6">IP Address</th>
-                                        <th className="px-8 py-6">Last Check-in</th>
-                                        <th className="px-8 py-6 text-right">Connection</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {devices.map((device) => (
-                                        <tr key={device.id} className="group hover:bg-gray-50/40 transition-all">
-                                            <td className="px-8 py-5">
-                                                {editingId === device.id ? (
-                                                    <form onSubmit={submit} className="flex items-center space-x-2">
-                                                        <input
-                                                            type="text"
-                                                            value={data.device_name}
-                                                            onChange={e => setData('device_name', e.target.value)}
-                                                            className="bg-gray-50 border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-[#22C55E]/20 focus:border-[#22C55E] w-64"
-                                                            autoFocus
-                                                        />
-                                                        <button
-                                                            disabled={processing}
-                                                            className="p-2 bg-[#22C55E] text-white rounded-xl hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-100"
-                                                        >
-                                                            <CheckIcon className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={cancelEditing}
-                                                            className="p-2 bg-white border border-gray-200 text-gray-400 rounded-xl hover:bg-gray-50 transition-colors"
-                                                        >
-                                                            <XMarkIcon className="w-4 h-4" />
-                                                        </button>
-                                                    </form>
-                                                ) : (
-                                                    <div className="flex items-center space-x-4">
-                                                        <div className={`p-3 rounded-2xl ${device.is_online ? 'bg-emerald-50' : 'bg-gray-50'} transition-colors`}>
-                                                            <MapPinIcon className={`w-5 h-5 ${device.is_online ? 'text-[#22C55E]' : 'text-gray-400'}`} />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-gray-900 flex items-center">
-                                                                {device.device_name || 'Unnamed Location'}
-                                                                <button
-                                                                    onClick={() => startEditing(device)}
-                                                                    className="ml-2 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-[#22C55E] transition-all"
-                                                                >
-                                                                    <PencilSquareIcon className="w-4 h-4" />
-                                                                </button>
-                                                            </p>
-                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Physical Site</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-8 py-5 text-sm font-mono font-bold text-gray-600">
-                                                <div className="flex items-center">
-                                                    <CpuChipIcon className="w-4 h-4 mr-2 text-gray-300" />
-                                                    {device.serial_number}
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5 text-sm font-bold text-gray-500 italic">
-                                                {device.ip_address || '--- . --- . --- . ---'}
-                                            </td>
-                                            <td className="px-8 py-5 text-xs font-bold text-gray-600">
-                                                {device.last_seen_at ? new Date(device.last_seen_at).toLocaleString() : 'Never'}
-                                            </td>
-                                            <td className="px-8 py-5 text-right">
-                                                <div className="flex items-center justify-end space-x-2">
-                                                    {device.is_online ? (
-                                                        <>
-                                                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active Now</span>
-                                                            <div className="relative flex h-3 w-3">
-                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Disconnected</span>
-                                                            <div className="h-3 w-3 rounded-full bg-gray-300"></div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {devices.length === 0 && (
-                                        <tr>
-                                            <td colSpan="5" className="px-8 py-20 text-center">
-                                                <div className="flex flex-col items-center">
-                                                    <div className="p-4 bg-gray-50 rounded-full mb-4">
-                                                        <SignalSlashIcon className="w-10 h-10 text-gray-300" />
-                                                    </div>
-                                                    <p className="text-gray-400 font-bold italic">No devices registered yet. Connect a terminal to see it here.</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                {/* ── Stat cards (Inventory Style) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1rem' }}>
+                    {statCards.map((s, i) => (
+                        <div key={i} style={{ ...card, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <s.icon size={22} color={s.color} />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value} Stations</p>
+                            </div>
                         </div>
-                    </div>
+                    ))}
                 </div>
+
+                {/* ── Device Rows (Inventory Pattern) ── */}
+                {devices.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {devices.map(device => {
+                            const isOnline = !!device.is_online;
+                            const isEditing = editingId === device.id;
+
+                            return (
+                                <div key={device.id} style={{
+                                    ...card, padding: '1rem 1.5rem',
+                                    display: 'flex', alignItems: 'center',
+                                    gap: '1.5rem', flexWrap: 'wrap',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#0ea5e9'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(14,165,233,0.06)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                >
+                                    {/* Connectivity Icon */}
+                                    <div style={{ width: '52px', height: '52px', borderRadius: '15px', background: isOnline ? '#f0fdf4' : '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${isOnline ? '#dcfce7' : '#f1f5f9'}` }}>
+                                        {isOnline ? (
+                                            <div style={{ position: 'relative' }}>
+                                                <Wifi size={24} color="#16a34a" />
+                                                <div style={{ position: 'absolute', top: -2, right: -2, width: '10px', height: '10px', borderRadius: '50%', background: '#16a34a', border: '2px solid #fff', animation: 'pulse 1.5s infinite' }}></div>
+                                            </div>
+                                        ) : (
+                                            <WifiOff size={24} color="#94a3b8" />
+                                        )}
+                                    </div>
+
+                                    {/* Name & Site */}
+                                    <div style={{ flex: 1, minWidth: '220px' }}>
+                                        {isEditing ? (
+                                            <form onSubmit={submit} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <input type="text" value={data.device_name} onChange={e => setData('device_name', e.target.value)} style={inputStyle} autoFocus onFocus={onFocus} onBlur={onBlur} />
+                                                <button type="submit" disabled={processing} style={iconBtn('#10b981', '#fff')}><Check size={16} /></button>
+                                                <button type="button" onClick={cancelEditing} style={iconBtn('#fff1f2', '#ef4444')}><X size={16} /></button>
+                                            </form>
+                                        ) : (
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <p style={{ fontSize: '1rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>{device.device_name || 'Generic Site'}</p>
+                                                    <button onClick={() => startEditing(device)} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: '6px' }} onMouseEnter={e => e.currentTarget.style.color = '#0ea5e9'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                                                        <Edit3 size={14} />
+                                                    </button>
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                                    <MapPin size={12} color="#94a3b8" />
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Physical Installation</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Hardware Fingerprint */}
+                                    <div style={{ width: '180px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Cpu size={14} color="#94a3b8" />
+                                            <p style={{ fontSize: '0.82rem', fontWeight: 750, color: '#4b5563', margin: 0, fontFamily: 'monospace' }}>{device.serial_number}</p>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                            <Globe size={14} color="#94a3b8" />
+                                            <p style={{ fontSize: '0.82rem', fontWeight: 750, color: '#4b5563', margin: 0 }}>{device.ip_address || '0.0.0.0'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Last Seen */}
+                                    <div style={{ width: '180px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Clock size={14} color="#94a3b8" />
+                                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', margin: 0 }}>
+                                                {device.last_seen_at ? new Date(device.last_seen_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Never Sync'}
+                                            </p>
+                                        </div>
+                                        <p style={{ fontSize: '0.65rem', color: isOnline ? '#16a34a' : '#9ca3af', fontWeight: 850, margin: '4px 0 0', textTransform: 'uppercase' }}>
+                                            {isOnline ? 'Communication Active' : 'Signal Lost'}
+                                        </p>
+                                    </div>
+
+                                    {/* Status Badge */}
+                                    <div style={{ minWidth: '120px', textAlign: 'right' }}>
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '20px', background: isOnline ? '#f0fdf4' : '#f8fafc', border: `1.5px solid ${isOnline ? '#16a34a15' : '#f1f5f9'}` }}>
+                                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isOnline ? '#16a34a' : '#94a3b8' }} />
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: isOnline ? '#16a34a' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                {isOnline ? 'Network Hub' : 'Offline Mode'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Context Arrow */}
+                                    <div style={{ width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', color: '#cbd5e1' }}>
+                                        <ChevronRight size={18} />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '6rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px', background: '#faf9ff' }}>
+                        <Server size={48} color="#e0d9ff" style={{ margin: '0 auto 1.5rem' }} />
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 0.5rem' }}>No Hardware Detected</h3>
+                        <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: '0 0 2rem' }}>
+                            Hardware terminals and biometric devices haven't been registered yet.
+                        </p>
+                        <button style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '8px', 
+                            padding: '0.75rem 1.75rem', background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', 
+                            border: 'none', borderRadius: '14px', color: '#fff', 
+                            fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+                            boxShadow: '0 6px 16px rgba(14,165,233,0.25)'
+                        }}>
+                             Connect First Terminal
+                        </button>
+                    </div>
+                )}
             </div>
+
+            <style>{`
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+                    70% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+                    100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+                }
+            `}</style>
         </FigmaLayout>
     );
 }

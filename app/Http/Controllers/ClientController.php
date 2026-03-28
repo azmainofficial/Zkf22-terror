@@ -133,4 +133,55 @@ class ClientController extends Controller
 
         return back()->with('success', 'Design uploaded successfully.');
     }
+
+    public function exportToExcel(Request $request)
+    {
+        $query = Client::query();
+
+        if ($request->search) {
+            $query->where('name', 'like', '%' . $request->search . '%')
+                ->orWhere('company_name', 'like', '%' . $request->search . '%')
+                ->orWhere('email', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->status && $request->status !== 'All') {
+            $query->where('status', strtolower($request->status));
+        }
+
+        $clients = $query->latest()->get();
+
+        // Create CSV content
+        $csvData = [];
+        $csvData[] = ['Company Name', 'Primary Contact', 'Email', 'Phone', 'Industry', 'Website', 'Status', 'Registered Date'];
+
+        foreach ($clients as $client) {
+            $csvData[] = [
+                $client->company_name,
+                $client->name,
+                $client->email,
+                $client->phone ?? 'N/A',
+                $client->industry ?? 'N/A',
+                $client->website ?? 'N/A',
+                ucfirst($client->status),
+                $client->created_at->format('Y-m-d'),
+            ];
+        }
+
+        // Generate CSV
+        $filename = 'clients_dossier_' . date('Y-m-d_His') . '.csv';
+        $handle = fopen('php://temp', 'r+');
+
+        foreach ($csvData as $row) {
+            fputcsv($handle, $row);
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return \Illuminate\Support\Facades\Response::make($csv, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
 }

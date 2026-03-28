@@ -13,7 +13,6 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\DesignController;
-use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\EmployeeTaskController;
@@ -77,6 +76,7 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::resource('employees', EmployeeController::class);
     Route::resource('shifts', ShiftController::class);
     Route::get('attendance', [ZktecoADMSController::class, 'index'])->name('attendance.index');
+    Route::get('attendance/calendar', [ZktecoADMSController::class, 'calendarView'])->name('attendance.calendar');
     Route::get('attendance/report', [AttendanceReportController::class, 'monthly'])->name('attendance.report');
     Route::get('attendance/sheet', [AttendanceReportController::class, 'sheet'])->name('attendance.sheet');
     Route::get('attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
@@ -92,6 +92,8 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::delete('tasks/{task}', [EmployeeTaskController::class, 'destroy'])->name('tasks.destroy');
     Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
     Route::delete('leave/{leave}', [LeaveController::class, 'destroy'])->name('leave.destroy');
+    Route::post('holidays', [LeaveController::class, 'storeHoliday'])->name('holidays.store');
+    Route::delete('holidays/{holiday}', [LeaveController::class, 'destroyHoliday'])->name('holidays.destroy');
     Route::delete('performance/{review}', [PerformanceController::class, 'destroy'])->name('performance.destroy');
     Route::delete('documents/{document}', [EmployeeDocumentController::class, 'destroy'])->name('documents.destroy');
 
@@ -101,6 +103,7 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::resource('payroll', PayrollController::class);
 
     // Clients & Brands
+    Route::get('clients/export/excel', [ClientController::class, 'exportToExcel'])->name('clients.export.excel');
     Route::resource('clients', ClientController::class);
     Route::post('clients/{client}/brands', [ClientController::class, 'addBrand'])->name('clients.brands.add');
     Route::delete('clients/{client}/brands/{brand}', [ClientController::class, 'removeBrand'])->name('clients.brands.remove');
@@ -138,7 +141,6 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');
     Route::get('/designs', [DesignController::class, 'index'])->name('designs.index');
     Route::delete('designs/{design}', [DesignController::class, 'destroy'])->name('designs.destroy');
-    Route::get('/automation', [AutomationController::class, 'index'])->name('automation.index');
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::resource('slip-designs', SlipDesignController::class);

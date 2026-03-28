@@ -6,7 +6,6 @@ import {
     ArrowTrendingUpIcon,
     UserIcon,
     CalendarIcon,
-    AwardIcon,
     StarIcon
 } from '@heroicons/react/24/outline';
 

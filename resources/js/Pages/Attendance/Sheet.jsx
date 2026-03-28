@@ -1,20 +1,57 @@
+import React, { useState, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
 import {
-    CalendarIcon,
-    UserCircleIcon,
-    ClockIcon,
-    CheckCircleIcon,
-    XCircleIcon,
-    ExclamationCircleIcon,
-    FingerPrintIcon,
-    BoltIcon
-} from '@heroicons/react/24/outline';
+    Calendar,
+    Clock,
+    User,
+    CheckCircle2,
+    XCircle,
+    AlertCircle,
+    Fingerprint,
+    Zap,
+    RefreshCw,
+    LogOut,
+    LogIn,
+    Activity,
+    Monitor
+} from 'lucide-react';
 
-export default function AttendanceSheet({ sheetData, filters }) {
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '1.5rem',
+    overflow: 'hidden'
+};
+
+const badgeStyle = (status) => {
+    const styles = {
+        in: { bg: '#ecfdf5', color: '#10b981', label: 'Currently In' },
+        out: { bg: '#f8fafc', color: '#64748b', label: 'Left Office' },
+        absent: { bg: '#fff1f2', color: '#ef4444', label: 'Not Arrived' },
+    };
+    const s = styles[status];
+    return {
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '6px 14px',
+        borderRadius: '20px',
+        fontSize: '0.7rem',
+        fontWeight: 800,
+        background: s.bg,
+        color: s.color,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        border: `1.5px solid ${s.color}15`,
+        label: s.label
+    };
+};
+
+export default function AttendanceSheet({ auth, sheetData, filters }) {
     const [isLiveMode, setIsLiveMode] = useState(false);
-    const { data, setData, get } = useForm({
+    const { data, setData, get, processing } = useForm({
         date: filters.date || new Date().toISOString().split('T')[0],
     });
 
@@ -33,151 +70,190 @@ export default function AttendanceSheet({ sheetData, filters }) {
         get(route('attendance.sheet'), { preserveState: true });
     };
 
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case 'Present': return 'text-emerald-600 bg-emerald-50';
-            case 'Late': return 'text-rose-600 bg-rose-50';
-            case 'Absent': return 'text-gray-400 bg-gray-50';
-            default: return 'text-gray-600 bg-gray-100';
-        }
-    };
-
     return (
-        <FigmaLayout>
-            <Head title="Daily Punch Sheet" />
+        <FigmaLayout user={auth.user}>
+            <Head title="Daily Attendance" />
 
-            <div className="max-w-6xl mx-auto space-y-6 py-4">
-                {/* Minimal Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 pb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Daily Punch Sheet</h1>
-                        <p className="text-sm text-gray-400 font-medium">Detailed log of all employee punches for {new Date(data.date).toLocaleDateString([], { dateStyle: 'long' })}.</p>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 8px 20px rgba(16,185,129,0.2)' }}>
+                            <Activity size={28} />
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>Daily Attendance</h1>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Who's in today: <span style={{ color: '#6366f1' }}>{new Date(data.date).toLocaleDateString([], { dateStyle: 'long' })}</span></p>
+                        </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <button
+                    
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button 
                             onClick={() => setIsLiveMode(!isLiveMode)}
-                            className={`flex items-center px-4 py-2 rounded-xl text-xs font-black transition-all border ${isLiveMode
-                                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-100'
-                                    : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'
-                                }`}
+                            style={{ 
+                                height: '52px', 
+                                padding: '0 1.25rem', 
+                                background: isLiveMode ? '#ecfdf5' : '#fff', 
+                                border: `1.5px solid ${isLiveMode ? '#10b981' : '#f0eeff'}`, 
+                                borderRadius: '14px', 
+                                color: isLiveMode ? '#10b981' : '#94a3b8', 
+                                fontSize: '0.85rem', 
+                                fontWeight: 800, 
+                                cursor: 'pointer', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px',
+                                transition: 'all 0.2s'
+                            }}
                         >
-                            <BoltIcon className={`w-4 h-4 mr-2 ${isLiveMode ? 'animate-pulse' : ''}`} />
-                            {isLiveMode ? 'LIVE MODE ON' : 'GO LIVE'}
+                            <Zap size={18} className={isLiveMode ? 'animate-pulse' : ''} />
+                            {isLiveMode ? 'LIVE TRACKING' : 'WATCH LIVE'}
                         </button>
-                        <input
-                            type="date"
-                            value={data.date}
-                            onChange={e => { setData('date', e.target.value); }}
-                            className="border border-gray-200 rounded-xl py-2 px-4 text-sm font-semibold focus:ring-2 focus:ring-[#22C55E]/20 focus:border-[#22C55E] outline-none transition-all"
-                        />
-                        <button
-                            onClick={() => handleFilter()}
-                            className="px-6 py-2 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shadow-sm"
-                        >
-                            Sync Now
+                        <div style={{ position: 'relative' }}>
+                            <Calendar size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }} />
+                            <input 
+                                type="date" 
+                                value={data.date} 
+                                onChange={e => setData('date', e.target.value)}
+                                style={{ height: '52px', padding: '0 1rem 0 3.25rem', borderRadius: '14px', border: '1.5px solid #f0eeff', background: '#fff', fontSize: '0.9rem', fontWeight: 700, color: '#1e1b4b', cursor: 'pointer', outline: 'none' }}
+                            />
+                        </div>
+                        <button onClick={() => handleFilter()} style={{ height: '52px', padding: '0 1.5rem', background: '#1e1b4b', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <RefreshCw size={18} className={processing ? 'animate-spin' : ''} />
+                            Update
                         </button>
                     </div>
                 </div>
 
-                {/* Minimal Table */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100">
-                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Employee</th>
-                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Punch Sequence (In/Out)</th>
-                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Hours</th>
-                                <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-gray-400">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {sheetData.map((item) => (
-                                <tr key={item.employee.id} className="hover:bg-gray-50/30 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 uppercase">
-                                                {item.employee.first_name.charAt(0)}{item.employee.last_name?.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-900">{item.employee.first_name} {item.employee.last_name}</p>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">ID: {item.employee.employee_id}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-wrap gap-2">
-                                            {item.punches.length > 0 ? (
-                                                item.punches.map((time, idx) => (
-                                                    <div key={idx} className="flex items-center">
-                                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${idx % 2 === 0
-                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                            : 'bg-indigo-50 text-indigo-700 border-indigo-100'
-                                                            }`}>
-                                                            {idx % 2 === 0 ? 'IN' : 'OUT'} {time.substring(0, 5)}
-                                                        </span>
-                                                        {idx < item.punches.length - 1 && (
-                                                            <div className="w-2 h-[1px] bg-gray-200 mx-1" />
+                {/* Table Section */}
+                <div style={{ ...cardStyle, padding: 0 }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ textAlign: 'left', borderBottom: '1.5px solid #f5f3ff', background: '#f9faff' }}>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member</th>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Arrivals & Departures</th>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hours Worked</th>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sheetData.map((item) => {
+                                    const status = item.punches.length === 0 ? 'absent' : (item.punches.length % 2 !== 0 ? 'in' : 'out');
+                                    const b = badgeStyle(status);
+                                    return (
+                                        <tr key={item.employee.id} style={{ borderBottom: '1.5px solid #f9f9fb', transition: 'all 0.2s' }} className="table-row">
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#f5f3ff', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#6366f1', fontSize: '0.8rem', overflow: 'hidden', boxShadow: '0 4px 12px rgba(99,102,241,0.08)' }}>
+                                                        {item.employee.avatar ? (
+                                                            <img src={`/storage/${item.employee.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <User size={20} />
                                                         )}
                                                     </div>
-                                                ))
-                                            ) : (
-                                                <span className="text-xs font-medium text-gray-300 italic">No activity recorded</span>
-                                            )}
-                                            {!item.last_out && item.punches.length > 0 && item.punches.length % 2 !== 0 && (
-                                                <span className="ml-2 inline-flex items-center px-2 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase border border-amber-100">
-                                                    <span className="w-1 h-1 bg-amber-500 rounded-full mr-1 animate-pulse" />
-                                                    Active
+                                                    <div>
+                                                        <p style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{item.employee.first_name} {item.employee.last_name}</p>
+                                                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Emp ID: {item.employee.employee_id}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                                                    {item.punches.length > 0 ? (
+                                                        item.punches.map((time, idx) => (
+                                                            <React.Fragment key={idx}>
+                                                                <div style={{ 
+                                                                    padding: '4px 10px', 
+                                                                    borderRadius: '8px', 
+                                                                    fontSize: '0.75rem', 
+                                                                    fontWeight: 800, 
+                                                                    background: idx % 2 === 0 ? '#ecfdf5' : '#f5f3ff', 
+                                                                    color: idx % 2 === 0 ? '#10b981' : '#6366f1',
+                                                                    border: `1px solid ${idx % 2 === 0 ? '#10b981' : '#6366f1'}20`,
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px'
+                                                                }}>
+                                                                    {idx % 2 === 0 ? <LogIn size={10} /> : <LogOut size={10} />}
+                                                                    {time.substring(0, 5)}
+                                                                </div>
+                                                                {idx < item.punches.length - 1 && <div style={{ width: '8px', height: '1px', background: '#e2e8f0' }} />}
+                                                            </React.Fragment>
+                                                        ))
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1' }}>No activities today</span>
+                                                    )}
+                                                    {status === 'in' && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px', padding: '4px 8px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7' }}>
+                                                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 2s infinite' }}></div>
+                                                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#b45309', textTransform: 'uppercase' }}>Active</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                {item.total_hours > 0 ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <Clock size={14} color="#6366f1" />
+                                                        <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1e1b4b' }}>{item.total_hours} <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 700 }}>Hours</span></span>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#cbd5e1' }}>0.0 Hours</span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                                                <span style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    padding: '6px 14px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 800,
+                                                    background: b.background,
+                                                    color: b.color,
+                                                    textTransform: 'uppercase',
+                                                    border: b.border
+                                                }}>
+                                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: b.color }}></div>
+                                                    {b.label}
                                                 </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className={`text-sm font-bold ${item.total_hours > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                                                {item.total_hours} <span className="text-[10px] font-medium text-gray-400">Hours</span>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        {item.punches.length === 0 ? (
-                                            <span className="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-gray-50 text-gray-400 border border-gray-100">
-                                                ABSENT
-                                            </span>
-                                        ) : (
-                                            item.punches.length % 2 !== 0 ? (
-                                                <span className="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-sm shadow-emerald-100">
-                                                    <span className="w-1.5 h-1.5 bg-white rounded-full mr-2 animate-pulse" />
-                                                    CLOCKED IN
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-gray-900 text-white shadow-sm">
-                                                    CLOCKED OUT
-                                                </span>
-                                            )
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                {/* Legend */}
-                <div className="flex items-center justify-end space-x-6 px-4">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 rounded bg-emerald-100 border border-emerald-200" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">Input</span>
+                {/* Footer Info */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '2rem', padding: '0 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Arrival Log</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 rounded bg-indigo-100 border border-indigo-200" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">Output</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1' }}></div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Departure Log</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 rounded bg-amber-200" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">Currently In</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 2s infinite' }}></div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Currently Working</span>
                     </div>
                 </div>
             </div>
+
+            <style>{`
+                .table-row:hover { background: #fdfcff !important; box-shadow: inset 4px 0 0 #6366f1; }
+                @keyframes pulse {
+                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+                    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+                }
+            `}</style>
         </FigmaLayout>
     );
 }

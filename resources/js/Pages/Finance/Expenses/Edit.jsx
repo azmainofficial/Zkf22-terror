@@ -1,36 +1,72 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    Save,
+    Plus,
+    Trash2,
     Calendar,
-    Tag,
+    Users,
+    CreditCard,
+    CheckCircle2,
+    DollarSign,
+    Loader2,
+    Receipt,
+    History,
+    FileCheck,
     Briefcase,
     FileText,
-    Receipt,
-    Upload,
-    CheckCircle2,
-    X,
-    CreditCard,
-    DollarSign,
-    Box,
+    Percent,
+    ArrowRight,
+    Plane,
+    Target,
+    Settings,
+    Building,
+    Hash,
+    FileUp,
     Zap,
     ShieldCheck,
-    Loader2,
-    Activity,
-    FileCheck,
+    Check,
+    Save,
     Building2,
-    History,
+    Box,
     ExternalLink
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { Badge } from '@/Components/ui/Badge';
-import { cn } from '@/lib/utils';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2rem',
+    position: 'relative',
+    overflow: 'hidden'
+};
+
+const inputStyle = {
+    width: '100%',
+    height: '52px',
+    padding: '0 1.25rem',
+    borderRadius: '12px',
+    border: '1.5px solid #f0eeff',
+    background: '#f8fafc',
+    fontSize: '0.95rem',
+    fontWeight: 700,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
+
+const labelStyle = {
+    fontSize: '0.75rem',
+    fontWeight: 800,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    display: 'block',
+    marginBottom: '8px',
+    paddingLeft: '4px'
+};
 
 export default function Edit({ auth, expense, categories = [], projects = [], paymentMethods = [] }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -57,325 +93,199 @@ export default function Edit({ auth, expense, categories = [], projects = [], pa
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Refine Expenditure - ${expense.expense_number}`} />
+            <Head title={`Edit Expense - ${expense.expense_number}`} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
-                        <Link href={route('expenses.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
+            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <Link href={route('expenses.index')} style={{ textDecoration: 'none' }}>
+                            <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1.5px solid #f0eeff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }} className="back-btn">
                                 <ArrowLeft size={20} />
-                            </Button>
+                            </button>
                         </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                Refine Log
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <History size={12} className="text-amber-500" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">Adjusting record {expense.expense_number}</p>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Edit Expense</h1>
+                                <span style={{ background: '#f1f5f9', padding: '4px 12px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 900, color: '#6366f1' }}>{expense.expense_number}</span>
                             </div>
+                            <p style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Update the details of this expense record</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Badge className="px-5 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 border-2 border-amber-100 dark:border-amber-800 font-black text-[10px] uppercase tracking-widest shadow-sm">
-                            Refinement Protocol
-                        </Badge>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={() => window.history.back()} style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#64748b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer' }}>
+                            Cancel
+                        </button>
+                        <button onClick={handleSubmit} disabled={processing}
+                            style={{ height: '48px', padding: '0 2rem', background: '#6366f1', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(99,102,241,0.2)' }}>
+                            {processing ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            Update Expense
+                        </button>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Main Synthesis Panel */}
-                    <div className="lg:col-span-8 space-y-10">
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none rotate-12">
-                                <FileText size={240} className="text-amber-500" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2rem' }} className="form-grid">
+                    {/* Left Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        
+                        {/* Basic Information Section */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <FileText size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Basic Information</h3>
                             </div>
-
-                            <CardContent className="p-10 md:p-14 space-y-12 relative z-10">
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-amber-500" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Operational Core</h3>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Expenditure Title" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <TextInput
-                                            className="w-full h-18 pl-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] font-black text-xl text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-amber-500/10 shadow-inner transition-all"
-                                            value={data.title}
-                                            onChange={(e) => setData('title', e.target.value)}
-                                            placeholder="e.g. Server Infrastructure Q2"
-                                            required
-                                        />
-                                        <InputError message={errors.title} className="pl-4 mt-2" />
-                                    </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Expense Title</label>
+                                    <input type="text" value={data.title} onChange={(e) => setData('title', e.target.value)} placeholder="e.g. Office Equipment Repair" style={inputStyle} required />
+                                    {errors.title && <p style={{ color: '#e11d48', fontSize: '0.75rem', fontWeight: 800, margin: '8px 4px 0' }}>{errors.title}</p>}
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    <div className="space-y-4">
-                                        <InputLabel value="Expenditure Node" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <div className="relative group">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 pointer-events-none transition-colors">
-                                                <Tag size={18} />
-                                            </div>
-                                            <select
-                                                value={data.expense_category_id}
-                                                onChange={(e) => setData('expense_category_id', e.target.value)}
-                                                className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-amber-500/10 shadow-inner group transition-all"
-                                                required
-                                            >
-                                                <option value="">Select Category</option>
-                                                {categories.map((cat) => (
-                                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Settlement Vector" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <div className="relative group">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 pointer-events-none transition-colors">
-                                                <CreditCard size={18} />
-                                            </div>
-                                            <select
-                                                value={data.payment_method}
-                                                onChange={(e) => setData('payment_method', e.target.value)}
-                                                className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-amber-500/10 shadow-inner group transition-all"
-                                                required
-                                            >
-                                                <option value="">Select Protocol</option>
-                                                <option value="cash">Petty Cash</option>
-                                                <option value="bank_transfer">Corporate Transfer</option>
-                                                <option value="cheque">Cheque Protocol</option>
-                                                <option value="credit_card">Corporate Card</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Occurrence Date" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <div className="relative group">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 pointer-events-none transition-colors">
-                                                <Calendar size={18} />
-                                            </div>
-                                            <input
-                                                type="date"
-                                                value={data.expense_date}
-                                                onChange={(e) => setData('expense_date', e.target.value)}
-                                                className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 shadow-inner group transition-all"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Vendor Entity" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <div className="relative group">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 pointer-events-none transition-colors">
-                                                <Building2 size={18} />
-                                            </div>
-                                            <TextInput
-                                                className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-amber-500/10 shadow-inner group transition-all"
-                                                value={data.vendor_name}
-                                                onChange={(e) => setData('vendor_name', e.target.value)}
-                                                placeholder="Supplier / Merchant"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-slate-200" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Project Allocation & Intel</h3>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Linked Project Manifest" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <div className="relative group">
-                                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 pointer-events-none transition-colors">
-                                                <Box size={18} />
-                                            </div>
-                                            <select
-                                                value={data.project_id}
-                                                onChange={(e) => setData('project_id', e.target.value)}
-                                                className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-amber-500/10 shadow-inner group transition-all"
-                                            >
-                                                <option value="">No Active Project Link</option>
-                                                {projects.map((p) => (
-                                                    <option key={p.id} value={p.id}>{p.title || p.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <InputLabel value="Strategic Briefing" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                        <textarea
-                                            value={data.description}
-                                            onChange={(e) => setData('description', e.target.value)}
-                                            rows="5"
-                                            className="w-full p-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] font-bold text-sm resize-none focus:ring-4 focus:ring-amber-500/10 shadow-inner transition-all placeholder:text-slate-300"
-                                            placeholder="Detail the necessity and outcome of this capital deployment..."
-                                        />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Fiscal Command Lateral */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8">
-                        {/* Capital Magnitude Card */}
-                        <Card className="rounded-[44px] border-none bg-amber-500 shadow-2xl shadow-amber-100 dark:shadow-none overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none -rotate-12 translate-x-12 -translate-y-12">
-                                <DollarSign size={240} />
-                            </div>
-
-                            <CardContent className="p-10 space-y-10 relative z-10 text-white">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <InputLabel value="Capital Magnitude" className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-100/60 pl-2" />
-                                        <Zap size={16} className="text-amber-300 animate-pulse" />
-                                    </div>
-                                    <div className="relative group">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/40 font-black text-2xl pointer-events-none">৳</div>
-                                        <input
-                                            type="number"
-                                            value={data.amount}
-                                            onChange={(e) => setData('amount', e.target.value)}
-                                            step="0.01"
-                                            className="w-full bg-white/10 border-none rounded-[1.8rem] pl-16 pr-8 py-8 text-4xl font-black text-white focus:ring-4 focus:ring-white/20 outline-none transition-all placeholder:text-white/20 tracking-tighter italic"
-                                            required
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    <InputError message={errors.amount} className="text-rose-100 font-black text-[10px] uppercase tracking-widest pl-2" />
-                                </div>
-
-                                <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-8 space-y-6">
-                                    <div className="space-y-3">
-                                        <InputLabel value="Audit State Authorization" className="text-[10px] font-black uppercase tracking-widest text-amber-50/50" />
-                                        <select
-                                            value={data.status}
-                                            onChange={(e) => setData('status', e.target.value)}
-                                            className="w-full h-14 bg-white/10 border-none rounded-2xl px-6 font-black text-[10px] uppercase tracking-[0.2em] text-white focus:ring-2 focus:ring-white/20 appearance-none transition-all lg:text-amber-600"
-                                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
-                                        >
-                                            <option value="pending" className="text-slate-900">PENDING AUDIT</option>
-                                            <option value="approved" className="text-slate-900">APPROVED LOG</option>
-                                            <option value="rejected" className="text-slate-900">REJECTED FLOW</option>
-                                            <option value="paid" className="text-slate-900">SETTLED FLOW</option>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                    <div>
+                                        <label style={labelStyle}>Category</label>
+                                        <select value={data.expense_category_id} onChange={(e) => setData('expense_category_id', e.target.value)} style={inputStyle} required>
+                                            <option value="">Select Category</option>
+                                            {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                                         </select>
                                     </div>
-
-                                    <div className="flex items-center gap-4 px-2">
-                                        <div className="relative w-12 h-6 bg-white/20 rounded-full cursor-pointer transition-colors has-[:checked]:bg-emerald-400" onClick={() => setData('is_reimbursable', !data.is_reimbursable)}>
-                                            <input
-                                                type="checkbox"
-                                                id="reimbursable"
-                                                checked={data.is_reimbursable}
-                                                onChange={(e) => setData('is_reimbursable', e.target.checked)}
-                                                className="sr-only"
-                                            />
-                                            <div className={cn("absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-300", data.is_reimbursable && "translate-x-6")} />
-                                        </div>
-                                        <label htmlFor="reimbursable" className="text-xs font-black uppercase tracking-widest text-amber-50 cursor-pointer italic">Reimbursable Asset</label>
+                                    <div>
+                                        <label style={labelStyle}>Payment Method</label>
+                                        <select value={data.payment_method} onChange={(e) => setData('payment_method', e.target.value)} style={inputStyle} required>
+                                            <option value="">Select Method</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="bank_transfer">Bank Transfer</option>
+                                            <option value="cheque">Cheque</option>
+                                            <option value="credit_card">Credit Card</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Expense Date</label>
+                                        <input type="date" value={data.expense_date} onChange={(e) => setData('expense_date', e.target.value)} style={inputStyle} required />
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Vendor Name</label>
+                                        <input type="text" value={data.vendor_name} onChange={(e) => setData('vendor_name', e.target.value)} placeholder="Supplier / Merchant" style={inputStyle} />
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Artifact Attachment Pipeline */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 p-10 space-y-8 shadow-sm">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <Receipt size={18} />
-                                    </div>
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white italic">Artifact Attachment</h4>
-                                </div>
-                                {expense.receipt && (
-                                    <a href={`/storage/${expense.receipt}`} target="_blank" className="text-indigo-600 hover:scale-110 transition-transform">
-                                        <ExternalLink size={18} />
-                                    </a>
-                                )}
                             </div>
+                        </div>
 
-                            {expense.receipt && (
-                                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-100 dark:border-emerald-800 rounded-2xl flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 shrink-0">
-                                        <FileCheck size={18} />
-                                    </div>
-                                    <div className="overflow-hidden">
-                                        <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none mb-1">Evidence Secured</p>
-                                        <p className="text-[9px] font-bold text-emerald-600/50 uppercase truncate">Reference: {expense.receipt.split('/').pop()}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="relative group overflow-hidden rounded-[2rem]">
-                                <div className="border-4 border-dashed border-slate-50 dark:border-slate-800 rounded-[2rem] p-10 text-center group-hover:bg-amber-50/50 dark:group-hover:bg-amber-900/10 group-hover:border-amber-100 transition-all cursor-pointer">
-                                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 shadow-sm mx-auto flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                        <Upload size={24} className="text-slate-300 group-hover:text-amber-500" />
-                                    </div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic leading-relaxed">
-                                        {data.receipt ? data.receipt.name : 'Update Digitized Artifact'}
-                                    </p>
-                                    <p className="text-[9px] font-bold text-slate-300 uppercase mt-2">New receipt will replace current record</p>
-                                </div>
-                                <input
-                                    type="file"
-                                    onChange={(e) => setData('receipt', e.target.files[0])}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                />
+                        {/* Project & Notes */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <Briefcase size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Project & Notes</h3>
                             </div>
-                        </Card>
-
-                        {/* Submission Protocols */}
-                        <div className="space-y-4 pt-4">
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full h-20 rounded-[2.2rem] bg-indigo-600 hover:bg-slate-900 text-white font-black text-xl shadow-2xl shadow-indigo-100 dark:shadow-none gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                                {processing ? (
-                                    <Loader2 className="animate-spin" size={24} />
-                                ) : (
-                                    <>
-                                        <ShieldCheck size={28} />
-                                        <span className="uppercase italic tracking-tighter">Commit Refinement</span>
-                                    </>
-                                )}
-                            </Button>
-
-                            <div className="flex items-center gap-3 justify-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2rem]">
-                                <Activity size={14} className="text-amber-500 animate-pulse" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 italic">Audit Log Entry Active</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Associate with Project</label>
+                                    <select value={data.project_id} onChange={(e) => setData('project_id', e.target.value)} style={inputStyle}>
+                                        <option value="">No Active Project Link</option>
+                                        {projects.map((p) => <option key={p.id} value={p.id}>{p.title || p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Additional Notes</label>
+                                    <textarea value={data.description} onChange={(e) => setData('description', e.target.value)} placeholder="Enter extra details or reasoning for this expense..."
+                                        style={{ ...inputStyle, height: '120px', padding: '1rem', resize: 'none' }} />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </form>
+
+                    {/* Right Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        
+                        {/* Amount Card */}
+                        <div style={{ ...cardStyle, background: '#1e1b4b', color: '#fff', border: 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Expense Amount</h3>
+                                <DollarSign size={20} color="#fff" />
+                            </div>
+                            
+                            <div style={{ position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1.5rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)' }}>৳</span>
+                                <input type="number" step="0.01" value={data.amount} onChange={(e) => setData('amount', e.target.value)} placeholder="0.00"
+                                    style={{ width: '100%', height: '80px', background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '0 1.25rem 0 3rem', fontSize: '2.5rem', fontWeight: 900, color: '#fff', outline: 'none' }} />
+                            </div>
+
+                            <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ ...labelStyle, color: 'rgba(255,255,255,0.4)' }}>Approval Status</label>
+                                    <select value={data.status} onChange={(e) => setData('status', e.target.value)} 
+                                        style={{ ...inputStyle, background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', height: '48px' }}>
+                                        <option value="pending" style={{ color: '#000' }}>Pending Approval</option>
+                                        <option value="approved" style={{ color: '#000' }}>Approved</option>
+                                        <option value="paid" style={{ color: '#000' }}>Paid</option>
+                                        <option value="rejected" style={{ color: '#000' }}>Rejected</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setData('is_reimbursable', !data.is_reimbursable)}>
+                                    <div style={{ width: '40px', height: '20px', borderRadius: '10px', background: data.is_reimbursable ? '#10b981' : 'rgba(255,255,255,0.2)', position: 'relative', transition: 'all 0.2s' }}>
+                                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '2px', left: data.is_reimbursable ? '22px' : '2px', transition: 'all 0.2s' }} />
+                                    </div>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>Mark as Reimbursable</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Receipt Upload */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <Receipt size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Current Attachment</h3>
+                            </div>
+
+                            {expense.receipt && (
+                                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '16px', border: '1.5px solid #f0eeff', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <FileCheck size={20} color="#10b981" />
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e1b4b' }}>Receipt Verified</span>
+                                    </div>
+                                    <a href={`/storage/${expense.receipt}`} target="_blank" style={{ color: '#6366f1' }}>
+                                        <ExternalLink size={16} />
+                                    </a>
+                                </div>
+                            )}
+                            
+                            <div style={{ position: 'relative' }}>
+                                <div style={{ width: '100%', height: '140px', borderRadius: '20px', border: '2px dashed #f0eeff', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', transition: 'all 0.2s', overflow: 'hidden' }} className="upload-box">
+                                    {data.receipt ? (
+                                        <div style={{ textAlign: 'center', padding: '1rem' }}>
+                                            <Check size={32} color="#10b981" />
+                                            <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e1b4b', margin: '8px 0', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.receipt.name}</p>
+                                            <button type="button" onClick={() => setData('receipt', null)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', textDecoration: 'underline' }}>Remove Upload</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <FileUp size={32} color="#94a3b8" />
+                                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>Replace Receipt File</p>
+                                        </>
+                                    )}
+                                    <input type="file" onChange={(e) => setData('receipt', e.target.files[0])} 
+                                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                select option {
-                    background-color: white !important;
-                    color: #1e293b !important;
-                    padding: 20px !important;
-                    font-weight: 700;
+            <style>{`
+                .back-btn:hover { background: #f8fafc !important; transform: translateX(-4px); }
+                .upload-box:hover { border-color: #6366f1; background: #f5f3ff; }
+                .form-grid { grid-template-columns: 1.6fr 1fr; }
+                @media (max-width: 1000px) {
+                    .form-grid { grid-template-columns: 1fr !important; }
                 }
-                .dark select option {
-                    background-color: #0f172a !important;
-                    color: #f8fafc !important;
-                }
-            ` }} />
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `}</style>
         </FigmaLayout>
     );
 }

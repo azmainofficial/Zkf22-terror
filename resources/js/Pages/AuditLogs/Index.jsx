@@ -1,301 +1,347 @@
-import React, { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { Button } from '@/Components/ui/Button';
-import { FileText, Download, Search, Filter, Calendar, User, Activity, Eye } from 'lucide-react';
-import { useAppStore } from '@/store/useAppStore';
+import React, { useState, useRef, useEffect } from 'react';
+import FigmaLayout from '@/Layouts/FigmaLayout';
+import { Head, router, Link } from '@inertiajs/react';
+import { 
+    History, 
+    Download, 
+    Search, 
+    Filter, 
+    Calendar, 
+    User, 
+    Activity, 
+    Eye,
+    Plus,
+    RefreshCw,
+    Trash2,
+    MousePointer,
+    FileText,
+    Database,
+    Shield,
+    Users,
+    Smartphone,
+    Settings,
+    Globe,
+    ChevronRight,
+    SearchX,
+    Clock,
+    Zap,
+    AlertCircle,
+    CheckCircle2,
+    X,
+    Loader2
+} from 'lucide-react';
+
+// ─── Shared styles from Inventory patterns ──────────────────────
+const card = {
+    background: '#fff', 
+    borderRadius: '16px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+};
+
+const onFocus = e => { 
+    e.target.style.borderColor = '#8b5cf6'; 
+    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; 
+};
+
+const onBlur = e => { 
+    e.target.style.borderColor = '#ede9fe'; 
+    e.target.style.boxShadow = 'none'; 
+};
+
+const inputStyle = {
+    width: '100%',
+    height: '46px',
+    padding: '0 1rem',
+    borderRadius: '10px',
+    border: '1.5px solid #ede9fe',
+    background: '#f9f7ff',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
+
+const iconBtn = (bg, color) => ({
+    width: '32px', height: '32px', borderRadius: '8px',
+    background: bg, border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color,
+    transition: 'all 0.2s'
+});
+
+const getActionConfig = (action) => {
+    const configs = {
+        'created': { icon: Plus, bg: '#f0fdf4', color: '#16a34a', label: 'Added Record' },
+        'updated': { icon: RefreshCw, bg: '#eff6ff', color: '#3b82f6', label: 'Modified Data' },
+        'deleted': { icon: Trash2, bg: '#fff1f2', color: '#e11d48', label: 'Removed Log' },
+        'viewed':  { icon: Eye, bg: '#f8fafc', color: '#64748b', label: 'Inspected' },
+        'accessed':{ icon: MousePointer, bg: '#f5f3ff', color: '#8b5cf6', label: 'Page Entry' },
+    };
+    return configs[action] || { icon: Activity, bg: '#f9faff', color: '#64748b', label: action };
+};
 
 export default function Index({ auth, logs, actions, types, filters }) {
-    const { language } = useAppStore();
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedAction, setSelectedAction] = useState(filters.action || '');
     const [selectedType, setSelectedType] = useState(filters.type || '');
-    const [selectedUser, setSelectedUser] = useState(filters.user_id || '');
     const [startDate, setStartDate] = useState(filters.start_date || '');
     const [endDate, setEndDate] = useState(filters.end_date || '');
-
-    const tr = (en, bn) => language === 'bn' ? bn : en;
+    const isFirstRender = useRef(true);
 
     const handleFilter = () => {
         router.get(route('audit-logs.index'), {
             search: searchTerm,
             action: selectedAction,
             type: selectedType,
-            user_id: selectedUser,
             start_date: startDate,
             end_date: endDate,
-        }, {
-            preserveState: true,
-        });
+        }, { preserveState: true });
+    };
+
+    const clearFilters = () => {
+        setSearchTerm(''); setSelectedAction(''); setSelectedType(''); setStartDate(''); setEndDate('');
+        router.get(route('audit-logs.index'), {}, { preserveState: true });
     };
 
     const handleExport = () => {
         window.location.href = route('audit-logs.export', {
-            search: searchTerm,
-            action: selectedAction,
-            type: selectedType,
-            user_id: selectedUser,
-            start_date: startDate,
-            end_date: endDate,
+            search: searchTerm, action: selectedAction, type: selectedType, start_date: startDate, end_date: endDate,
         });
     };
 
-    const getActionColor = (action) => {
-        const colors = {
-            'created': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-            'updated': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-            'deleted': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-            'viewed': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-            'accessed': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-        };
-        return colors[action] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    };
-
-    const getActionIcon = (action) => {
-        const icons = {
-            'created': '✓',
-            'updated': '↻',
-            'deleted': '✗',
-            'viewed': '👁',
-            'accessed': '→',
-        };
-        return icons[action] || '•';
-    };
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
+    const summaryStats = [
+        { label: 'System Pulsations', value: logs.total || 0, icon: Activity, bg: '#fef2f2', color: '#ef4444' },
+        { label: 'Records Spawned', value: logs.data.filter(l => l.action === 'created').length, icon: Plus, bg: '#f0fdf4', color: '#16a34a' },
+        { label: 'Security Audits', value: logs.data.filter(l => l.action === 'deleted').length, icon: Shield, bg: '#fefce8', color: '#ca8a04' },
+        { label: 'Module Coverage', value: `${types.length} Tiers`, icon: Zap, bg: '#f5f3ff', color: '#6366f1' },
+    ];
 
     return (
-        <AuthenticatedLayout user={auth.user}>
-            <Head title="Activity Log" />
+        <FigmaLayout user={auth.user}>
+            <Head title="System Telemetry" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    {/* Header */}
-                    <div className="mb-8 flex justify-between items-start">
-                        <div>
-                            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">
-                                {tr('Activity Log', 'কার্যকলাপ লগ')}
-                            </h2>
-                            <p className="text-gray-600 dark:text-gray-400 mt-2 text-base">
-                                {tr('See who did what and when', 'কে কী করেছে এবং কখন তা দেখুন')}
-                            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+
+                {/* ── Header (Inventory Style) ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <History size={16} color="#ec4899" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#ec4899', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Audit Intelligence</span>
                         </div>
-                        <Button onClick={handleExport} variant="outline" className="gap-2">
-                            <Download size={18} />
-                            {tr('Export to CSV', 'CSV এ রপ্তানি করুন')}
-                        </Button>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>System Telemetry & Logs</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Comprehensive audit trail of all infrastructure changes and administrative actions</p>
                     </div>
-
-                    {/* Filters */}
-                    <Card className="mb-6">
-                        <CardContent className="p-6">
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {/* Search */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        {tr('Search', 'অনুসন্ধান')}
-                                    </label>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                                        <input
-                                            type="text"
-                                            placeholder={tr('Search activity...', 'কার্যকলাপ অনুসন্ধান করুন...')}
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleFilter()}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Action Filter */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        {tr('Action Type', 'কার্যের ধরন')}
-                                    </label>
-                                    <select
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                        value={selectedAction}
-                                        onChange={(e) => setSelectedAction(e.target.value)}
-                                    >
-                                        <option value="">{tr('All Actions', 'সব কার্য')}</option>
-                                        {actions.map(action => (
-                                            <option key={action} value={action}>
-                                                {action.charAt(0).toUpperCase() + action.slice(1)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Type Filter */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        {tr('Item Type', 'আইটেমের ধরন')}
-                                    </label>
-                                    <select
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                        value={selectedType}
-                                        onChange={(e) => setSelectedType(e.target.value)}
-                                    >
-                                        <option value="">{tr('All Types', 'সব ধরন')}</option>
-                                        {types.map(type => (
-                                            <option key={type} value={type}>
-                                                {type ? type.split('\\').pop() : 'Unknown'}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Start Date */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        {tr('From Date', 'তারিখ থেকে')}
-                                    </label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                    />
-                                </div>
-
-                                {/* End Date */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        {tr('To Date', 'তারিখ পর্যন্ত')}
-                                    </label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                    />
-                                </div>
-
-                                {/* Filter Button */}
-                                <div className="flex items-end">
-                                    <Button onClick={handleFilter} className="w-full gap-2">
-                                        <Filter size={16} />
-                                        {tr('Apply Filters', 'ফিল্টার প্রয়োগ করুন')}
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Activity Timeline */}
-                    <Card>
-                        <CardContent className="p-6">
-                            {logs.data && logs.data.length > 0 ? (
-                                <div className="space-y-4">
-                                    {logs.data.map((log) => (
-                                        <div
-                                            key={log.id}
-                                            className="flex gap-4 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
-                                        >
-                                            {/* Timeline Dot */}
-                                            <div className="flex flex-col items-center">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${getActionColor(log.action)}`}>
-                                                    {getActionIcon(log.action)}
-                                                </div>
-                                                <div className="w-0.5 h-full bg-gray-200 dark:bg-gray-700 mt-2"></div>
-                                            </div>
-
-                                            {/* Content */}
-                                            <div className="flex-1">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div>
-                                                        <h4 className="font-semibold text-gray-900 dark:text-white">
-                                                            {log.description || `${log.action} ${log.auditable_type?.split('\\').pop() || 'item'}`}
-                                                        </h4>
-                                                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                                            <span className="flex items-center gap-1">
-                                                                <User size={14} />
-                                                                {log.user?.name || 'System'}
-                                                            </span>
-                                                            <span className="flex items-center gap-1">
-                                                                <Calendar size={14} />
-                                                                {formatDate(log.created_at)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => router.get(route('audit-logs.show', log.id))}
-                                                        className="gap-2"
-                                                    >
-                                                        <Eye size={14} />
-                                                        {tr('Details', 'বিস্তারিত')}
-                                                    </Button>
-                                                </div>
-
-                                                {/* Additional Info */}
-                                                {log.auditable_type && (
-                                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                                        <Activity size={12} />
-                                                        <span>{log.auditable_type.split('\\').pop()}</span>
-                                                        {log.auditable_id && <span>#{log.auditable_id}</span>}
-                                                    </div>
-                                                )}
-
-                                                {/* IP Address */}
-                                                {log.ip_address && (
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                        IP: {log.ip_address}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12">
-                                    <FileText className="mx-auto mb-4 text-gray-300" size={64} />
-                                    <p className="text-gray-500 dark:text-gray-400">
-                                        {tr('No activity found', 'কোন কার্যকলাপ পাওয়া যায়নি')}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Pagination */}
-                            {logs.links && logs.links.length > 3 && (
-                                <div className="mt-6 pt-6 border-t dark:border-gray-700">
-                                    <div className="flex justify-between items-center">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300">
-                                            {tr('Showing', 'দেখানো হচ্ছে')} {logs.from} {tr('to', 'থেকে')} {logs.to} {tr('of', 'এর')} {logs.total} {tr('activities', 'কার্যকলাপ')}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {logs.links.map((link, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => link.url && router.get(link.url)}
-                                                    disabled={!link.url}
-                                                    className={`px-3 py-1 rounded ${link.active
-                                                            ? 'bg-purple-600 text-white'
-                                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-500 hover:text-white'}`}
-                                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <button onClick={handleExport} style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '0.6rem 1.125rem',
+                            background: '#fff', border: '1.5px solid #ede9fe',
+                            borderRadius: '12px', color: '#6366f1',
+                            fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                            boxShadow: '0 1px 6px rgba(99,102,241,0.07)',
+                        }}>
+                            <Download size={15} /> Export Audit Archive
+                        </button>
+                    </div>
                 </div>
+
+                {/* ── Stat cards (Inventory Style) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '1rem' }}>
+                    {summaryStats.map((s, i) => (
+                        <div key={i} style={{ ...card, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <s.icon size={22} color={s.color} />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* ── Sub-Navigation (Inventory Mini Style) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                    {[
+                        { name: 'Devices', icon: Smartphone, href: route('devices.index'), color: '#0ea5e9' },
+                        { name: 'Users', icon: Users, href: route('users.index'), color: '#8b5cf6' },
+                        { name: 'Roles', icon: Shield, href: route('roles.index'), color: '#3b82f6' },
+                        { name: 'Settings', icon: Settings, href: route('settings.index'), color: '#f43f5e' },
+                    ].map((item, idx) => (
+                        <Link key={idx} href={item.href} style={{ textDecoration: 'none' }}>
+                            <div style={{ ...card, padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s' }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = item.color; e.currentTarget.style.background = `${item.color}05`; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.background = '#fff'; }}
+                            >
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `${item.color}10`, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <item.icon size={16} />
+                                </div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 850, color: '#1e1b4b' }}>{item.name} Hub</span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+
+                {/* ── Filter Controls (Inventory Pattern) ── */}
+                <div style={{ ...card, padding: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                        <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>Telemetry Scan</label>
+                            <div style={{ position: 'relative' }}>
+                                <Search size={16} color="#ec4899" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                                <input type="text" placeholder="Scan by ID, user, or modules..." style={{ ...inputStyle, paddingLeft: '2.25rem', background: '#fff' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleFilter()} onFocus={onFocus} onBlur={onBlur} />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>Operational Event</label>
+                            <select style={{ ...inputStyle, background: '#fff' }} value={selectedAction} onChange={e => setSelectedAction(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
+                                <option value="">Global Actions</option>
+                                {actions.map(action => (
+                                    <option key={action} value={action}>{action.charAt(0).toUpperCase() + action.slice(1)}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>Module Tier</label>
+                            <select style={{ ...inputStyle, background: '#fff' }} value={selectedType} onChange={e => setSelectedType(e.target.value)} onFocus={onFocus} onBlur={onBlur}>
+                                <option value="">All Tiers</option>
+                                {types.map(type => (
+                                    <option key={type} value={type}>{type ? type.split('\\').pop() : 'Hardware/System'}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                             <div>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>Chronicle Start</label>
+                                <input type="date" style={{ ...inputStyle, background: '#fff', padding: '0 0.5rem' }} value={startDate} onChange={e => setStartDate(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>Chronicle End</label>
+                                <input type="date" style={{ ...inputStyle, background: '#fff', padding: '0 0.5rem' }} value={endDate} onChange={e => setEndDate(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={handleFilter} style={{ flex: 2, height: '46px', background: '#1e1b4b', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(30,27,75,0.2)' }}>
+                                <Filter size={16} /> Execute Audit
+                            </button>
+                            {(searchTerm || selectedAction || selectedType || startDate || endDate) && (
+                                <button onClick={clearFilters} style={{ width: '46px', height: '46px', background: '#fff1f2', border: '1.5px solid #fee2e2', borderRadius: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Clear Chronicles">
+                                    <X size={18} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Telemetry Timeline (Row Pattern) ── */}
+                {logs.data && logs.data.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {logs.data.map((log) => {
+                            const actionCfg = getActionConfig(log.action);
+                            const ActionIcon = actionCfg.icon;
+                            
+                            return (
+                                <div key={log.id} style={{
+                                    ...card, padding: '1rem 1.5rem',
+                                    display: 'flex', alignItems: 'center',
+                                    gap: '1.5rem', flexWrap: 'wrap',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = actionCfg.color; e.currentTarget.style.boxShadow = `0 8px 24px ${actionCfg.color}08`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                >
+                                    {/* Action Icon */}
+                                    <div style={{ width: '52px', height: '52px', borderRadius: '15px', background: actionCfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${actionCfg.color}15` }}>
+                                        <ActionIcon size={24} color={actionCfg.color} />
+                                    </div>
+
+                                    {/* Event Identity */}
+                                    <div style={{ flex: 1, minWidth: '240px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: actionCfg.color, background: `${actionCfg.color}10`, padding: '2px 10px', borderRadius: '20px', border: `1px solid ${actionCfg.color}20`, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                               {actionCfg.label}
+                                            </span>
+                                            <p style={{ fontSize: '0.95rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>
+                                                {log.auditable_type ? log.auditable_type.split('\\').pop() : 'System Component'}
+                                            </p>
+                                            {log.auditable_id && <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1' }}>REF #{log.auditable_id}</span>}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '4px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8' }}>
+                                                <User size={12} color="#cbd5e1" />
+                                                {log.user?.name || 'Automated System'}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8' }}>
+                                                <Globe size={12} color="#cbd5e1" />
+                                                {log.ip_address || 'Internal Execution'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Timestamp Context */}
+                                    <div style={{ width: '180px', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                                            <p style={{ fontSize: '0.85rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>
+                                                {new Date(log.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                            <Clock size={14} color="#cbd5e1" />
+                                        </div>
+                                        <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 800, margin: '4px 0 0', textTransform: 'uppercase' }}>Chronological Sync</p>
+                                    </div>
+
+                                    {/* Action Arrow */}
+                                    <div style={{ display: 'flex', gap: '8px', marginLeft: '1rem' }}>
+                                        <Link href={route('audit-logs.show', log.id)} title="Inspect Snapshot">
+                                            <button style={iconBtn('#f5f3ff', '#6366f1')}><Eye size={16} /></button>
+                                        </Link>
+                                        <div style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', color: '#cbd5e1' }}>
+                                            <ChevronRight size={18} />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '6rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px', background: '#faf9ff' }}>
+                        <SearchX size={48} color="#e0d9ff" style={{ margin: '0 auto 1.5rem' }} />
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 0.5rem' }}>No Chronicles Detected</h3>
+                        <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: '0 0 2rem' }}>
+                            Your system's telemetry archive is currently blank for the selected filters.
+                        </p>
+                        <button onClick={clearFilters} style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '8px', 
+                            padding: '0.75rem 1.75rem', background: '#1e1b4b', 
+                            border: 'none', borderRadius: '14px', color: '#fff', 
+                            fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+                        }}>
+                             Reset Telemetry Scan
+                        </button>
+                    </div>
+                )}
+
+                {/* ── Pagination (Inventory Style) ── */}
+                {logs.links && logs.links.length > 3 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', ...card, padding: '0.875rem 1.25rem' }}>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, fontWeight: 600 }}>
+                            Page <strong style={{ color: '#1e1b4b' }}>{logs.current_page}</strong> of <strong style={{ color: '#1e1b4b' }}>{logs.last_page}</strong>
+                        </p>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {logs.links.map((link, i) => link.url ? (
+                                <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', background: link.active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#f5f3ff', color: link.active ? '#fff' : '#6366f1', transition: 'all 0.2s' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ) : (
+                                <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, background: '#f8fafc', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
-        </AuthenticatedLayout>
+        </FigmaLayout>
     );
 }

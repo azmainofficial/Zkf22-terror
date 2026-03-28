@@ -1,156 +1,126 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
-import { Printer, ShieldCheck, Zap, Activity, Building2 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
+import { Printer, ShieldCheck, Zap, Activity, Building2, User } from 'lucide-react';
 
 export default function SalarySheet({ payrolls, month, year }) {
-    const handlePrint = () => {
-        window.print();
-    };
+    const handlePrint = () => { window.print(); };
 
     const monthName = new Date(0, month - 1).toLocaleString('en-US', { month: 'long' }).toUpperCase();
     const totalBase = payrolls.reduce((sum, p) => sum + parseFloat(p.base_salary), 0);
     const totalBonus = payrolls.reduce((sum, p) => sum + parseFloat(p.bonus), 0);
-    const totalDeductions = payrolls.reduce((sum, p) => sum + parseFloat(p.deductions), 0);
+    const totalDeductions = payrolls.reduce((sum, p) => {
+        return sum + (parseFloat(p.deductions) + parseFloat(p.late_deduction) + parseFloat(p.absent_deduction));
+    }, 0);
     const totalNet = payrolls.reduce((sum, p) => sum + parseFloat(p.total), 0);
 
     return (
-        <div className="bg-slate-50 min-h-screen text-slate-900 p-10 font-sans print:bg-white print:p-0">
-            <Head title={`Salary Engineering Manifest - ${monthName} ${year}`} />
+        <div style={{ background: '#f8fafc', minHeight: '100vh', color: '#1e293b', padding: '40px', fontFamily: 'sans-serif' }} className="manifest-container">
+            <Head title={`Salary Manifest - ${monthName} ${year}`} />
 
-            <div className="max-w-[297mm] mx-auto print:max-w-none">
+            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
                 {/* Print Control Surface */}
-                <div className="print:hidden flex items-center justify-between mb-10 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg">
-                            <Activity size={24} />
-                        </div>
-                        <div className="space-y-0.5">
-                            <h3 className="text-sm font-black uppercase tracking-widest italic leading-none">Salary Manifest</h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Temporal Period: {monthName} {year}</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', padding: '24px', background: '#fff', borderRadius: '24px', border: '1.5px solid #f1f5f9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }} className="print-hidden">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><Activity size={20} /></div>
+                        <div>
+                            <h3 style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Salary Manifest</h3>
+                            <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0, fontWeight: 700 }}>{monthName} {year} • BIOMETRIC SYNC ACTIVE</p>
                         </div>
                     </div>
-                    <Button onClick={handlePrint} className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest italic shadow-xl shadow-slate-200 dark:shadow-none gap-3 transition-all hover:scale-105 active:scale-95">
-                        <Printer size={18} />
-                        Print Manifest
-                    </Button>
+                    <button onClick={handlePrint} style={{ height: '44px', padding: '0 24px', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Printer size={16} /> PRINT MANIFEST
+                    </button>
                 </div>
 
                 {/* Fiscal Manifest Surface */}
-                <div className="bg-white p-12 md:p-16 border-2 border-slate-100 print:border-none print:p-0 rounded-[4rem] shadow-2xl shadow-slate-200 dark:shadow-none relative overflow-hidden">
-                    {/* Security Watermark */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none -rotate-12">
-                        <ShieldCheck size={600} className="text-slate-900" />
-                    </div>
-
+                <div style={{ background: '#fff', padding: '60px', borderRadius: '32px', border: '1.5px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
                     {/* Header Entity */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-8 relative z-10">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-2 h-12 bg-indigo-600 rounded-full" />
-                                <h1 className="text-5xl font-black uppercase tracking-tighter italic text-slate-900">
-                                    Salary Manifest
-                                </h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '60px' }}>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <div style={{ width: '4px', height: '32px', background: '#4f46e5', borderRadius: '2px' }} />
+                                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>Salary Manifest</h1>
                             </div>
-                            <div className="flex items-center gap-3 pl-5">
-                                <Zap size={14} className="text-indigo-600" />
-                                <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Temporal Period: {monthName} {year}</p>
-                            </div>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.3em', paddingLeft: '16px', textTransform: 'uppercase' }}>Period: {monthName} {year}</p>
                         </div>
-
-                        <div className="text-right space-y-2">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Generated Sync Node</p>
-                            <p className="text-sm font-black italic tracking-tight text-slate-900">{new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}</p>
-                            <div className="flex items-center justify-end gap-2 text-emerald-500">
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Release Synchronization</p>
+                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', color: '#10b981', marginTop: '6px' }}>
                                 <ShieldCheck size={14} />
-                                <span className="text-[8px] font-black uppercase tracking-widest leading-none">Verified Protocol</span>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase' }}>Verified System Sync</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Magnitude Ledger */}
-                    <div className="overflow-x-auto relative z-10">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="bg-slate-900 text-white rounded-2xl">
-                                    <th className="px-6 py-5 text-left text-[9px] font-black uppercase tracking-widest first:rounded-l-2xl">#</th>
-                                    <th className="px-6 py-5 text-left text-[9px] font-black uppercase tracking-widest">Employee Node</th>
-                                    <th className="px-6 py-5 text-left text-[9px] font-black uppercase tracking-widest">Architecture</th>
-                                    <th className="px-6 py-5 text-right text-[9px] font-black uppercase tracking-widest">Base Magnitude</th>
-                                    <th className="px-6 py-5 text-right text-[9px] font-black uppercase tracking-widest">Bonus Node</th>
-                                    <th className="px-6 py-5 text-right text-[9px] font-black uppercase tracking-widest">Deduction Node</th>
-                                    <th className="px-6 py-5 text-right text-[9px] font-black uppercase tracking-widest last:rounded-r-2xl">Net Vector</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y-2 divide-slate-50">
-                                {payrolls.map((payroll, index) => (
-                                    <tr key={payroll.id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-6 text-xs font-black text-slate-300 italic">{index + 1}</td>
-                                        <td className="px-6 py-6">
-                                            <div className="space-y-0.5">
-                                                <p className="text-xs font-black text-slate-900 uppercase italic tracking-tight">{payroll.employee.first_name} {payroll.employee.last_name}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 tracking-widest">{payroll.employee.employee_id}</p>
+                    {/* Table Ledger */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ background: '#0f172a', color: '#fff' }}>
+                                <th style={{ padding: '20px', textAlign: 'left', borderRadius: '12px 0 0 0', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Operative</th>
+                                <th style={{ padding: '20px', textAlign: 'center', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Trace (P/A/L)</th>
+                                <th style={{ padding: '20px', textAlign: 'right', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Base Pay</th>
+                                <th style={{ padding: '20px', textAlign: 'right', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Deductions</th>
+                                <th style={{ padding: '20px', textAlign: 'right', borderRadius: '0 12px 0 0', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Net Vector</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payrolls.map((payroll) => {
+                                const deductions = parseFloat(payroll.deductions) + parseFloat(payroll.late_deduction) + parseFloat(payroll.absent_deduction);
+                                return (
+                                    <tr key={payroll.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={{ padding: '20px' }}>
+                                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase' }}>{payroll.employee.first_name} {payroll.employee.last_name}</p>
+                                            <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: '2px 0 0', fontWeight: 700 }}>{payroll.employee.employee_id} • {payroll.employee.designation}</p>
+                                        </td>
+                                        <td style={{ padding: '20px', textAlign: 'center' }}>
+                                            <div style={{ display: 'inline-flex', gap: '8px', fontSize: '0.7rem', fontWeight: 900, color: '#64748b', background: '#f8fafc', padding: '6px 14px', borderRadius: '10px' }}>
+                                                <span style={{ color: '#10b981' }}>{payroll.present_days}P</span>
+                                                <span style={{ color: '#ef4444' }}>{payroll.absent_days}A</span>
+                                                <span style={{ color: '#f59e0b' }}>{payroll.late_days}L</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase italic tracking-widest">
-                                            {payroll.employee.designation || 'GENERAL OPERATIVE'}
-                                        </td>
-                                        <td className="px-6 py-6 text-right text-xs font-black text-slate-900 italic tracking-tighter">
-                                            ৳{parseFloat(payroll.base_salary).toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-6 text-right text-xs font-black text-emerald-500 italic tracking-tighter">
-                                            ৳{parseFloat(payroll.bonus).toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-6 text-right text-xs font-black text-rose-500 italic tracking-tighter">
-                                            ৳{parseFloat(payroll.deductions).toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-6 text-right text-sm font-black text-indigo-600 italic tracking-tighter">
-                                            ৳{parseFloat(payroll.total).toLocaleString()}
-                                        </td>
+                                        <td style={{ padding: '20px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: '#64748b' }}>৳{parseFloat(payroll.base_salary).toLocaleString()}</td>
+                                        <td style={{ padding: '20px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 800, color: '#ef4444' }}>-৳{deductions.toLocaleString()}</td>
+                                        <td style={{ padding: '20px', textAlign: 'right', fontSize: '1rem', fontWeight: 900, color: '#4f46e5' }}>৳{parseFloat(payroll.total).toLocaleString()}</td>
                                     </tr>
-                                ))}
-                            </tbody>
-                            <tfoot>
-                                <tr className="bg-slate-50/50 border-t-4 border-slate-900">
-                                    <td colSpan="3" className="px-6 py-8 text-left text-[11px] font-black uppercase tracking-[0.4em] text-slate-900 italic">Total Magnitude Synergy</td>
-                                    <td className="px-6 py-8 text-right text-xs font-black text-slate-900 italic tracking-tighter">
-                                        ৳{totalBase.toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-8 text-right text-xs font-black text-emerald-500 italic tracking-tighter">
-                                        ৳{totalBonus.toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-8 text-right text-xs font-black text-rose-500 italic tracking-tighter">
-                                        ৳{totalDeductions.toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-8 text-right text-lg font-black text-indigo-600 italic tracking-tighter bg-slate-900 text-white rounded-b-2xl">
-                                        ৳{totalNet.toLocaleString()}
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                                );
+                            })}
+                        </tbody>
+                        <tfoot>
+                            <tr style={{ background: '#f8fafc', borderTop: '2.5px solid #0f172a' }}>
+                                <td colSpan="2" style={{ padding: '30px', fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total Matrix Magnitude</td>
+                                <td style={{ padding: '30px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>৳{totalBase.toLocaleString()}</td>
+                                <td style={{ padding: '30px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 900, color: '#ef4444' }}>-৳{totalDeductions.toLocaleString()}</td>
+                                <td style={{ padding: '30px', textAlign: 'right', fontSize: '1.25rem', fontWeight: 900, color: '#fff', background: '#0f172a', borderRadius: '0 0 12px 0' }}>৳{totalNet.toLocaleString()}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
 
-                    {/* Authorization Nodes */}
-                    <div className="mt-32 flex justify-between px-10 relative z-10">
-                        <div className="text-center space-y-4">
-                            <div className="w-56 h-0.5 bg-slate-200 border-t-2 border-slate-900" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-900 italic">Analysis Initialization</p>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Prepared by Fiscal operative</p>
+                    {/* Authorization Footer */}
+                    <div style={{ marginTop: '100px', display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ width: '220px', height: '1.5px', background: '#0f172a', marginBottom: '8px' }} />
+                            <p style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a' }}>Fiscal Initialization</p>
+                            <p style={{ fontSize: '0.55rem', fontWeight: 700, color: '#94a3b8' }}>PREPARED BY OPERATIVE</p>
                         </div>
-                        <div className="text-center space-y-4">
-                            <div className="w-56 h-0.5 bg-slate-200 border-t-2 border-slate-900" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-900 italic">Command Authorization</p>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Approved by Strategic Control</p>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ width: '220px', height: '1.5px', background: '#0f172a', marginBottom: '8px' }} />
+                            <p style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a' }}>Command Authorization</p>
+                            <p style={{ fontSize: '0.55rem', fontWeight: 700, color: '#94a3b8' }}>VERIFIED BY STARATEGIC CONTROL</p>
                         </div>
                     </div>
-                </div>
-
-                {/* Footer Sync Pulse */}
-                <div className="mt-12 flex items-center justify-center gap-4 text-slate-300 print:hidden">
-                    <Activity size={14} className="text-indigo-600 animate-pulse" />
-                    <p className="text-[9px] font-black uppercase tracking-[0.5em] italic">Central Salary Manifest Sync Active</p>
                 </div>
             </div>
+
+            <style>{`
+                @media print {
+                    body { background: white !important; padding: 0 !important; }
+                    .manifest-container { background: white !important; padding: 0 !important; }
+                    .print-hidden { display: none !important; }
+                    .manifest-surface { border: none !important; box-shadow: none !important; padding: 0 !important; }
+                }
+            `}</style>
         </div>
     );
 }

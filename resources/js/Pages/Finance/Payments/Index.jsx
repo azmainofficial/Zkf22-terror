@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import {
@@ -23,348 +23,338 @@ import {
     Briefcase,
     Building,
     History,
-    ExternalLink
+    ExternalLink,
+    Wallet,
+    ArrowDownRight,
+    Inbox,
+    X,
+    ChevronRight,
+    ArrowLeftRight
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Badge } from '@/Components/ui/Badge';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
+
+// ─── Shared styles from Inventory patterns ──────────────────────
+const card = {
+    background: '#fff', 
+    borderRadius: '16px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+};
+
+const onFocus = e => { 
+    e.target.style.borderColor = '#8b5cf6'; 
+    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; 
+};
+
+const onBlur = e => { 
+    e.target.style.borderColor = '#ede9fe'; 
+    e.target.style.boxShadow = 'none'; 
+};
+
+const iconBtn = (bg, color) => ({
+    width: '32px', height: '32px', borderRadius: '8px',
+    background: bg, border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color,
+    transition: 'all 0.2s'
+});
+
+const getStatusConfig = (s) => {
+    const status = (s || '').toLowerCase();
+    const config = {
+        completed: { label: 'Completed', bg: '#f0fdf4', color: '#16a34a', icon: Zap },
+        paid:      { label: 'Paid',      bg: '#f0fdf4', color: '#16a34a', icon: Wallet },
+        approved:  { label: 'Approved',  bg: '#f0fdf4', color: '#16a34a', icon: CheckCircle2 },
+        pending:   { label: 'Pending',   bg: '#fffbeb', color: '#d97706', icon: Clock },
+        failed:    { label: 'Failed',    bg: '#fff1f2', color: '#dc2626', icon: X },
+        refunded:  { label: 'Refunded',  bg: '#eff6ff', color: '#3b82f6', icon: ArrowLeftRight },
+    };
+    return config[status] || { label: s, bg: '#f8fafc', color: '#64748b', icon: Activity };
+};
 
 export default function Index({ auth, payments, filters, total_incoming, total_outgoing }) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || '');
     const [type, setType] = useState(filters.payment_type || '');
+    const isFirstRender = useRef(true);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(route('payments.index'), {
-            search,
-            status,
-            payment_type: type
-        }, { preserveState: true });
-    };
-
-    const handleDelete = (id) => {
-        if (confirm('Permanently redact this transaction record from the fiscal ledger?')) {
-            router.delete(route('payments.destroy', id));
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
         }
-    };
+        const t = setTimeout(() => {
+            router.get(route('payments.index'), { search, status, payment_type: type }, { preserveState: true, replace: true });
+        }, 500);
+        return () => clearTimeout(t);
+    }, [search, status, type]);
 
-    const clearFilters = () => {
-        setSearch('');
-        setStatus('');
-        setType('');
-        router.get(route('payments.index'));
-    };
+    const clearFilters = () => { setSearch(''); setStatus(''); setType(''); };
+    const hasFilters = search || status || type;
 
     const netBalance = (total_incoming || 0) - (total_outgoing || 0);
 
+    const statCards = [
+        { label: 'Inbound Revenue', value: `৳${new Intl.NumberFormat().format(total_incoming || 0)}`, icon: ArrowDownLeft, bg: '#f0fdf4', color: '#16a34a' },
+        { label: 'Outbound Expenses', value: `৳${new Intl.NumberFormat().format(total_outgoing || 0)}`, icon: ArrowUpRight, bg: '#fff1f2', color: '#dc2626' },
+        { label: 'Net Liquidity', value: `৳${new Intl.NumberFormat().format(netBalance)}`, icon: TrendingUp, bg: '#f5f3ff', color: '#6366f1' },
+    ];
+
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Fiscal Transaction Ledger" />
+            <Head title="Transaction Ledger" />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                            Fiscal Ledger
-                        </h1>
-                        <div className="flex items-center gap-2">
-                            <Activity size={12} className="text-indigo-600" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">Omni-Channel Capital Management</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+
+                {/* ── Header (Inventory Style) ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <Wallet size={16} color="#a78bfa" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cash Flow Ledger</span>
                         </div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Payments & Reconciliation</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Monitor all real-time financial movements and inbound/outbound transfers</p>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <a href={route('payments.export.excel', { search, status, payment_type: type })} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" className="h-12 px-6 rounded-2xl border-slate-100 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest gap-2 bg-white dark:bg-slate-900 hover:bg-slate-50 transition-all">
-                                <Download size={16} /> DATA EXPORT
-                            </Button>
+                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <a href={route('payments.export.excel', { search, status, payment_type: type })}>
+                            <button style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '0.6rem 1.125rem',
+                                background: '#fff', border: '1.5px solid #ede9fe',
+                                borderRadius: '12px', color: '#6366f1',
+                                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                                boxShadow: '0 1px 6px rgba(99,102,241,0.07)',
+                            }}>
+                                <Download size={15} /> Export Ledger
+                            </button>
                         </a>
                         <Link href={route('payments.create')}>
-                            <Button className="h-14 px-8 rounded-[1.8rem] bg-indigo-600 hover:bg-slate-900 text-white font-black text-xs uppercase tracking-widest gap-3 shadow-xl shadow-indigo-100 dark:shadow-none transition-all hover:scale-105 active:scale-95">
-                                <Plus size={20} />
-                                Record Transaction
-                            </Button>
+                            <button style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '0.6rem 1.25rem',
+                                background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                border: 'none', borderRadius: '12px', color: '#fff',
+                                fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                                boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+                            }}>
+                                <Plus size={16} /> Register Transfer
+                            </button>
                         </Link>
                     </div>
                 </div>
 
-                {/* Capital Pulse Analytics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden group">
-                        <CardContent className="p-8 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 transition-transform group-hover:scale-110">
-                                    <ArrowDownLeft size={20} />
-                                </div>
-                                <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5">INCOMING</Badge>
+                {/* ── Stat cards (Inventory Style) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1rem' }}>
+                    {statCards.map((s, i) => (
+                        <div key={i} style={{ ...card, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <s.icon size={22} color={s.color} />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none">Gross Capital Intake</p>
-                                <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic mt-2">৳{new Intl.NumberFormat().format(total_incoming || 0)}</p>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden group">
-                        <CardContent className="p-8 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 transition-transform group-hover:scale-110">
-                                    <ArrowUpRight size={20} />
-                                </div>
-                                <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5">OUTGOING</Badge>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none">Operational Expenditure</p>
-                                <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic mt-2">৳{new Intl.NumberFormat().format(total_outgoing || 0)}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="rounded-[40px] border-none bg-indigo-600 shadow-2xl shadow-indigo-100 dark:shadow-none overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none -rotate-12 translate-x-4 -translate-y-4">
-                            <TrendingUp size={120} className="text-white" />
                         </div>
-                        <CardContent className="p-8 space-y-4 relative z-10">
-                            <div className="flex items-center justify-between">
-                                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white transition-transform group-hover:scale-110">
-                                    <CreditCard size={20} />
-                                </div>
-                                <Zap size={16} className={cn("text-white animate-pulse", netBalance < 0 && "text-rose-300")} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 leading-none font-medium text-blue-100">Net Fiscal Magnitude</p>
-                                <p className="text-3xl font-black text-white tracking-tighter italic mt-2">৳{new Intl.NumberFormat().format(netBalance)}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    ))}
                 </div>
 
-                {/* Intelligence Filtering Pipeline */}
-                <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden no-print">
-                    <CardContent className="p-4 md:p-6">
-                        <form onSubmit={handleSearch} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                            <div className="lg:col-span-5 relative group">
-                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none">
-                                    <Search size={18} />
-                                </div>
-                                <input
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Search by Transaction ID, Entity, or Project..."
-                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-600 dark:text-slate-300 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 transition-all shadow-inner"
-                                />
-                            </div>
-
-                            <div className="lg:col-span-7 flex flex-wrap items-center gap-3">
-                                <select
-                                    value={type}
-                                    onChange={(e) => setType(e.target.value)}
-                                    className="h-16 px-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner appearance-none min-w-[140px]"
-                                >
-                                    <option value="">All Vectors</option>
-                                    <option value="incoming">Incoming</option>
-                                    <option value="outgoing">Outgoing</option>
-                                </select>
-
-                                <select
-                                    value={status}
-                                    onChange={(e) => setStatus(e.target.value)}
-                                    className="h-16 px-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner appearance-none min-w-[140px]"
-                                >
-                                    <option value="">All Statuses</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="failed">Failed</option>
-                                </select>
-
-                                <Button type="submit" className="h-16 w-16 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex-shrink-0 hover:bg-slate-800 transition-all">
-                                    <Filter size={20} />
-                                </Button>
-
-                                {(search || status || type) && (
-                                    <Button type="button" onClick={clearFilters} variant="ghost" className="h-16 px-6 rounded-2xl text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-rose-600">
-                                        Clear
-                                    </Button>
-                                )}
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                {/* Transaction Ledger Table */}
-                <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-800/50">
-                                    <th className="px-8 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Transaction Intelligence</th>
-                                    <th className="px-8 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Entity Node</th>
-                                    <th className="px-8 py-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 whitespace-nowrap">Capital Magnitude</th>
-                                    <th className="px-8 py-6 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Vector</th>
-                                    <th className="px-8 py-6 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Readiness</th>
-                                    <th className="px-8 py-6 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Tactical Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                {payments.data.map((transaction) => (
-                                    <tr key={`${transaction.source}-${transaction.id}`} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all duration-300">
-                                        <td className="px-8 py-8">
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight italic group-hover:text-indigo-600 transition-colors">
-                                                    {transaction.transaction_number}
-                                                </p>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-500 uppercase tracking-widest border-none">
-                                                        <Calendar size={10} />
-                                                        {new Date(transaction.date).toLocaleDateString()}
-                                                    </div>
-                                                    <Badge className={cn(
-                                                        "px-2 py-0.5 rounded-md font-black text-[8px] uppercase tracking-widest border-none",
-                                                        transaction.source === 'expense' ? "bg-rose-50 text-rose-600" : "bg-indigo-50 text-indigo-600"
-                                                    )}>
-                                                        {transaction.source === 'expense' ? 'EXPENSE' : 'REVENUE'}
-                                                    </Badge>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8">
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                    {transaction.source === 'payment'
-                                                        ? (transaction.client?.company_name || transaction.client?.name || transaction.notes || 'Unidentified Node')
-                                                        : (transaction.category?.name || 'General Magnitude')
-                                                    }
-                                                </p>
-                                                {transaction.project && (
-                                                    <div className="flex items-center gap-1.5 text-indigo-500">
-                                                        <Briefcase size={10} />
-                                                        <span className="text-[10px] font-black uppercase tracking-tighter italic">{transaction.project.title}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8">
-                                            <p className="text-lg font-black text-slate-900 dark:text-white tracking-tighter italic">
-                                                ৳{new Intl.NumberFormat().format(transaction.amount)}
-                                            </p>
-                                        </td>
-                                        <td className="px-8 py-8 text-center">
-                                            <div className="flex justify-center">
-                                                {transaction.type === 'incoming' ? (
-                                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 border border-emerald-100 dark:border-emerald-800/50">
-                                                        <ArrowDownLeft size={16} />
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 border border-rose-100 dark:border-rose-800/50">
-                                                        <ArrowUpRight size={16} />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8 text-center">
-                                            <div className="flex justify-center">
-                                                <Badge className={cn(
-                                                    "px-4 py-1.5 rounded-full font-black text-[9px] uppercase tracking-[0.2em] border-none shadow-sm",
-                                                    (transaction.status === 'completed' || transaction.status === 'paid' || transaction.status === 'approved')
-                                                        ? "bg-emerald-50 text-emerald-600"
-                                                        : transaction.status === 'pending'
-                                                            ? "bg-amber-50 text-amber-600"
-                                                            : "bg-rose-50 text-rose-600"
-                                                )}>
-                                                    {transaction.status}
-                                                </Badge>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-8 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 transition-all no-print">
-                                                {transaction.source === 'payment' ? (
-                                                    <>
-                                                        <a href={route('payments.show', transaction.id) + '?print=true'} target="_blank" rel="noopener noreferrer">
-                                                            <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm text-slate-400 hover:text-indigo-600 border border-slate-100 dark:border-slate-800">
-                                                                <Printer size={16} />
-                                                            </Button>
-                                                        </a>
-                                                        <Link href={route('payments.show', transaction.id)}>
-                                                            <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm text-slate-400 hover:text-indigo-600 border border-slate-100 dark:border-slate-800">
-                                                                <Eye size={16} />
-                                                            </Button>
-                                                        </Link>
-                                                        <Link href={route('payments.edit', transaction.id)}>
-                                                            <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm text-slate-400 hover:text-indigo-600 border border-slate-100 dark:border-slate-800">
-                                                                <Edit size={16} />
-                                                            </Button>
-                                                        </Link>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleDelete(transaction.id)}
-                                                            className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 hover:bg-rose-100 border border-rose-100 dark:border-rose-900/50"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </Button>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Link href={route('expenses.show', transaction.id)}>
-                                                            <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm text-slate-400 hover:text-indigo-600 border border-slate-100 dark:border-slate-800">
-                                                                <Eye size={16} />
-                                                            </Button>
-                                                        </Link>
-                                                        <Link href={route('expenses.edit', transaction.id)}>
-                                                            <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm text-slate-400 hover:text-indigo-600 border border-slate-100 dark:border-slate-800">
-                                                                <Edit size={16} />
-                                                            </Button>
-                                                        </Link>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {payments.data.length === 0 && (
-                                    <tr>
-                                        <td colSpan="6" className="px-8 py-24 text-center space-y-4">
-                                            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mx-auto text-slate-200">
-                                                <History size={40} />
-                                            </div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] italic">No transaction resonance detected in local ledger.</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* High-Fidelity Pagination */}
-                    {payments.links.length > 3 && (
-                        <div className="px-8 py-10 flex items-center justify-between border-t border-slate-50 dark:divide-slate-800 no-print">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
-                                Page Segment {payments.current_page} of {payments.last_page} • Total Magnitude {payments.total}
-                            </p>
-                            <div className="flex items-center gap-2">
-                                {payments.links.map((link, i) => (
-                                    <Link
-                                        key={i}
-                                        href={link.url}
-                                        className={cn(
-                                            "h-10 min-w-[2.5rem] px-3 flex items-center justify-center rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
-                                            link.active
-                                                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg"
-                                                : "bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-900 dark:hover:text-white shadow-sm border border-slate-50 dark:border-slate-800",
-                                            !link.url && "opacity-30 pointer-events-none"
-                                        )}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ))}
-                            </div>
+                {/* ── Filters (Inventory Style) ── */}
+                <div style={{ ...card, padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Search */}
+                        <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                            <Search size={16} color="#a78bfa" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                                placeholder="TXN Code, Client, or Source category..."
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.625rem 1rem 0.625rem 2.25rem', background: '#f9f7ff', border: '1.5px solid #ede9fe', borderRadius: '10px', fontSize: '0.85rem', color: '#1e1b4b', outline: 'none', fontWeight: 600 }}
+                                onFocus={onFocus} onBlur={onBlur}
+                            />
                         </div>
-                    )}
-                </Card>
+
+                        {/* Type Toggle */}
+                        <div style={{ display: 'flex', background: '#f5f3ff', padding: '4px', borderRadius: '10px', border: '1.5px solid #ede9fe' }}>
+                            {[
+                                { val: '', label: 'All Flow' },
+                                { val: 'incoming', label: 'Incoming' },
+                                { val: 'outgoing', label: 'Outgoing' }
+                            ].map((t) => (
+                                <button key={t.val} onClick={() => setType(t.val)}
+                                    style={{
+                                        padding: '0.45rem 1rem', border: 'none', borderRadius: '8px', 
+                                        fontSize: '0.78rem', fontWeight: 850, cursor: 'pointer',
+                                        background: type === t.val ? '#fff' : 'transparent',
+                                        color: type === t.val ? '#6366f1' : '#94a3b8',
+                                        boxShadow: type === t.val ? '0 2px 8px rgba(99,102,241,0.1)' : 'none',
+                                        transition: 'all 0.2s'
+                                    }}>
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Status Select */}
+                        <select 
+                            value={status} 
+                            onChange={e => setStatus(e.target.value)}
+                            style={{ padding: '0.55rem 0.875rem', background: '#f9f7ff', border: '1.5px solid #ede9fe', borderRadius: '10px', fontSize: '0.82rem', color: '#4338ca', fontWeight: 600, outline: 'none', cursor: 'pointer', appearance: 'none', minWidth: '140px' }}
+                            onFocus={onFocus} onBlur={onBlur}
+                        >
+                            <option value="">Any Status</option>
+                            <option value="completed">Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                            <option value="refunded">Refunded</option>
+                        </select>
+
+                        {/* Clear */}
+                        {hasFilters && (
+                            <button onClick={clearFilters} style={{
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                padding: '0.55rem 0.875rem', background: '#fff1f2',
+                                border: '1.5px solid #fecaca', borderRadius: '10px',
+                                color: '#ef4444', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                            }}>
+                                <X size={13} /> Clear
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Payments List (Row Pattern) ── */}
+                {payments.data.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {payments.data.map(transaction => {
+                            const cfg = getStatusConfig(transaction.status);
+                            const isIncoming = transaction.type === 'incoming';
+                            
+                            return (
+                                <div key={`${transaction.source}-${transaction.id}`} style={{
+                                    ...card, padding: '1rem 1.5rem',
+                                    display: 'flex', alignItems: 'center',
+                                    gap: '1.5rem', flexWrap: 'wrap',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                >
+                                    {/* Type-based Icon */}
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: isIncoming ? '#f0fdf4' : '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${isIncoming ? '#dcfce7' : '#fee2e2'}` }}>
+                                        {isIncoming ? <ArrowDownLeft size={22} color="#16a34a" /> : <ArrowUpRight size={22} color="#dc2626" />}
+                                    </div>
+
+                                    {/* TXN & Date */}
+                                    <div style={{ width: '150px' }}>
+                                        <p style={{ fontSize: '0.92rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>{transaction.transaction_number}</p>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                            <Calendar size={13} color="#94a3b8" />
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(transaction.date).toLocaleDateString('en-GB')}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Source & Description */}
+                                    <div style={{ flex: 2, minWidth: '220px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e1b4b', margin: 0 }}>
+                                                {transaction.source === 'payment'
+                                                    ? (transaction.client?.company_name || transaction.client?.name || transaction.notes || 'General Payment')
+                                                    : (transaction.category?.name || 'Administrative Expense')
+                                                }
+                                            </p>
+                                        </div>
+                                        {transaction.project && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                                <Briefcase size={12} color="#a78bfa" />
+                                                <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#a78bfa', margin: 0, textTransform: 'uppercase' }}>{transaction.project.title}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Amount Row Style */}
+                                    <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                                        <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>{isIncoming ? 'Inbound' : 'Outbound'}</p>
+                                        <p style={{ fontSize: '1.15rem', fontWeight: 900, color: isIncoming ? '#16a34a' : '#dc2626', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                                            {isIncoming ? '+' : '-'} ৳{new Intl.NumberFormat().format(transaction.amount)}
+                                        </p>
+                                    </div>
+
+                                    {/* Status Badge */}
+                                    <div style={{ minWidth: '110px', textAlign: 'center' }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', fontWeight: 800, color: cfg.color, background: cfg.bg, padding: '4px 12px', borderRadius: '20px', border: `1.5px solid ${cfg.color}15` }}>
+                                            <cfg.icon size={12} />
+                                            {cfg.label}
+                                        </span>
+                                    </div>
+
+                                    {/* Actions Suite */}
+                                    <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+                                        {transaction.source === 'payment' ? (
+                                            <>
+                                                <a href={route('payments.show', transaction.id) + '?print=true'} target="_blank" rel="noopener noreferrer">
+                                                    <button style={iconBtn('#f8fafc', '#64748b')} title="Receipt"><Printer size={16} /></button>
+                                                </a>
+                                                <Link href={route('payments.show', transaction.id)}>
+                                                    <button style={iconBtn('#f5f3ff', '#6366f1')} title="View"><Eye size={16} /></button>
+                                                </Link>
+                                                <Link href={route('payments.edit', transaction.id)}>
+                                                    <button style={iconBtn('#fffbeb', '#d97706')} title="Edit"><Edit size={16} /></button>
+                                                </Link>
+                                                <button style={iconBtn('#fff1f2', '#ef4444')} onClick={() => handleDelete(transaction.id)} title="Purge Log">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Link href={route('expenses.show', transaction.id)}>
+                                                    <button style={iconBtn('#f5f3ff', '#6366f1')} title="View Expense"><Eye size={16} /></button>
+                                                </Link>
+                                                <Link href={route('expenses.edit', transaction.id)}>
+                                                    <button style={iconBtn('#fffbeb', '#d97706')} title="Edit Expense"><Edit size={16} /></button>
+                                                </Link>
+                                            </>
+                                        )}
+                                        <div style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', color: '#cbd5e1' }}>
+                                            <ChevronRight size={18} />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '6rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px', background: '#faf9ff' }}>
+                        <Wallet size={48} color="#e0d9ff" style={{ margin: '0 auto 1.5rem' }} />
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 0.5rem' }}>No Ledger Entries Found</h3>
+                        <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: '0 0 2rem' }}>
+                            {hasFilters ? 'No transactions match your current view filters.' : 'Your financial ledger is currently empty. Record your first movement.'}
+                        </p>
+                        <Link href={route('payments.create')}>
+                            <button style={{ 
+                                display: 'inline-flex', alignItems: 'center', gap: '8px', 
+                                padding: '0.75rem 1.75rem', background: 'linear-gradient(135deg,#10b981,#059669)', 
+                                border: 'none', borderRadius: '14px', color: '#fff', 
+                                fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+                                boxShadow: '0 6px 16px rgba(16,185,129,0.25)'
+                            }}>
+                                <Plus size={18} /> Record First Movement
+                            </button>
+                        </Link>
+                    </div>
+                )}
+
+                {/* ── Pagination (Inventory Style) ── */}
+                {payments.links && payments.links.length > 3 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', ...card, padding: '0.875rem 1.25rem' }}>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, fontWeight: 600 }}>
+                            Page <strong style={{ color: '#1e1b4b' }}>{payments.current_page}</strong> of <strong style={{ color: '#1e1b4b' }}>{payments.last_page}</strong> — {payments.total} ledger entries
+                        </p>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {payments.links.map((link, i) => link.url ? (
+                                <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', background: link.active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#f5f3ff', color: link.active ? '#fff' : '#6366f1', transition: 'all 0.2s' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ) : (
+                                <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, background: '#f8fafc', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </FigmaLayout>
     );

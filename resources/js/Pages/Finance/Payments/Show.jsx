@@ -21,12 +21,46 @@ import {
     ShieldCheck,
     Zap,
     Briefcase,
-    Activity
+    Activity,
+    FileCheck,
+    History,
+    MoreHorizontal
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Badge } from '@/Components/ui/Badge';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2rem',
+    overflow: 'hidden'
+};
+
+const badgeStyle = (status) => {
+    const styles = {
+        completed: { bg: '#ecfdf5', color: '#10b981', label: 'Completed' },
+        paid: { bg: '#ecfdf5', color: '#10b981', label: 'Paid' },
+        approved: { bg: '#ecfdf5', color: '#10b981', label: 'Approved' },
+        pending: { bg: '#fffbeb', color: '#d97706', label: 'Pending' },
+        failed: { bg: '#fff1f2', color: '#e11d48', label: 'Failed' },
+        refunded: { bg: '#eff6ff', color: '#3b82f6', label: 'Refunded' },
+    };
+    const s = styles[status] || { bg: '#f8fafc', color: '#64748b', label: status };
+    return {
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '6px 14px',
+        borderRadius: '20px',
+        fontSize: '0.75rem',
+        fontWeight: 800,
+        background: s.bg,
+        color: s.color,
+        textTransform: 'uppercase',
+        letterSpacing: '0.02em',
+        border: `1.5px solid ${s.color}15`,
+        label: s.label
+    };
+};
 
 export default function Show({ auth, payment, slipDesign }) {
     useEffect(() => {
@@ -39,281 +73,241 @@ export default function Show({ auth, payment, slipDesign }) {
     }, []);
 
     const handleDelete = () => {
-        if (confirm('Permanently redact this transaction record from the fiscal ledger?')) {
+        if (confirm('Are you sure you want to delete this payment record?')) {
             router.delete(route('payments.destroy', payment.id));
         }
     };
 
-    // Design tokens from slipDesign or premium defaults
-    const styles = {
-        fontFamily: slipDesign?.font_family || 'Inter, sans-serif',
-        accentColor: slipDesign?.accent_color || '#4f46e5', // Indigo-600
-        footerText: slipDesign?.footer_text || 'This is a digitally generated document. No signature required.',
-    };
+    const accentColor = slipDesign?.accent_color || '#6366f1';
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Fiscal Dossier - ${payment.payment_number}`} />
+            <Head title={`Payment ${payment.payment_number}`} />
 
-            <div className="space-y-10 pb-32 print:p-0">
-                {/* Tactical Header - Hidden on Print */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-                    <div className="flex items-center gap-6">
-                        <Link href={route('payments.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
+            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }} className="print:p-0">
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }} className="no-print">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <Link href={route('payments.index')} style={{ textDecoration: 'none' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1.5px solid #f0eeff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e1b4b', transition: 'all 0.2s' }}>
                                 <ArrowLeft size={20} />
-                            </Button>
-                        </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                Transaction Intelligence
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <Activity size={12} className="text-indigo-600" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">Verified Fiscal Realization Record</p>
                             </div>
+                        </Link>
+                        <div>
+                            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>Payment Receipt</h1>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Transaction #{payment.payment_number}</p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={() => window.print()}
-                            className="h-12 px-6 rounded-2xl border-slate-100 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest gap-2 bg-white dark:bg-slate-900 hover:bg-slate-50 transition-all"
-                        >
-                            <Printer size={16} /> PRINT SLIP
-                        </Button>
-                        <Link href={route('payments.edit', payment.id)}>
-                            <Button className="h-12 px-6 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white font-black text-[10px] uppercase tracking-widest gap-2 hover:bg-slate-800 transition-all">
-                                <Edit size={16} /> EDIT RECORD
-                            </Button>
+                    
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={() => window.print()} style={{ height: '52px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #f0eeff', borderRadius: '14px', color: '#1e1b4b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Printer size={18} />
+                            Print
+                        </button>
+                        <Link href={route('payments.edit', payment.id)} style={{ textDecoration: 'none' }}>
+                            <button style={{ height: '52px', padding: '0 1.5rem', background: '#1e1b4b', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Edit size={18} />
+                                Edit Record
+                            </button>
                         </Link>
-                        <Button
-                            variant="ghost"
-                            onClick={handleDelete}
-                            className="h-12 px-6 rounded-2xl text-rose-600 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-all"
-                        >
-                            <Trash2 size={16} /> REDACT
-                        </Button>
+                        <button onClick={handleDelete} style={{ height: '52px', width: '52px', background: '#fff1f2', border: '1.5px solid #ffe4e6', borderRadius: '14px', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Trash2 size={20} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Receipt Synthesis Surface */}
-                <div className="max-w-4xl mx-auto print:max-w-none print:w-full">
-                    <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-2xl shadow-slate-100 dark:shadow-none overflow-hidden print:rounded-none print:shadow-none print:border-none">
-                        {/* High-Contrast Header Section */}
-                        <div
-                            className="p-10 md:p-16 text-white relative overflow-hidden"
-                            style={{ backgroundColor: styles.accentColor }}
-                        >
-                            {/* Design Patterns */}
-                            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl pointer-events-none" />
-                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full -ml-32 -mb-32 blur-2xl pointer-events-none" />
-
-                            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-4">
-                                        {slipDesign?.header_logo ? (
-                                            <img src={`/storage/${slipDesign.header_logo}`} className="h-12 object-contain" />
-                                        ) : (
-                                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
-                                                <ReceiptIcon size={24} />
-                                            </div>
-                                        )}
-                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Fiscal Receipt</h2>
+                <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+                    {/* Receipt Paper */}
+                    <div style={{ ...cardStyle, padding: 0 }} className="print:shadow-none print:border-none print:rounded-none">
+                        {/* Receipt Top */}
+                        <div style={{ padding: '3rem', background: accentColor, color: '#fff', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ position: 'absolute', right: '-40px', bottom: '-40px', opacity: 0.1, color: '#fff' }}>
+                                <ReceiptIcon size={200} style={{ transform: 'rotate(15deg)' }} />
+                            </div>
+                            <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(255,255,255,0.2)', backdropBlur: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                                        <ReceiptIcon size={28} />
                                     </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 leading-none">Transaction Token</p>
-                                        <p className="text-lg font-black tracking-widest leading-none">{payment.payment_number}</p>
+                                    <div>
+                                        <h2 style={{ fontSize: '2rem', fontWeight: 950, margin: 0, letterSpacing: '-0.04em', textTransform: 'uppercase' }}>RECEIPT</h2>
+                                        <p style={{ fontSize: '0.85rem', fontWeight: 800, opacity: 0.7, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.1em' }}>#{payment.payment_number}</p>
                                     </div>
                                 </div>
-
-                                <div className="text-left md:text-right space-y-4">
-                                    <Badge className="bg-white/20 text-white border-none font-black text-[10px] uppercase tracking-[0.3em] px-5 py-2 rounded-full backdrop-blur-md">
-                                        {payment.status.toUpperCase()}
-                                    </Badge>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 leading-none">Capital Magnitude</p>
-                                        <p className="text-5xl font-black tracking-tighter italic leading-none">৳{new Intl.NumberFormat().format(payment.amount)}</p>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ marginBottom: '10px' }}>
+                                        <span style={{ 
+                                            display: 'inline-flex', 
+                                            padding: '6px 16px', 
+                                            borderRadius: '20px', 
+                                            fontSize: '0.7rem', 
+                                            fontWeight: 900, 
+                                            background: 'rgba(255,255,255,0.2)', 
+                                            color: '#fff', 
+                                            textTransform: 'uppercase', 
+                                            letterSpacing: '0.1em',
+                                            border: '1.5px solid rgba(255,255,255,0.2)'
+                                        }}>
+                                            {payment.status}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '3rem', fontWeight: 950, letterSpacing: '-0.05em' }}>
+                                        <span style={{ fontSize: '1.5rem', marginRight: '4px', opacity: 0.6 }}>৳</span>
+                                        {Number(payment.amount).toLocaleString()}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Dossier Content Surface */}
-                        <CardContent className="p-10 md:p-16 space-y-16">
-                            {/* Entity Alignment Matrix */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-1.5 h-6 rounded-full bg-slate-900 dark:bg-slate-700" />
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Origin Entity</h3>
-                                    </div>
-                                    <div className="space-y-2 pl-4">
-                                        <p className="text-xl font-black text-slate-900 dark:text-white uppercase italic leading-tight">ZK Base Corp</p>
-                                        <div className="space-y-1 text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                            <p>123 STRATEGIC HUB, SECTOR 7</p>
-                                            <p>FINANCE DISTRICT, DHAKA</p>
-                                            <p>TRANSREG: 9901-X-A</p>
-                                        </div>
-                                    </div>
+                        {/* Receipt Content */}
+                        <div style={{ padding: '3.5rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                            {/* Entity Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem' }}>
+                                <div>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: accentColor }}></div>
+                                        From
+                                    </p>
+                                    <h4 style={{ fontSize: '1.25rem', fontWeight: 950, color: '#1e1b4b', margin: '0 0 8px', textTransform: 'uppercase' }}>ZK Base Corp</h4>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, lineHeight: 1.6 }}>
+                                        Innovation Labs, Building 12<br />
+                                        Financial Area, Dhaka
+                                    </p>
                                 </div>
-
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-1.5 h-6 rounded-full bg-indigo-600" />
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Receiving Node</h3>
-                                    </div>
-                                    <div className="space-y-2 pl-4">
-                                        <p className="text-xl font-black text-slate-900 dark:text-white uppercase italic leading-tight">
-                                            {payment.client?.company_name || payment.client?.name || 'External Entity'}
-                                        </p>
-                                        <div className="space-y-1 text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                            <p>{payment.client?.address || 'ADDRESS PROTOCOL ABSENT'}</p>
-                                            <p className="text-indigo-500">{payment.client?.email || 'COMMS PROTOCOL ABSENT'}</p>
-                                        </div>
-                                    </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                                        To
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f1f5f9' }}></div>
+                                    </p>
+                                    <h4 style={{ fontSize: '1.25rem', fontWeight: 950, color: '#1e1b4b', margin: '0 0 8px', textTransform: 'uppercase' }}>
+                                        {payment.client?.company_name || payment.client?.name || 'External Entity'}
+                                    </h4>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, lineHeight: 1.6, maxWidth: '240px', marginLeft: 'auto' }}>
+                                        {payment.client?.address || 'No address provided'}
+                                    </p>
+                                    <p style={{ fontSize: '0.85rem', color: accentColor, fontWeight: 700, marginTop: '4px' }}>{payment.client?.email}</p>
                                 </div>
                             </div>
 
-                            {/* Transaction Parameter Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-10 py-10 border-y border-slate-50 dark:border-slate-800">
-                                <div className="space-y-3">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Temporal Alignment</p>
-                                    <div className="flex items-center gap-3 text-slate-900 dark:text-white">
-                                        <Calendar size={14} className="text-indigo-500" />
-                                        <span className="text-xs font-black uppercase tracking-tight">{new Date(payment.payment_date).toLocaleDateString()}</span>
+                            {/* Info Strip */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', padding: '2rem 0', borderTop: '1.5px dashed #f1f5f9', borderBottom: '1.5px dashed #f1f5f9' }}>
+                                <div>
+                                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Date</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Calendar size={14} color={accentColor} />
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b' }}>{new Date(payment.payment_date).toLocaleDateString()}</span>
                                     </div>
                                 </div>
-                                <div className="space-y-3">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Gateway vector</p>
-                                    <div className="flex items-center gap-3 text-slate-900 dark:text-white">
-                                        <CreditCard size={14} className="text-indigo-500" />
-                                        <span className="text-xs font-black uppercase tracking-tight italic">{payment.payment_method?.replace('_', ' ')}</span>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Payment via</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                                        <CreditCard size={14} color={accentColor} />
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'capitalize' }}>{payment.payment_method?.replace('_', ' ')}</span>
                                     </div>
                                 </div>
-                                <div className="space-y-3">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Auth / Reference</p>
-                                    <div className="flex items-center gap-3 text-slate-900 dark:text-white">
-                                        <Hash size={14} className="text-indigo-500" />
-                                        <span className="text-xs font-black uppercase tracking-tight">{payment.reference_number || 'STDLONG_AUTH'}</span>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Reference</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                                        <Hash size={14} color={accentColor} />
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b' }}>{payment.reference_number || 'N/A'}</span>
                                     </div>
                                 </div>
-                                <div className="space-y-3">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Allocation node</p>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Linked to</p>
                                     {payment.invoice ? (
-                                        <Link href={route('invoices.show', payment.invoice.id)} className="flex items-center gap-3 text-indigo-600 hover:scale-105 transition-all no-print">
-                                            <FileText size={14} />
-                                            <span className="text-xs font-black uppercase tracking-tight italic underline decoration-dotted">{payment.invoice.invoice_number}</span>
+                                        <Link href={route('invoices.show', payment.invoice.id)} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                                            <FileText size={14} color={accentColor} />
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: accentColor, textDecoration: 'underline' }}>{payment.invoice.invoice_number}</span>
                                         </Link>
                                     ) : (
-                                        <div className="flex items-center gap-3 text-slate-400">
-                                            <ShieldCheck size={14} />
-                                            <span className="text-xs font-black uppercase tracking-tight italic">Standalone</span>
-                                        </div>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#cbd5e1' }}>Direct Payment</span>
                                     )}
-                                    {payment.invoice && <span className="hidden print:inline text-xs font-black uppercase tracking-tight">{payment.invoice.invoice_number}</span>}
                                 </div>
                             </div>
 
-                            {/* Project Linkage (if exists) */}
+                            {/* Project Link */}
                             {payment.project && (
-                                <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border-none flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">
-                                            <Briefcase size={28} />
+                                <div style={{ background: '#f8fafc', borderRadius: '24px', padding: '1.5rem 2rem', border: '1.5px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentColor, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                            <Briefcase size={24} />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tactical Allocation</p>
-                                            <p className="text-lg font-black text-slate-900 dark:text-white uppercase italic leading-none mt-1">{payment.project.title}</p>
+                                            <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Project Link</p>
+                                            <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: '2px 0 0' }}>{payment.project.title}</h4>
                                         </div>
                                     </div>
-                                    <Link href={route('projects.show', payment.project.id)} className="no-print">
-                                        <Button variant="ghost" className="rounded-xl h-12 px-6 text-[10px] font-black uppercase tracking-widest gap-2 text-indigo-600 bg-white dark:bg-slate-900 shadow-sm">
-                                            VIEW PROJECT <ExternalLink size={12} />
-                                        </Button>
+                                    <Link href={route('projects.show', payment.project.id)} className="no-print" style={{ textDecoration: 'none' }}>
+                                        <button style={{ height: '44px', padding: '0 1.25rem', background: '#fff', border: '1.5px solid #f0eeff', borderRadius: '12px', color: accentColor, fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            View Project
+                                            <ExternalLink size={14} />
+                                        </button>
                                     </Link>
                                 </div>
                             )}
 
-                            {/* Remarks Dossier */}
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-6 rounded-full bg-amber-500" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Strategic Remarks</h3>
-                                </div>
-                                <div className="p-10 bg-slate-50 dark:bg-slate-800/30 rounded-[2.5rem] border-none italic text-sm font-bold text-slate-600 dark:text-slate-400 leading-relaxed print:bg-transparent print:p-0">
-                                    {payment.notes || 'This transaction was processed and verified under standard fiscal operating procedures. The capital magnitude has been committed to the ledger with no additional strategic remarks recorded by the initiating node.'}
-                                </div>
+                            {/* Remarks */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }}></div>
+                                    Notes & Remarks
+                                </h4>
+                                <p style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 600, lineHeight: 1.7, fontStyle: 'italic', padding: '1.5rem 2rem', background: '#f9faff', borderRadius: '20px', border: '1.5px solid #f1f5f9', margin: 0 }}>
+                                    {payment.notes || 'This transaction has been successfully verified and committed to our records. No additional special remarks were recorded for this payment.'}
+                                </p>
                             </div>
 
-                            {/* Final Compliance Check */}
-                            <div className="flex flex-col md:flex-row justify-between items-end gap-12 pt-8">
-                                <div className="space-y-6 max-w-sm">
-                                    <div className="flex items-center gap-6 p-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-[2.5rem] border-none print:bg-transparent print:p-0">
-                                        <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100 dark:border-emerald-800/50">
-                                            <CheckCircle2 size={32} />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">REALIZATION VERIFIED</p>
-                                            <p className="text-[10px] text-emerald-600/60 dark:text-emerald-500/40 font-bold uppercase mt-1 leading-tight">Digital Authenticity Hash: 0x{payment.id.toString(16).padStart(8, '0')}ZK</p>
-                                        </div>
+                            {/* Final Compliance */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem 2rem', background: '#ecfdf5', borderRadius: '24px', border: '1.5px solid #d1fae5' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', border: '1.5px solid #d1fae5' }}>
+                                        <CheckCircle2 size={24} />
                                     </div>
+                                    <div>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: 900, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Verified & Secured</p>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981', marginTop: '2px', opacity: 0.8 }}>TR ID: {payment.id.toString(16).toUpperCase()}ZK-FR</p>
+                                    </div>
+                                </div>
 
+                                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     {payment.receipt && (
-                                        <a href={`/storage/${payment.receipt}`} target="_blank" rel="noopener noreferrer" className="no-print">
-                                            <Button variant="ghost" className="h-12 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest gap-3 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30">
-                                                <ExternalLink size={14} /> VIEW ORIGINAL EVIDENCE
-                                            </Button>
+                                        <a href={`/storage/${payment.receipt}`} target="_blank" className="no-print" style={{ textDecoration: 'none' }}>
+                                            <button style={{ height: '44px', padding: '0 1.25rem', background: '#f5f3ff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#6366f1', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <ExternalLink size={14} />
+                                                View Original Proof
+                                            </button>
                                         </a>
                                     )}
-                                </div>
-
-                                <div className="text-right space-y-4">
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 leading-none">Document Protocol Version</p>
-                                        <p className="text-xs font-black text-slate-400 uppercase">ZK-FR-2026.1</p>
-                                    </div>
-                                    <div className="w-48 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-700">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 italic">Signature Bypass</p>
+                                    <div style={{ opacity: 0.4, textAlign: 'right' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Authorized System Output</p>
+                                        <div style={{ width: '160px', height: '44px', border: '1.5px dashed #cbd5e1', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, color: '#cbd5e1', textTransform: 'uppercase' }}>Digital Copy</div>
                                     </div>
                                 </div>
-                            </div>
-                        </CardContent>
-
-                        {/* Branding Footer */}
-                        <div
-                            className="p-10 text-center space-y-2"
-                            style={{ backgroundColor: `${styles.accentColor}08` }}
-                        >
-                            {styles.footerText && (
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic max-w-sm mx-auto">{styles.footerText}</p>
-                            )}
-                            <div className="flex items-center justify-center gap-3 py-4">
-                                <Zap size={14} className="text-indigo-500 animate-pulse" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-300">Official Fiscal Artifact</p>
                             </div>
                         </div>
-                    </Card>
+
+                        {/* Branding Footer */}
+                        <div style={{ padding: '2.5rem', background: `${accentColor}08`, borderTop: '1.5px solid #f1f5f9', textAlign: 'center' }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>{slipDesign?.footer_text || 'This is a digitally generated document. No physical signature required.'}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '1.5rem' }}>
+                                <Zap size={14} color={accentColor} className="animate-pulse" />
+                                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '0.2em' }}>OFFICIAL RECORD</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
+            <style>{`
                 @media print {
-                    .no-print, aside, header, button, .hidden-print { display: none !important; }
-                    body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    .py-10 { padding: 0 !important; }
-                    .pb-32 { padding-bottom: 0 !important; }
-                    
-                    /* Reset margins and paddings for layout */
-                    main { margin: 0 !important; padding: 0 !important; }
-                    .max-w-4xl { max-width: none !important; padding: 0 !important; margin: 0 !important; }
-                    
-                    /* Ensure background colors print */
-                    div, section, header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    @page { size: A4; margin: 0; }
+                    .no-print { display: none !important; }
+                    body { background: white !important; }
                 }
-            `}} />
+                .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+            `}</style>
         </FigmaLayout>
     );
 }

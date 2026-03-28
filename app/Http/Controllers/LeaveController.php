@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\LeaveApplication;
+use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -13,7 +14,9 @@ class LeaveController extends Controller
     public function index()
     {
         return Inertia::render('Employee/Leaves/Index', [
-            'leaves' => LeaveApplication::with('employee')->latest()->get(),
+            'leaves' => LeaveApplication::with('employee')->get(),
+            'holidays' => Holiday::all(),
+            'employees' => Employee::all(),
         ]);
     }
 
@@ -49,5 +52,24 @@ class LeaveController extends Controller
     {
         $leave->delete();
         return back()->with('success', 'Leave application removed.');
+    }
+
+    public function storeHoliday(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'is_recurring_weekly' => 'boolean',
+            'date' => 'nullable|date',
+            'day_of_week' => 'nullable|integer|between:0,6'
+        ]);
+
+        Holiday::create($validated);
+        return back()->with('success', 'Holiday assigned.');
+    }
+
+    public function destroyHoliday(Holiday $holiday)
+    {
+        $holiday->delete();
+        return back()->with('success', 'Holiday removed.');
     }
 }

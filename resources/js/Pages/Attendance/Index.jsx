@@ -1,230 +1,239 @@
+import React, { useState, useEffect, useRef } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
-    MagnifyingGlassIcon,
-    CalendarIcon,
-    FunnelIcon,
-    ArrowDownTrayIcon,
-    MapPinIcon,
-    ChevronRightIcon
-} from '@heroicons/react/24/outline';
+    Search, Calendar, Download, Users, Clock, User, CheckCircle2,
+    XCircle, Activity, LogOut, LogIn, Table, ArrowRight, ClipboardList
+} from 'lucide-react';
 
-export default function AttendanceIndex({ logs, filters }) {
-    const { data, setData, get } = useForm({
-        search: filters.search || '',
-        date: filters.date || '',
-    });
+const card = {
+    background: '#fff', borderRadius: '16px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+};
+const onFocus = e => { e.target.style.borderColor = '#8b5cf6'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; };
+const onBlur  = e => { e.target.style.borderColor = '#ede9fe'; e.target.style.boxShadow = 'none'; };
 
-    const handleFilter = (e) => {
-        e.preventDefault();
-        get(route('attendance.index'), { preserveState: true });
+const badgeStyle = (status) => {
+    const s = {
+        Out: { bg: '#f5f3ff', color: '#6366f1', label: 'Checked Out', icon: LogOut },
+        In: { bg: '#ecfdf5', color: '#10b981', label: 'Checked In', icon: LogIn },
+    }[status] || { bg: '#f3f4f6', color: '#6b7280', label: 'Missing', icon: LogOut };
+    
+    return {
+        display: 'inline-flex', alignItems: 'center', gap: '6px',
+        padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem',
+        fontWeight: 800, background: s.bg, color: s.color,
+        textTransform: 'uppercase', letterSpacing: '0.04em',
+        border: `1.5px solid ${s.color}15`, label: s.label, Icon: s.icon
+    };
+};
+
+export default function AttendanceIndex({ auth, employees, filters }) {
+    const [search, setSearch] = useState(filters.search || '');
+    const [date, setDate] = useState(filters.date || new Date().toISOString().split('T')[0]);
+
+    const isFirstRender = useRef(true);
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        const t = setTimeout(() => {
+            router.get(route('attendance.index'), { search, date }, { preserveState: true, replace: true, preserveScroll: true });
+        }, 500);
+        return () => clearTimeout(t);
+    }, [search, date]);
+
+    const activeCount = employees.data.filter(e => e.status === 'In').length;
+    const presentCount = employees.data.filter(e => e.punches > 0).length;
+
+    const selectStyle = {
+        padding: '0.55rem 0.875rem', background: '#f9f7ff',
+        border: '1.5px solid #ede9fe', borderRadius: '10px',
+        fontSize: '0.82rem', color: '#4338ca', fontWeight: 600,
+        outline: 'none', cursor: 'pointer', appearance: 'none',
+        fontFamily: 'inherit',
     };
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString([], {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
-
-    const formatTime = (dateString) => {
-        return new Date(dateString).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    };
-
-    const getStatus = (log, index) => {
-        // Since logs are paginated and ordered by timestamp DESC in the DB usually,
-        // we need to be careful. However, for a simple UI feedback:
-        // If the user wants 1st=IN, 2nd=OUT, we should ideally know the absolute index.
-        // For simplicity in the log view, we'll keep the device state as primary, 
-        // but label them as "Enter" and "Exit" pairs if possible.
-
-        if (log.state == 1) return { label: 'Exit (Manual)', color: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
-
-        // We'll use a badge that clarifies it's a "Sequence Punch"
-        return { label: 'Punch Log', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+    const Pagination = ({ links }) => {
+        if (!links || links.length <= 3) return null;
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.75rem', ...card, padding: '0.875rem 1.25rem', marginTop: '1rem' }}>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {links.map((link, i) => link.url ? (
+                        <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '9px', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none', background: link.active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#f5f3ff', color: link.active ? '#fff' : '#6366f1' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                    ) : (
+                        <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '9px', fontSize: '0.78rem', fontWeight: 700, background: '#f9fafb', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                    ))}
+                </div>
+            </div>
+        );
     };
 
     return (
-        <FigmaLayout>
-            <Head title="Attendance Logs" />
+        <FigmaLayout user={auth.user}>
+            <Head title="Live Attendance" />
 
-            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto', paddingBottom: '3rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">Attendance Data</h1>
-                        <p className="text-xs md:text-sm text-gray-500 font-medium mt-1">Real-time synchronized logs from your ZKTeco terminals.</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <Clock size={16} color="#a78bfa" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Daily Roster</span>
+                        </div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Live Attendance Record</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Monitor daily entries, exits, and active presence directly from ZKTeco logs</p>
                     </div>
-                    <button className="inline-flex items-center justify-center px-6 py-3 bg-white border border-gray-200 text-gray-900 rounded-2xl text-sm font-bold shadow-sm hover:bg-gray-50 active:scale-95 transition-all w-full md:w-auto">
-                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                        Download Report
-                    </button>
+
+                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <Link href={route('attendance.calendar')}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.6rem 1.125rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}>
+                                <Calendar size={15} /> Attendance Calendar
+                            </button>
+                        </Link>
+                        <Link href={route('employees.index', { view: 'attendance' })}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.6rem 1.125rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#6366f1', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 1px 6px rgba(99,102,241,0.07)' }}>
+                                <ClipboardList size={15} /> View Manual Fixes
+                            </button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white p-4 md:p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col md:grid md:grid-cols-3 gap-4 items-center">
-                    <form onSubmit={handleFilter} className="relative group w-full col-span-1">
-                        <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#22C55E] transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Employee Name or ID..."
-                            value={data.search}
-                            onChange={e => setData('search', e.target.value)}
-                            className="w-full bg-gray-50/50 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-[#22C55E]/10"
-                        />
-                    </form>
+                <div style={{ ...card, padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+                            <Search size={14} color="#a78bfa" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                                placeholder="Search by name, ID..."
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 1rem 0.55rem 2rem', background: '#f9f7ff', border: '1.5px solid #ede9fe', borderRadius: '10px', fontSize: '0.82rem', color: '#1e1b4b', outline: 'none', fontFamily: 'inherit' }}
+                                onFocus={onFocus} onBlur={onBlur}
+                            />
+                        </div>
 
-                    <div className="relative group w-full">
-                        <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#22C55E] transition-colors shadow-sm" />
-                        <input
-                            type="date"
-                            value={data.date}
-                            onChange={e => setData('date', e.target.value)}
-                            className="w-full bg-gray-50/50 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-[#22C55E]/10 font-bold text-gray-600"
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                            style={{ ...selectStyle, padding: '0.55rem 0.875rem' }}
+                            onFocus={onFocus} onBlur={onBlur}
                         />
-                    </div>
 
-                    <div className="flex items-center space-x-2 w-full">
-                        <button
-                            onClick={handleFilter}
-                            className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all flex items-center justify-center"
-                        >
-                            Apply Filters
-                        </button>
-                        <button className="p-3 bg-gray-50 text-gray-500 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
-                            <FunnelIcon className="w-5 h-5" />
-                        </button>
+                        {(search) && (
+                            <button onClick={() => setSearch('')} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.55rem 0.875rem', background: '#fff1f2', border: '1.5px solid #fecaca', borderRadius: '10px', color: '#ef4444', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+                                <XCircle size={13} /> Clear
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Logs Table */}
-                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50/50 text-gray-400 text-[11px] uppercase tracking-widest font-black border-b border-gray-100">
-                                <tr>
-                                    <th className="px-8 py-6">Employee</th>
-                                    <th className="px-8 py-6">Check Time</th>
-                                    <th className="px-8 py-6">Shift</th>
-                                    <th className="px-8 py-6">Work Hours</th>
-                                    <th className="px-8 py-6">Terminal</th>
-                                    <th className="px-8 py-6 text-right">Status</th>
+                {/* Summary Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: '1rem' }}>
+                    <div style={{ ...card, padding: '1.1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <CheckCircle2 size={20} />
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Present Today</p>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{presentCount}</h3>
+                        </div>
+                    </div>
+                    
+                    <div style={{ ...card, padding: '1.1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Activity size={20} />
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Currently Active (IN)</p>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{activeCount}</h3>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Table Sheet View */}
+                <div style={{ ...card, padding: 0 }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1.5px solid #f0eeff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Table size={18} color="#6366f1" />
+                        <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Checksheet Matrix</h3>
+                    </div>
+
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #f0eeff' }}>
+                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Personnel</th>
+                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Status</th>
+                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Punch Timeline (IN → OUT)</th>
+                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Total Punches</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {logs.data.map((log) => {
-                                    const status = getStatus(log);
-
-                                    // Calculate Duration (if check-out)
-                                    let duration = null;
-                                    if (log.state == 1) {
-                                        // This is a simple duration calc for the log entry
-                                        // In a real system, we'd fetch the first check-in of the day
-                                        // For now, let's just mark it
-                                        duration = "Summarizing...";
-                                    }
-
+                            <tbody>
+                                {employees.data.length > 0 ? employees.data.map((employee, idx) => {
+                                    const StatusBadge = badgeStyle(employee.punches === 0 ? 'Out' : employee.status);
+                                    
                                     return (
-                                        <tr key={log.id} className="group hover:bg-gray-50/40 transition-all">
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-[10px] text-gray-500 border border-gray-200/50 group-hover:border-[#22C55E]/30 transition-all">
-                                                        {log.employee
-                                                            ? `${log.employee.first_name.charAt(0)}${log.employee.last_name?.charAt(0)}`
-                                                            : '??'}
+                                        <tr key={idx} style={{ borderBottom: '1px solid #f8fafc', transition: 'background 0.2s' }} onMouseEnter={e=>e.currentTarget.style.background='#f9f9fb'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338ca', fontWeight: 900, fontSize: '0.85rem' }}>
+                                                        {employee.name.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-bold text-gray-900 leading-tight">
-                                                            {log.employee ? `${log.employee.first_name} ${log.employee.last_name || ''}` : 'Unknown'}
-                                                        </p>
-                                                        <p className="text-[10px] font-mono font-bold text-indigo-500 uppercase tracking-tighter">
-                                                            ID: {log.user_id}
-                                                        </p>
+                                                        <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#1e1b4b' }}>{employee.name}</p>
+                                                        <p style={{ margin: '1px 0 0', fontSize: '0.68rem', color: '#64748b', fontWeight: 600, fontFamily: 'monospace' }}>ID: {employee.employee_id || 'N/A'}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-5">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-gray-900">
-                                                        {formatTime(log.timestamp)}
-                                                    </span>
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                                        {formatDate(log.timestamp)}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                {log.employee?.shift ? (
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-gray-600">{log.employee.shift.name}</span>
-                                                        <span className="text-[10px] font-bold text-gray-400">{log.employee.shift.start_time.substring(0, 5)} - {log.employee.shift.end_time.substring(0, 5)}</span>
+                                            
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                {employee.punches > 0 ? (
+                                                    <div style={StatusBadge}>
+                                                        <StatusBadge.Icon size={12} /> {StatusBadge.label}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-[10px] font-black text-gray-300 uppercase italic">No Shift</span>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#cbd5e1' }}>Absent / No Data</span>
                                                 )}
                                             </td>
-                                            <td className="px-8 py-5">
-                                                {log.state == 1 ? (
-                                                    <span className="text-sm font-black text-indigo-600 animate-pulse">Calculating...</span>
-                                                ) : (
-                                                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Logging...</span>
-                                                )}
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center text-gray-500 font-bold group-hover:text-[#22C55E] transition-colors">
-                                                    <MapPinIcon className="w-3.5 h-3.5 mr-2" />
-                                                    <span className="text-xs truncate max-w-[120px] uppercase tracking-tight">
-                                                        {log.device?.device_name || 'Terminal'}
-                                                    </span>
+
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                    {employee.all_punches?.length > 0 ? employee.all_punches.map((time, i) => {
+                                                        const isEntry = i % 2 === 0;
+                                                        return (
+                                                            <React.Fragment key={i}>
+                                                                {i > 0 && <span style={{ color: '#cbd5e1', fontWeight: 900, fontSize: '0.7rem' }}>→</span>}
+                                                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', background: isEntry ? '#ecfdf5' : '#f5f3ff', borderRadius: '6px', border: `1px solid ${isEntry ? '#10b98120' : '#6366f120'}`, fontWeight: 800, color: isEntry ? '#059669' : '#4f46e5', fontSize: '0.75rem' }}>
+                                                                    {isEntry ? <LogIn size={11} strokeWidth={3} /> : <LogOut size={11} strokeWidth={3} />} {time}
+                                                                </div>
+                                                            </React.Fragment>
+                                                        );
+                                                    }) : <span style={{ color: '#cbd5e1', fontWeight: 800, fontSize: '0.75rem' }}>No Punches Logged</span>}
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-5 text-right">
-                                                <span className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${status.color}`}>
-                                                    {status.label}
+
+                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: 900, color: employee.punches > 0 ? '#1e1b4b' : '#cbd5e1' }}>
+                                                    {employee.punches}
                                                 </span>
                                             </td>
                                         </tr>
                                     );
-                                })}
-                                {logs.data.length === 0 && (
+                                }) : (
                                     <tr>
-                                        <td colSpan="6" className="px-8 py-20 text-center">
-                                            <p className="text-gray-400 font-bold italic">No attendance records found for this period.</p>
+                                        <td colSpan="4" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                                            <Users size={32} color="#e2e8f0" style={{ margin: '0 auto 1rem' }} />
+                                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#1e1b4b' }}>No data located</p>
+                                            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>No attendance logs were matched on this specific date or search filter.</p>
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
-
-                    {/* Pagination */}
-                    {logs.links.length > 3 && (
-                        <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
-                            <p className="text-[11px] text-gray-400 font-black uppercase tracking-widest">
-                                Page {logs.current_page} of {logs.last_page}
-                            </p>
-                            <div className="flex items-center space-x-2">
-                                {logs.links.map((link, idx) => (
-                                    <Link
-                                        key={idx}
-                                        href={link.url || '#'}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                        className={`px-4 py-2 text-[10px] font-black rounded-xl transition-all ${link.active
-                                            ? 'bg-[#22C55E] text-white shadow-lg shadow-emerald-100'
-                                            : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50 hover:text-gray-900'
-                                            } ${!link.url && 'opacity-50 cursor-not-allowed'}`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
+
+                <Pagination links={employees.links} />
             </div>
         </FigmaLayout>
     );

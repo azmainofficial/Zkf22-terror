@@ -1,12 +1,48 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import React, { useState } from 'react';
+import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { FileText, Plus, Search, Edit, Trash2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
-import { useAppStore } from '@/store/useAppStore';
-import { t } from '@/lib/translations';
-import { useState } from 'react';
+import { 
+    FileText, 
+    Plus, 
+    Search, 
+    Edit, 
+    Trash2, 
+    CheckCircle2, 
+    Palette,
+    Settings,
+    Smartphone,
+    Users,
+    Shield,
+    History,
+    Image as ImageIcon,
+    LayoutTemplate
+} from 'lucide-react';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2rem',
+    position: 'relative',
+    overflow: 'hidden'
+};
+
+const inputStyle = {
+    width: '100%',
+    height: '48px',
+    padding: '0 1rem',
+    borderRadius: '12px',
+    border: '1.5px solid #f0eeff',
+    background: '#f8fafc',
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
 
 export default function Index({ auth, designs, filters }) {
-    const { language } = useAppStore();
     const [search, setSearch] = useState(filters.search || '');
 
     const handleSearch = (e) => {
@@ -15,8 +51,8 @@ export default function Index({ auth, designs, filters }) {
     };
 
     const handleDelete = (id) => {
-        if (confirm(t('confirm_delete', language))) {
-            router.delete(route('slip-designs.destroy', id));
+        if (confirm('Permanently delete this invoice template?')) {
+            router.delete(route('slip-designs.destroy', id), { preserveScroll: true });
         }
     };
 
@@ -25,45 +61,58 @@ export default function Index({ auth, designs, filters }) {
     };
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <Link href={route('settings.index')}>
-                            <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border hover:bg-slate-50 transition-all shadow-sm">
-                                <ArrowLeft size={18} />
-                            </button>
-                        </Link>
+        <FigmaLayout user={auth.user}>
+            <Head title="Invoice Templates" />
+
+            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                            <Palette size={28} />
+                        </div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight leading-none text-slate-900 uppercase">
-                                {t('slip_designs', language)}
-                            </h2>
-                            <p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">
-                                {t('slip_designs_desc', language)}
-                            </p>
+                            <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>Invoice Designs</h1>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Manage templates, branding, and layouts for generated financial documents</p>
                         </div>
                     </div>
-                    <Link href={route('slip-designs.create')}>
-                        <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 transition-all font-bold">
+                    <Link href={route('slip-designs.create')} style={{ textDecoration: 'none' }}>
+                        <button style={{ height: '52px', padding: '0 2rem', background: '#1e1b4b', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '1rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 6px 20px rgba(30,27,75,0.2)' }}>
                             <Plus size={20} />
-                            {t('add_design', language)}
+                            Create Template
                         </button>
                     </Link>
                 </div>
-            }
-        >
-            <Head title={t('slip_designs', language)} />
 
-            <div className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+                {/* Sub-Navigation (Consistent with Settings) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    {[
+                        { name: 'Settings', label: 'App config', icon: Settings, href: route('settings.index'), color: '#4f46e5' },
+                        { name: 'Devices', label: 'Hardware', icon: Smartphone, href: route('devices.index'), color: '#3b82f6' },
+                        { name: 'Users', label: 'Logins', icon: Users, href: route('users.index'), color: '#10b981' },
+                        { name: 'Roles', label: 'Access', icon: Shield, href: route('roles.index'), color: '#f59e0b' },
+                        { name: 'History', label: 'Actions', icon: History, href: route('audit-logs.index'), color: '#ec4899' },
+                    ].map((item, idx) => (
+                        <Link key={idx} href={item.href} style={{ textDecoration: 'none' }}>
+                            <div style={{ ...cardStyle, padding: '1rem', display: 'flex', alignItems: 'center', gap: '10px', background: '#fff', opacity: 0.8, transition: 'all 0.2s' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `${item.color}10`, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <item.icon size={16} />
+                                </div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e1b4b' }}>{item.name}</span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+
                 {/* Search Bar */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                    <form onSubmit={handleSearch} className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder={t('search', language)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                <div style={{ ...cardStyle, padding: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <form onSubmit={handleSearch} style={{ flex: 1, position: 'relative' }}>
+                        <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input 
+                            type="text" 
+                            placeholder="Find templates by name..." 
+                            style={{ ...inputStyle, paddingLeft: '3rem', width: '100%', maxWidth: '400px' }}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -72,71 +121,69 @@ export default function Index({ auth, designs, filters }) {
 
                 {/* Designs Grid */}
                 {designs.data.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
                         {designs.data.map((design) => (
-                            <div key={design.id} className={`group relative bg-white rounded-3xl shadow-sm border-2 overflow-hidden transition-all hover:shadow-xl ${design.is_active ? 'border-green-500' : 'border-slate-100 hover:border-blue-200'}`}>
-                                {/* Active Badge */}
+                            <div key={design.id} style={{ ...cardStyle, padding: 0, border: `2px solid ${design.is_active ? '#6366f1' : '#f0eeff'}` }}>
+                                
                                 {design.is_active && (
-                                    <div className="absolute top-4 right-4 z-10 bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-green-500/30 flex items-center gap-1">
-                                        <CheckCircle size={12} /> {t('active_status', language)}
+                                    <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10, background: '#4f46e5', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}>
+                                        <CheckCircle2 size={14} /> Active Format
                                     </div>
                                 )}
 
-                                {/* Preview Area */}
-                                <div className="h-48 bg-slate-50 relative p-6 flex flex-col items-center justify-center border-b border-slate-100 group-hover:bg-slate-50/50 transition-colors">
+                                {/* Preview Header */}
+                                <div style={{ height: '180px', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', borderBottom: '1.5px solid #f0eeff' }}>
                                     {design.header_logo ? (
-                                        <img src={`/storage/${design.header_logo}`} alt="Logo" className="h-12 object-contain mb-4" />
+                                        <img src={`/storage/${design.header_logo}`} alt="Logo" style={{ height: '64px', objectFit: 'contain', zIndex: 2 }} />
                                     ) : (
-                                        <div className="h-12 flex items-center justify-center text-slate-300 font-bold uppercase tracking-widest text-xs border-2 border-dashed border-slate-200 px-4 rounded-lg">No Logo</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#cbd5e1', fontWeight: 800, fontSize: '0.8rem', zIndex: 2 }}>
+                                            <ImageIcon size={20} /> No Branding
+                                        </div>
                                     )}
 
-                                    <div className="w-full max-w-[200px] space-y-2 opacity-50">
-                                        <div className="h-2 bg-slate-200 rounded-full w-3/4 mx-auto"></div>
-                                        <div className="h-2 bg-slate-200 rounded-full w-full"></div>
-                                        <div className="h-2 bg-slate-200 rounded-full w-5/6 mx-auto"></div>
+                                    {/* Mock Document Lines */}
+                                    <div style={{ width: '60%', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '1.5rem', opacity: 0.5, zIndex: 2 }}>
+                                        <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '4px', width: '100%' }} />
+                                        <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '4px', width: '80%', margin: '0 auto' }} />
                                     </div>
 
-                                    {/* Watermark Overlay */}
                                     {design.watermark_image && (
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                                            <img src={`/storage/${design.watermark_image}`} className="w-24 h-24 object-contain" />
+                                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.05, pointerEvents: 'none', zIndex: 1 }}>
+                                            <img src={`/storage/${design.watermark_image}`} style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Info Area */}
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold text-slate-900 mb-1">{design.name}</h3>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                        <span className={`w-2 h-2 rounded-full ${design.type === 'invoice' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
-                                        {design.type.toUpperCase()}
+                                {/* Details Body */}
+                                <div style={{ padding: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 4px' }}>{design.name}</h3>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: design.type === 'invoice' ? '#6366f1' : '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 1.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <LayoutTemplate size={14} /> {design.type} Template
                                     </p>
 
-                                    <div className="flex items-center gap-2 mb-6">
-                                        <div className="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2rem' }}>
+                                        <span style={{ padding: '4px 12px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #f1f5f9', fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>
                                             {design.font_family}
+                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: design.accent_color, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' }} />
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>Accent</span>
                                         </div>
-                                        <div className="w-6 h-6 rounded-full border border-slate-200 shadow-sm" style={{ backgroundColor: design.accent_color }}></div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <Link href={route('slip-designs.edit', design.id)} className="flex-1">
-                                            <button className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs uppercase tracking-widest transition-colors">
-                                                {t('edit', language)}
+                                    {/* Action Buttons */}
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <Link href={route('slip-designs.edit', design.id)} style={{ flex: 1, textDecoration: 'none' }}>
+                                            <button style={{ width: '100%', height: '44px', borderRadius: '12px', background: '#f8fafc', border: '1.5px solid #f0eeff', color: '#1e1b4b', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}>
+                                                <Edit size={16} /> Edit
                                             </button>
                                         </Link>
                                         {!design.is_active && (
-                                            <button
-                                                onClick={() => handleToggleStatus(design.id)}
-                                                className="flex-1 py-2 rounded-xl bg-green-50 hover:bg-green-100 text-green-600 font-bold text-xs uppercase tracking-widest transition-colors border border-green-200"
-                                            >
-                                                {t('set_active', language)}
+                                            <button onClick={() => handleToggleStatus(design.id)} style={{ flex: 1, height: '44px', borderRadius: '12px', background: '#ecfdf5', border: 'none', color: '#10b981', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                Set Default
                                             </button>
                                         )}
-                                        <button
-                                            onClick={() => handleDelete(design.id)}
-                                            className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 transition-colors border border-red-100"
-                                        >
+                                        <button onClick={() => handleDelete(design.id)} style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fff1f2', border: 'none', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
                                             <Trash2 size={18} />
                                         </button>
                                     </div>
@@ -145,18 +192,18 @@ export default function Index({ auth, designs, filters }) {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
-                        <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">{t('no_designs_found', language) || 'No designs found'}</h3>
-                        <p className="text-slate-500 mb-8">{t('slip_designs_desc', language)}</p>
-                        <Link href={route('slip-designs.create')}>
-                            <button className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all">
-                                {t('add_design', language)}
+                    <div style={{ ...cardStyle, padding: '5rem', textAlign: 'center', opacity: 0.5 }}>
+                        <LayoutTemplate size={48} style={{ margin: '0 auto 1.5rem', color: '#cbd5e1' }} />
+                        <p style={{ fontWeight: 800, margin: '0 0 1.5rem' }}>No document templates configured</p>
+                        <Link href={route('slip-designs.create')} style={{ textDecoration: 'none' }}>
+                            <button style={{ height: '44px', padding: '0 1.5rem', background: '#1e1b4b', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: 900, cursor: 'pointer' }}>
+                                Setup First Template
                             </button>
                         </Link>
                     </div>
                 )}
             </div>
-        </AuthenticatedLayout>
+        </FigmaLayout>
     );
 }
+

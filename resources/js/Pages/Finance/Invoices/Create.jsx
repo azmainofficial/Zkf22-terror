@@ -2,41 +2,33 @@ import React, { useState, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    Save,
-    Plus,
-    Trash2,
-    FileText,
-    Upload,
-    Calendar,
-    Users,
-    CreditCard,
-    Info,
-    CheckCircle2,
-    DollarSign,
-    Calculator,
-    AlertCircle,
-    X,
-    ChevronDown,
-    Loader2,
-    Layout,
-    Receipt,
-    History,
-    FileCheck,
-    Coins,
-    Sparkles,
-    CalendarClock,
-    FileWarning,
-    Package,
-    Minus
+    ArrowLeft, Plus, Trash2, Calendar, Users, CreditCard,
+    CheckCircle2, DollarSign, Loader2, Receipt, FileCheck,
+    Briefcase, FileText, Percent, ArrowRight, Settings,
+    LayoutGrid, Info, HelpCircle
 } from 'lucide-react';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { Button } from '@/Components/ui/Button';
-import { Badge } from '@/Components/ui/Badge';
-import { cn } from '@/lib/utils';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
+
+// ─── Shared Styles ─────────────────────────────────────────────
+const card = {
+    background: '#fff', borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+};
+const onFocus = e => { e.target.style.borderColor = '#8b5cf6'; e.target.style.boxShadow = '0 0 0 4px rgba(139,92,246,0.1)'; };
+const onBlur  = e => { e.target.style.borderColor = '#f0eeff'; e.target.style.boxShadow = 'none'; };
+
+const inputStyle = {
+    width: '100%', height: '52px', padding: '0 1.25rem',
+    borderRadius: '12px', border: '1.5px solid #f0eeff',
+    background: '#f9fafb', fontSize: '0.92rem', fontWeight: 700,
+    outline: 'none', transition: 'all 0.2s', color: '#1e1b4b'
+};
+
+const labelStyle = {
+    fontSize: '0.68rem', fontWeight: 800, color: '#9ca3af',
+    textTransform: 'uppercase', letterSpacing: '0.08em',
+    display: 'block', marginBottom: '8px', paddingLeft: '4px'
+};
 
 export default function Create({ auth, clients }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -48,404 +40,189 @@ export default function Create({ auth, clients }) {
         discount_amount: 0,
         notes: '',
         terms: '',
-        attachment: null,
-        is_recurring: false,
-        recurring_interval: 'monthly',
         items: [{ description: '', quantity: 1, unit_price: 0 }]
     });
 
-    const addItem = () => {
-        setData('items', [...data.items, { description: '', quantity: 1, unit_price: 0 }]);
+    const addItem = () => setData('items', [...data.items, { description: '', quantity: 1, unit_price: 0 }]);
+    const removeItem = (i) => data.items.length > 1 && setData('items', data.items.filter((_, idx) => idx !== i));
+    const updateItem = (i, f, v) => {
+        const n = [...data.items]; n[i][f] = v; setData('items', n);
     };
 
-    const removeItem = (index) => {
-        if (data.items.length > 1) {
-            const newItems = data.items.filter((_, i) => i !== index);
-            setData('items', newItems);
-        }
-    };
-
-    const updateItem = (index, field, value) => {
-        const newItems = [...data.items];
-        newItems[index][field] = value;
-        setData('items', newItems);
-    };
-
-    const subtotal = data.items.reduce((sum, item) => {
-        return sum + (parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0));
-    }, 0);
-
+    const subtotal = data.items.reduce((s, i) => s + (parseFloat(i.quantity || 0) * parseFloat(i.unit_price || 0)), 0);
     const total = subtotal + parseFloat(data.tax_amount || 0) - parseFloat(data.discount_amount || 0);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        post(route('invoices.store'), {
-            forceFormData: true,
-        });
-    };
+    const handleSubmit = (e) => { e.preventDefault(); post(route('invoices.store')); };
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Fiscal Engineering Surface" />
+            <Head title="Invoice Creation" />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
+            <div style={{ maxWidth: '1300px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
+                
+                {/* ── Header ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <Link href={route('invoices.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
-                                <ArrowLeft size={20} />
-                            </Button>
+                            <button style={iconBtn('#fff', '#64748b', true)}><ArrowLeft size={20} /></button>
                         </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic">
-                                Fiscal Engineering
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <Sparkles size={14} className="text-indigo-600 animate-pulse" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">High-Precision Billing Generation</p>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '2px' }}>
+                                <Receipt size={14} color="#a78bfa" />
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Fiscal Authority</span>
                             </div>
+                            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Instantiate Invoice</h1>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            className="h-14 px-8 rounded-2xl bg-white dark:bg-slate-900 border-none shadow-sm font-bold tracking-tight hover:scale-[1.02] transition-all"
-                            onClick={() => window.history.back()}
-                        >
-                            Abort Sync
-                        </Button>
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={processing}
-                            className="h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-100 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98] gap-3"
-                        >
-                            {processing ? <Loader2 className="animate-spin" size={20} /> : <FileCheck size={20} strokeWidth={2.5} />}
-                            <span>Finalize Realization</span>
-                        </Button>
+                    <div style={{ display: 'flex', gap: '0.625rem' }}>
+                        <button onClick={() => window.history.back()} style={secondaryBtn}>Cancel</button>
+                        <button onClick={handleSubmit} disabled={processing} style={primaryBtn}>
+                            {processing ? <Loader2 size={18} className="spin" /> : <FileCheck size={18} />}
+                            EXECUTE DISCHARGE
+                        </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Engineering Bay: Left Column */}
-                    <div className="lg:col-span-8 space-y-10">
-                        {/* Partner Linkage */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden p-10">
-                            <div className="flex items-center gap-4 mb-10">
-                                <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                    <Users size={24} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '1.5rem' }}>
+                    
+                    {/* ── Left Manifest ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        {/* Personnel Target */}
+                        <div style={{ ...card, padding: '1.5rem' }}>
+                            <div style={sectionHeader}><Users size={16} color="#6366f1" /> TARGET CLIENT</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Select Entity</label>
+                                    <select value={data.client_id} onChange={e => setData('client_id', e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                                        <option value="">Search Client Database...</option>
+                                        {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.name}</option>)}
+                                    </select>
+                                    {errors.client_id && <p style={errorText}>{errors.client_id}</p>}
                                 </div>
                                 <div>
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Target Intelligence</h3>
-                                    <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic">Partner Linkage</h2>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="space-y-4">
-                                    <InputLabel value="Operational Partner" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                    <div className="relative group">
-                                        <select
-                                            value={data.client_id}
-                                            onChange={(e) => setData('client_id', e.target.value)}
-                                            className={cn(
-                                                "w-full h-16 pl-6 pr-12 bg-slate-50 dark:bg-slate-800/80 border-none rounded-3xl font-bold text-slate-900 dark:text-white appearance-none transition-all focus:ring-2 focus:ring-indigo-600 shadow-inner",
-                                                errors.client_id && "ring-2 ring-red-500/50"
-                                            )}
-                                            required
-                                        >
-                                            <option value="">Select Target Entity</option>
-                                            {clients.map((client) => (
-                                                <option key={client.id} value={client.id}>
-                                                    {client.company_name || client.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                            <ChevronDown size={20} />
-                                        </div>
-                                    </div>
-                                    <InputError message={errors.client_id} />
-                                </div>
-
-                                <div className="space-y-4">
-                                    <InputLabel value="Operational Status" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-[2rem] gap-1.5 shadow-inner h-16 items-center">
-                                        {['draft', 'sent'].map((s) => (
-                                            <button
-                                                key={s}
-                                                type="button"
-                                                onClick={() => setData('status', s)}
-                                                className={cn(
-                                                    "flex-1 h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all",
-                                                    data.status === s
-                                                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-lg"
-                                                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                                )}
-                                            >
-                                                {s}
+                                    <label style={labelStyle}>Manifest State</label>
+                                    <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
+                                        {['draft', 'sent'].map(s => (
+                                            <button key={s} type="button" onClick={() => setData('status', s)}
+                                                style={toggleBtn(data.status === s)}>
+                                                {s.toUpperCase()}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             </div>
-                        </Card>
+                        </div>
 
-                        {/* Billable Manifold */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <div className="p-10 pb-0 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                                        <Receipt size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Resource Allocation</h3>
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic">Billable Manifold</h2>
-                                    </div>
-                                </div>
-                                <Button
-                                    type="button"
-                                    onClick={addItem}
-                                    className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-indigo-100 dark:shadow-none"
-                                >
-                                    <Plus size={16} strokeWidth={3} /> Add Line Entry
-                                </Button>
+                        {/* Items Vector */}
+                        <div style={{ ...card, padding: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <div style={sectionHeader}><LayoutGrid size={16} color="#6366f1" /> LINE ITEMS</div>
+                                <button type="button" onClick={addItem} style={{ padding: '0.5rem 1rem', background: '#f5f3ff', color: '#6366f1', border: 'none', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Plus size={14} /> APPEND
+                                </button>
                             </div>
-
-                            <CardContent className="p-10 space-y-8">
-                                {data.items.map((item, index) => (
-                                    <div key={index} className="group relative bg-slate-50/50 dark:bg-slate-800/50 rounded-[32px] p-8 border-2 border-transparent hover:border-indigo-600/20 transition-all shadow-inner">
-                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-                                            <div className="lg:col-span-6 space-y-3">
-                                                <InputLabel value="Resource Description" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2" />
-                                                <TextInput
-                                                    className="w-full h-14 bg-white dark:bg-slate-900 border-none rounded-2xl font-bold shadow-sm"
-                                                    value={item.description}
-                                                    onChange={(e) => updateItem(index, 'description', e.target.value)}
-                                                    placeholder="Enter operational service..."
-                                                    required
-                                                />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {data.items.map((item, i) => (
+                                    <div key={i} style={{ padding: '1.25rem', background: '#f9f9ff', borderRadius: '16px', border: '1.5px solid #f1f0ff', position: 'relative' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 140px 40px', gap: '1rem' }}>
+                                            <div>
+                                                <label style={labelStyle}>Descriptor</label>
+                                                <input type="text" value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                                             </div>
-                                            <div className="lg:col-span-2 space-y-3">
-                                                <InputLabel value="Quantity" className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center block" />
-                                                <TextInput
-                                                    type="number"
-                                                    className="w-full h-14 bg-white dark:bg-slate-900 border-none rounded-2xl font-black text-center shadow-sm"
-                                                    value={item.quantity}
-                                                    onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                                    min="1"
-                                                    required
-                                                />
+                                            <div>
+                                                <label style={labelStyle}>Qty</label>
+                                                <input type="number" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} style={{ ...inputStyle, textAlign: 'center' }} onFocus={onFocus} onBlur={onBlur} />
                                             </div>
-                                            <div className="lg:col-span-3 space-y-3">
-                                                <InputLabel value="Unit Cost (৳)" className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right block" />
-                                                <div className="relative">
-                                                    <TextInput
-                                                        type="number"
-                                                        step="0.01"
-                                                        className="w-full h-14 pl-10 pr-6 bg-white dark:bg-slate-900 border-none rounded-2xl font-black text-right shadow-sm"
-                                                        value={item.unit_price}
-                                                        onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
-                                                        placeholder="0.00"
-                                                        required
-                                                    />
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-indigo-600/40">৳</span>
-                                                </div>
+                                            <div>
+                                                <label style={labelStyle}>Unit Magnitude (৳)</label>
+                                                <input type="number" value={item.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} style={{ ...inputStyle, textAlign: 'right' }} onFocus={onFocus} onBlur={onBlur} />
                                             </div>
-                                            <div className="lg:col-span-1 flex justify-center pb-1">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    disabled={data.items.length === 1}
-                                                    onClick={() => removeItem(index)}
-                                                    className="w-12 h-12 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-0"
-                                                >
-                                                    <Minus size={20} strokeWidth={3} />
-                                                </Button>
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
+                                                <button type="button" onClick={() => removeItem(i)} disabled={data.items.length === 1} style={iconBtn('#fff', '#ef4444')}><Trash2 size={16} /></button>
                                             </div>
-                                        </div>
-                                        <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Yield Prediction</span>
-                                            <span className="font-black text-indigo-600 text-xl tracking-tighter">৳{(parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0)).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 ))}
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
 
-                        {/* Strategic Briefing */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm p-10 space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <FileText size={18} />
-                                    </div>
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Internal Briefing</h4>
-                                </div>
-                                <textarea
-                                    className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-sm resize-none h-40 shadow-inner"
-                                    value={data.notes}
-                                    onChange={(e) => setData('notes', e.target.value)}
-                                    placeholder="Add tactical notes or instructions..."
-                                />
-                            </Card>
-
-                            <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm p-10 space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <FileWarning size={18} />
-                                    </div>
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Terms of Engagement</h4>
-                                </div>
-                                <textarea
-                                    className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-sm resize-none h-40 shadow-inner"
-                                    value={data.terms}
-                                    onChange={(e) => setData('terms', e.target.value)}
-                                    placeholder="Outline fiscal protocols..."
-                                />
-                            </Card>
+                        {/* Additional Meta */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div style={{ ...card, padding: '1.5rem' }}>
+                                <div style={sectionHeader}><Info size={16} color="#6366f1" /> OPERATIVE NOTES</div>
+                                <textarea value={data.notes} onChange={e => setData('notes', e.target.value)} style={{ ...inputStyle, height: '100px', padding: '1rem', resize: 'none' }} onFocus={onFocus} onBlur={onBlur} />
+                            </div>
+                            <div style={{ ...card, padding: '1.5rem' }}>
+                                <div style={sectionHeader}><HelpCircle size={16} color="#6366f1" /> TERMS</div>
+                                <textarea value={data.terms} onChange={e => setData('terms', e.target.value)} style={{ ...inputStyle, height: '100px', padding: '1rem', resize: 'none' }} onFocus={onFocus} onBlur={onBlur} />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Fiscal Analysis: Right Column */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8">
-                        {/* Monetary Core */}
-                        <Card className="rounded-[44px] border-none bg-slate-950 dark:bg-slate-900 shadow-2xl shadow-indigo-500/10 overflow-hidden relative group">
-                            <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardContent className="p-10 relative z-10">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-500 italic mb-10">Fiscal Summary</h3>
-
-                                <div className="space-y-8">
-                                    <div className="flex justify-between items-center px-2">
-                                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Gross Yield</span>
-                                        <span className="font-black text-xl text-white tracking-tighter">৳{subtotal.toLocaleString()}</span>
-                                    </div>
-
-                                    <div className="space-y-4 bg-white/5 p-6 rounded-[32px] border border-white/5">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Taxation (+)</span>
-                                            <span className="text-emerald-400 font-bold">৳{parseFloat(data.tax_amount || 0).toLocaleString()}</span>
-                                        </div>
-                                        <TextInput
-                                            type="number"
-                                            step="0.01"
-                                            className="w-full h-14 bg-white/5 border-none rounded-2xl px-6 font-black text-white text-lg"
-                                            value={data.tax_amount}
-                                            onChange={(e) => setData('tax_amount', e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-4 bg-white/5 p-6 rounded-[32px] border border-white/5">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-rose-400 text-[10px] font-black uppercase tracking-widest">Adjustment (-)</span>
-                                            <span className="text-rose-400 font-bold">৳{parseFloat(data.discount_amount || 0).toLocaleString()}</span>
-                                        </div>
-                                        <TextInput
-                                            type="number"
-                                            step="0.01"
-                                            className="w-full h-14 bg-white/5 border-none rounded-2xl px-6 font-black text-white text-lg"
-                                            value={data.discount_amount}
-                                            onChange={(e) => setData('discount_amount', e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="pt-8 border-t border-white/5">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600 mb-4 px-2 italic">Net Realization</p>
-                                        <div className="relative group/total">
-                                            <div className="absolute inset-0 bg-indigo-600/20 blur-2xl group-hover/total:bg-indigo-600/40 transition-all opacity-50" />
-                                            <p className="relative text-5xl font-black text-white tracking-tighter leading-none py-2 px-2 drop-shadow-xl text-center md:text-left">
-                                                ৳{total.toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
+                    {/* ── Summary Column ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        {/* Magnitude Summary */}
+                        <div style={{ ...card, background: 'linear-gradient(135deg, #1e1b4b, #312e81)', color: '#fff', border: 'none', padding: '2rem' }}>
+                            <h3 style={{ fontSize: '0.65rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '2rem' }}>FINANCIAL MAGNITUDE</h3>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={sumRow}>
+                                    <span style={{ opacity: 0.6 }}>Manifest Subtotal</span>
+                                    <span style={{ fontWeight: 800 }}>৳{subtotal.toLocaleString()}</span>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Timeline Protocols */}
-                        <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm p-10 space-y-10">
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <CalendarClock size={18} />
+                                <div style={sumInputRow}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                        <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 900 }}>TAX (+)</span>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 900 }}>৳{parseFloat(data.tax_amount || 0).toLocaleString()}</span>
                                     </div>
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Execution Dates</h4>
+                                    <input type="number" value={data.tax_amount} onChange={e => setData('tax_amount', e.target.value)} style={darkInput} />
                                 </div>
-
-                                <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <InputLabel value="Cycle Initiation" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2" />
-                                        <TextInput
-                                            type="date"
-                                            className="w-full h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold shadow-inner"
-                                            value={data.invoice_date}
-                                            onChange={(e) => setData('invoice_date', e.target.value)}
-                                        />
+                                <div style={sumInputRow}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                        <span style={{ fontSize: '0.65rem', color: '#f43f5e', fontWeight: 900 }}>DISCOUNT (-)</span>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 900 }}>৳{parseFloat(data.discount_amount || 0).toLocaleString()}</span>
                                     </div>
-                                    <div className="space-y-3">
-                                        <InputLabel value="Realization Deadline" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2" />
-                                        <TextInput
-                                            type="date"
-                                            className={cn(
-                                                "w-full h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold shadow-inner",
-                                                errors.due_date && "ring-2 ring-red-500/50"
-                                            )}
-                                            value={data.due_date}
-                                            onChange={(e) => setData('due_date', e.target.value)}
-                                        />
-                                        <InputError message={errors.due_date} />
-                                    </div>
+                                    <input type="number" value={data.discount_amount} onChange={e => setData('discount_amount', e.target.value)} style={darkInput} />
+                                </div>
+                                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1.5px solid rgba(255,255,255,0.1)' }}>
+                                    <p style={{ fontSize: '0.65rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '8px' }}>Total Vector Magnitude</p>
+                                    <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.03em' }}>৳{total.toLocaleString()}</h2>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="h-px bg-slate-100 dark:bg-slate-800" />
-
-                            {/* Recurring Protocol */}
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                            <History size={18} />
-                                        </div>
-                                        <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Recurring</h4>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setData('is_recurring', !data.is_recurring)}
-                                        className={cn(
-                                            "w-14 h-8 rounded-full transition-all relative flex items-center px-1 border-2",
-                                            data.is_recurring ? "bg-indigo-600 border-indigo-600 justify-end" : "bg-slate-100 dark:bg-slate-800 border-transparent justify-start"
-                                        )}
-                                    >
-                                        <div className="w-5 h-5 bg-white rounded-full shadow-md" />
-                                    </button>
+                        {/* Temporal Bounds */}
+                        <div style={{ ...card, padding: '1.5rem' }}>
+                            <div style={sectionHeader}><Calendar size={16} color="#6366f1" /> TEMPORAL BOUNDS</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={labelStyle}>Manifest Initialization</label>
+                                    <input type="date" value={data.invoice_date} onChange={e => setData('invoice_date', e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                                 </div>
-
-                                {data.is_recurring && (
-                                    <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl gap-1 animate-in zoom-in-95 duration-300">
-                                        {['monthly', 'yearly'].map((interval) => (
-                                            <button
-                                                key={interval}
-                                                type="button"
-                                                onClick={() => setData('recurring_interval', interval)}
-                                                className={cn(
-                                                    "flex-1 h-10 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all",
-                                                    data.recurring_interval === interval
-                                                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
-                                                        : "text-slate-400"
-                                                )}
-                                            >
-                                                {interval}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                <div style={{ flex: 1 }}>
+                                    <label style={labelStyle}>Temporal Discharge Deadline</label>
+                                    <input type="date" value={data.due_date} onChange={e => setData('due_date', e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                                </div>
                             </div>
-                        </Card>
+                        </div>
+
                     </div>
                 </div>
             </div>
+            <style>{`.spin { animation: rotate 1s linear infinite; } @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </FigmaLayout>
     );
 }
+
+const sectionHeader = { fontSize: '0.75rem', fontWeight: 900, color: '#1e1b4b', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem', letterSpacing: '0.05em' };
+const primaryBtn = { display: 'flex', alignItems: 'center', gap: '10px', padding: '0 1.75rem', height: '52px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.25)' };
+const secondaryBtn = { padding: '0 1.5rem', height: '52px', background: '#fff', border: '1px solid #ede9fe', borderRadius: '14px', color: '#64748b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' };
+const sumRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' };
+const sumInputRow = { background: 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: '14px' };
+const darkInput = { width: '100%', height: '40px', background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', fontSize: '0.95rem', fontWeight: 800, outline: 'none', padding: '0 10px', textAlign: 'right' };
+const errorText = { color: '#ef4444', fontSize: '0.7rem', fontWeight: 800, margin: '6px 4px 0' };
+const iconBtn = (bg, color, border) => ({ width: '44px', height: '44px', borderRadius: '12px', background: bg, border: border ? '1px solid #f0eeff' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color, cursor: 'pointer' });
+const toggleBtn = (active) => ({ flex: 1, height: '40px', border: 'none', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', background: active ? '#fff' : 'transparent', color: active ? '#6366f1' : '#64748b', boxShadow: active ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s' });

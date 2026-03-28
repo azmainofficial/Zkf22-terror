@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import {
@@ -8,285 +8,312 @@ import {
     Mail,
     Phone,
     Globe,
-    MoreHorizontal,
     Filter,
     Users,
     Briefcase,
     Zap,
-    TrendingUp
+    TrendingUp,
+    ChevronDown,
+    Activity,
+    User,
+    ArrowRight,
+    Inbox,
+    ShieldCheck,
+    MoreVertical,
+    LifeBuoy,
+    Edit,
+    ChevronRight,
+    MapPin,
+    Building,
+    ExternalLink,
+    X,
+    Download,
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { Badge } from '@/Components/ui/Badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from '@/Components/ui/DropdownMenu';
-import { cn } from '@/lib/utils';
+
+// ─── Shared styles from Inventory patterns ──────────────────────
+const card = {
+    background: '#fff', 
+    borderRadius: '16px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+};
+
+const onFocus = e => { 
+    e.target.style.borderColor = '#8b5cf6'; 
+    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; 
+};
+
+const onBlur = e => { 
+    e.target.style.borderColor = '#ede9fe'; 
+    e.target.style.boxShadow = 'none'; 
+};
+
+const iconBtn = (bg, color) => ({
+    width: '32px', height: '32px', borderRadius: '8px',
+    background: bg, border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color,
+    transition: 'all 0.2s'
+});
+
+const getStatusConfig = (s) => {
+    const status = (s || 'active').toLowerCase();
+    const config = {
+        active:      { label: 'Verified Partner', bg: '#f0fdf4', color: '#16a34a', icon: ShieldCheck },
+        prospective:  { label: 'Strategic Lead',  bg: '#eff6ff', color: '#3b82f6', icon: Zap },
+        inactive:    { label: 'Archived Client',  bg: '#f8fafc', color: '#94a3b8', icon: Activity },
+    };
+    return config[status] || config.active;
+};
 
 export default function Index({ auth, clients, filters, stats }) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'All');
+    const isFirstRender = useRef(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            router.get(route('clients.index'), { search, status }, {
-                preserveState: true,
-                replace: true
-            });
-        }, 300);
-        return () => clearTimeout(timer);
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        const t = setTimeout(() => {
+            router.get(route('clients.index'), { search, status }, { preserveState: true, replace: true });
+        }, 500);
+        return () => clearTimeout(t);
     }, [search, status]);
+
+    const clearFilters = () => { setSearch(''); setStatus('All'); };
+    const hasFilters = search || status !== 'All';
+
+    const statCards = [
+        { label: 'Client Ecosystem', value: stats?.total || 0, icon: Users, bg: '#f5f3ff', color: '#6366f1' },
+        { label: 'Active Pipeline', value: stats?.active || 0, icon: ShieldCheck, bg: '#f0fdf4', color: '#16a34a' },
+        { label: 'Unconverted Leads', value: stats?.prospective || 0, icon: Zap, bg: '#eff6ff', color: '#3b82f6' },
+        { label: 'Portfolio Growth', value: '+12.4%', icon: TrendingUp, bg: '#fff7ed', color: '#f59e0b' },
+    ];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Client Intelligence Center" />
+            <Head title="Strategic Clients" />
 
-            <div className="space-y-8 pb-12">
-                {/* Global Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+
+                {/* ── Header (Inventory Style) ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none">
-                                <Building2 className="text-white" size={20} />
-                            </div>
-                            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                                Client Intelligence
-                            </h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <Building2 size={16} color="#a78bfa" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>CRM Intelligence</span>
                         </div>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium">
-                            Synthesizing account status, financial value, and industry categorization.
-                        </p>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Strategic Partnerships</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Monitor client accounts, communication history, and partnership status</p>
                     </div>
-
-                    <Link href={route('clients.create')}>
-                        <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98] gap-2">
-                            <Plus size={20} strokeWidth={2.5} />
-                            <span>Onboard New Account</span>
-                        </Button>
-                    </Link>
-                </div>
-
-                {/* Intelligence Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400">
-                                    <Users size={24} />
-                                </div>
-                                <Badge variant="info">Global Network</Badge>
-                            </div>
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Accounts</h3>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white">{stats?.total || 0}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-emerald-600 dark:text-emerald-400">
-                                    <Zap size={24} />
-                                </div>
-                                <Badge variant="success">Operational</Badge>
-                            </div>
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Active Partners</h3>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white">{stats?.active || 0}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-2xl text-amber-600 dark:text-amber-400">
-                                    <TrendingUp size={24} />
-                                </div>
-                                <Badge variant="warning">Nurturing</Badge>
-                            </div>
-                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Prospects</h3>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white">{stats?.prospective || 0}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-indigo-600 shadow-sm overflow-hidden">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="p-3 bg-white/20 rounded-2xl text-white">
-                                    <Briefcase size={24} />
-                                </div>
-                                <div className="text-white/80 text-xs font-bold uppercase tracking-tighter">Premium Tier</div>
-                            </div>
-                            <h3 className="text-sm font-bold text-white/70 uppercase tracking-widest mb-1">Account Growth</h3>
-                            <p className="text-3xl font-black text-white">+12.4%</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Tactical Search & Discovery */}
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="flex-1 relative group">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Find intelligence by account name, domain, or partner contact..."
-                            className="w-full h-14 pl-14 pr-6 bg-white dark:bg-slate-900 border-none rounded-[24px] shadow-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 transition-all font-medium"
-                        />
-                    </div>
-
-                    <div className="flex p-1.5 bg-slate-200 dark:bg-slate-800 rounded-[24px] h-14 overflow-hidden">
-                        {['All', 'Active', 'Inactive', 'Prospective'].map((s) => (
-                            <button
-                                key={s}
-                                onClick={() => setStatus(s)}
-                                className={cn(
-                                    "flex-1 px-6 rounded-[18px] text-sm font-bold tracking-tight transition-all",
-                                    status === s
-                                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm scale-[0.98]"
-                                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
-                                )}
-                            >
-                                {s}
+                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <Link href={route('clients.export.excel', { search, status: status === 'All' ? '' : status })}>
+                            <button style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '0.6rem 1.125rem',
+                                background: '#fff', border: '1.5px solid #ede9fe',
+                                borderRadius: '12px', color: '#6366f1',
+                                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                                boxShadow: '0 1px 6px rgba(99,102,241,0.07)',
+                            }}>
+                                <Download size={15} /> Export Registry
                             </button>
-                        ))}
+                        </Link>
+                        <Link href={route('clients.create')}>
+                            <button style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '0.6rem 1.25rem',
+                                background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                border: 'none', borderRadius: '12px', color: '#fff',
+                                fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                                boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+                            }}>
+                                <Plus size={16} /> Onboard Client
+                            </button>
+                        </Link>
                     </div>
                 </div>
 
-                {/* Intelligence Dossier Grid */}
+                {/* ── Stat cards (Inventory Style) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '1rem' }}>
+                    {statCards.map((s, i) => (
+                        <div key={i} style={{ ...card, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <s.icon size={22} color={s.color} />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* ── Filters (Inventory Style) ── */}
+                <div style={{ ...card, padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Search */}
+                        <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                            <Search size={16} color="#a78bfa" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                                placeholder="Search by company, primary contact, or email address..."
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.625rem 1rem 0.625rem 2.25rem', background: '#f9f7ff', border: '1.5px solid #ede9fe', borderRadius: '10px', fontSize: '0.85rem', color: '#1e1b4b', outline: 'none', fontWeight: 600 }}
+                                onFocus={onFocus} onBlur={onBlur}
+                            />
+                        </div>
+
+                        {/* Status Toggle */}
+                        <div style={{ display: 'flex', background: '#f5f3ff', padding: '4px', borderRadius: '10px', border: '1.5px solid #ede9fe' }}>
+                            {['All', 'Active', 'Inactive', 'Prospective'].map((s) => (
+                                <button key={s} onClick={() => setStatus(s)}
+                                    style={{
+                                        padding: '0.45rem 1rem', border: 'none', borderRadius: '8px', 
+                                        fontSize: '0.78rem', fontWeight: 850, cursor: 'pointer',
+                                        background: status === s ? '#fff' : 'transparent',
+                                        color: status === s ? '#6366f1' : '#94a3b8',
+                                        boxShadow: status === s ? '0 2px 8px rgba(99,102,241,0.1)' : 'none',
+                                        transition: 'all 0.2s'
+                                    }}>
+                                    {s === 'Prospective' ? 'Potential' : s}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Clear */}
+                        {hasFilters && (
+                            <button onClick={clearFilters} style={{
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                padding: '0.55rem 0.875rem', background: '#fff1f2',
+                                border: '1.5px solid #fecaca', borderRadius: '10px',
+                                color: '#ef4444', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                            }}>
+                                <X size={13} /> Reset Filters
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Client List (Row Pattern) ── */}
                 {clients.data.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {clients.data.map((client) => (
-                            <Card key={client.id} className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all group overflow-hidden">
-                                <CardContent className="p-8">
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div className="flex gap-4">
-                                            <div className="w-16 h-16 rounded-[24px] bg-slate-100 dark:bg-slate-800 flex items-center justify-center p-2 group-hover:scale-110 transition-transform shadow-inner">
-                                                {client.logo ? (
-                                                    <img src={`/storage/${client.logo}`} className="w-full h-full object-contain" alt={client.company_name} />
-                                                ) : (
-                                                    <Building2 size={32} className="text-slate-400" />
-                                                )}
-                                            </div>
-                                            <div className="pt-1">
-                                                <h3 className="text-xl font-black text-slate-900 dark:text-white line-clamp-1 leading-tight mb-1">
-                                                    {client.company_name}
-                                                </h3>
-                                                <Badge
-                                                    variant={
-                                                        client.status === 'active' ? 'success' :
-                                                            client.status === 'prospective' ? 'info' : 'default'
-                                                    }
-                                                    className="uppercase text-[10px] tracking-widest px-3 py-1"
-                                                >
-                                                    {client.status}
-                                                </Badge>
-                                            </div>
-                                        </div>
-
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800">
-                                                    <MoreHorizontal className="text-slate-400" size={20} />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 min-w-[180px]">
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={route('clients.show', client.id)} className="rounded-xl font-bold cursor-pointer gap-2 py-3">
-                                                        <Plus size={18} /> View Intelligence
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={route('clients.edit', client.id)} className="rounded-xl font-bold cursor-pointer gap-2 py-3">
-                                                        <Filter size={18} /> Modify dossier
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-
-                                    <div className="space-y-4 mb-8">
-                                        <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400 font-semibold text-sm">
-                                            <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
-                                                <Mail size={16} />
-                                            </div>
-                                            <span className="truncate">{client.email}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400 font-semibold text-sm">
-                                            <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
-                                                <Phone size={16} />
-                                            </div>
-                                            <span>{client.phone || 'System link pending'}</span>
-                                        </div>
-                                        {client.website && (
-                                            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400 font-semibold text-sm">
-                                                <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
-                                                    <Globe size={16} />
-                                                </div>
-                                                <span className="truncate">{client.website.replace(/^https?:\/\//, '')}</span>
-                                            </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {clients.data.map(client => {
+                            const cfg = getStatusConfig(client.status);
+                            return (
+                                <div key={client.id} style={{
+                                    ...card, padding: '1rem 1.5rem',
+                                    display: 'flex', alignItems: 'center',
+                                    gap: '1.5rem', flexWrap: 'wrap',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                >
+                                    {/* Client Logo / Avatar */}
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid #f1f5f9', overflow: 'hidden' }}>
+                                        {client.logo ? (
+                                            <img src={`/storage/${client.logo}`} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }} alt={client.company_name} />
+                                        ) : (
+                                            <Building2 size={24} color="#94a3b8" />
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Industry</p>
-                                            <p className="text-xs font-black text-slate-900 dark:text-white truncate">{client.industry || 'Unknown'}</p>
-                                        </div>
-                                        <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Representative</p>
-                                            <p className="text-xs font-black text-slate-900 dark:text-white truncate">{client.name}</p>
+                                    {/* Identity & Status */}
+                                    <div style={{ width: '220px' }}>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>{client.company_name}</p>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                            <cfg.icon size={12} color={cfg.color} />
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                {cfg.label}
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <Link href={route('clients.show', client.id)} className="block mt-6">
-                                        <Button className="w-full h-14 rounded-2xl bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white font-black tracking-tight shadow-xl shadow-slate-200 dark:shadow-none transition-all group-hover:scale-[1.02]">
-                                            Open Intelligence Hub
-                                        </Button>
-                                    </Link>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    {/* Contact Details */}
+                                    <div style={{ flex: 2, minWidth: '240px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>
+                                                <User size={14} color="#94a3b8" />
+                                                {client.name}
+                                            </div>
+                                            <span style={{ color: '#ede9fe' }}>|</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>
+                                                <Mail size={14} color="#94a3b8" />
+                                                {client.email}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>
+                                                <Building size={14} color="#cbd5e1" />
+                                                {client.industry || 'General Industry'}
+                                            </div>
+                                            {client.website && (
+                                                <a href={client.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', textDecoration: 'none' }}>
+                                                    <Globe size={14} />
+                                                    {client.website.replace(/^https?:\/\//, '')}
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Activity Context */}
+                                    <div style={{ width: '130px', textAlign: 'right' }}>
+                                        <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>Primary Phone</p>
+                                        <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e1b4b', margin: '2px 0 0' }}>
+                                            {client.phone || '--'}
+                                        </p>
+                                    </div>
+
+                                    {/* Actions Suite */}
+                                    <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+                                        <Link href={route('clients.show', client.id)} title="Relationship Profile">
+                                            <button style={iconBtn('#f5f3ff', '#6366f1')}><Activity size={16} /></button>
+                                        </Link>
+                                        <Link href={route('clients.edit', client.id)} title="Update Dossier">
+                                            <button style={iconBtn('#fffbeb', '#d97706')}><Edit size={16} /></button>
+                                        </Link>
+                                        <div style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', color: '#cbd5e1' }}>
+                                            <ChevronRight size={18} />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 ) : (
-                    <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm p-20 text-center">
-                        <div className="w-24 h-24 rounded-[32px] bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-8 shadow-inner">
-                            <Building2 size={48} className="text-slate-300 dark:text-slate-600" />
-                        </div>
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4">
-                            Dossier Database Empty
-                        </h3>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-sm mx-auto mb-10">
-                            The centralized intelligence repository currently contains no account records. Begin by onboarding your first strategic partner.
+                    <div style={{ textAlign: 'center', padding: '6rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px', background: '#faf9ff' }}>
+                        <Users size={48} color="#e0d9ff" style={{ margin: '0 auto 1.5rem' }} />
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 0.5rem' }}>No Partnerships Logged</h3>
+                        <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: '0 0 2rem' }}>
+                            {hasFilters ? 'No accounts match your current directory filters.' : 'Your relationship manager is currently empty. Onboard your first partner.'}
                         </p>
                         <Link href={route('clients.create')}>
-                            <Button className="h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-100 dark:shadow-none transition-all hover:scale-105 active:scale-95 gap-3">
-                                <Plus size={20} strokeWidth={3} />
-                                ONBOARD INITIAL ACCOUNT
-                            </Button>
+                            <button style={{ 
+                                display: 'inline-flex', alignItems: 'center', gap: '8px', 
+                                padding: '0.75rem 1.75rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', 
+                                border: 'none', borderRadius: '14px', color: '#fff', 
+                                fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+                                boxShadow: '0 6px 16px rgba(99,102,241,0.25)'
+                            }}>
+                                <Plus size={18} /> Initiate Onboarding
+                            </button>
                         </Link>
-                    </Card>
+                    </div>
                 )}
 
-                {/* Strategic Pagination */}
-                {clients.links.length > 3 && (
-                    <div className="flex items-center justify-center gap-2 pt-8">
-                        {clients.links.map((link, i) => (
-                            <Link
-                                key={i}
-                                href={link.url || '#'}
-                                className={cn(
-                                    "h-12 min-w-[3rem] px-4 rounded-2xl flex items-center justify-center text-sm font-black transition-all",
-                                    link.active
-                                        ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-lg"
-                                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border-none shadow-sm",
-                                    !link.url && "opacity-30 cursor-not-allowed pointer-events-none"
-                                )}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
+                {/* ── Pagination (Inventory Style) ── */}
+                {clients.links && clients.links.length > 3 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', ...card, padding: '0.875rem 1.25rem' }}>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, fontWeight: 600 }}>
+                            Page <strong style={{ color: '#1e1b4b' }}>{clients.current_page}</strong> of <strong style={{ color: '#1e1b4b' }}>{clients.last_page}</strong>
+                        </p>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {clients.links.map((link, i) => link.url ? (
+                                <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', background: link.active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#f5f3ff', color: link.active ? '#fff' : '#6366f1', transition: 'all 0.2s' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ) : (
+                                <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, background: '#f8fafc', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

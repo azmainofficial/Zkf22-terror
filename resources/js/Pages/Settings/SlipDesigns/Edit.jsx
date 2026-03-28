@@ -1,12 +1,32 @@
 import { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save, Upload, Type, Palette, Layout, FileText, Image as ImageIcon } from 'lucide-react';
-import { useAppStore } from '@/store/useAppStore';
-import { t } from '@/lib/translations';
+import { ChevronLeft, Save, Upload, Type, Palette, Layout, FileText, Image as ImageIcon } from 'lucide-react';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2rem',
+    position: 'relative',
+    overflow: 'hidden'
+};
+
+const inputStyle = {
+    width: '100%',
+    padding: '12px 1rem',
+    borderRadius: '12px',
+    border: '1.5px solid #f0eeff',
+    background: '#f8fafc',
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
 
 export default function Edit({ auth, design }) {
-    const { language } = useAppStore();
     const [logoPreview, setLogoPreview] = useState(design.header_logo ? `/storage/${design.header_logo}` : null);
     const [watermarkPreview, setWatermarkPreview] = useState(design.watermark_image ? `/storage/${design.watermark_image}` : null);
 
@@ -44,207 +64,210 @@ export default function Edit({ auth, design }) {
     };
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <Link href={route('slip-designs.index')}>
-                            <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-background border hover:bg-muted transition-all">
-                                <ArrowLeft size={18} />
+        <FigmaLayout user={auth.user}>
+            <Head title={`Update Template: ${design.name}`} />
+
+            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                        <Link href={route('slip-designs.index')} style={{ textDecoration: 'none' }}>
+                            <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1.5px solid #f0eeff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                <ChevronLeft size={20} />
                             </button>
                         </Link>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight leading-none text-slate-900 uppercase">
-                                {t('edit', language)} {design.name}
-                            </h2>
-                            <p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">
-                                {t('slip_designs_desc', language)}
-                            </p>
+                            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>Edit Template</h1>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Modify layout rules for {design.name}</p>
                         </div>
                     </div>
                 </div>
-            }
-        >
-            <Head title={`${t('edit', language)} ${design.name}`} />
 
-            <div className="py-12 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Basic Info */}
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-                        <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                            <Layout size={20} className="text-blue-500" /> Basic Information
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Design Name</label>
-                                <input
-                                    type="text"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
-                                    placeholder="e.g. Modern Professional"
-                                />
-                                {errors.name && <p className="text-red-500 text-xs font-bold">{errors.name}</p>}
-                            </div>
-
-                            <div className="space-y-4">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t('design_type', language)}</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setData('type', 'invoice')}
-                                        className={`py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border transition-all ${data.type === 'invoice' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}`}
-                                    >
-                                        Invoice
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setData('type', 'payment')}
-                                        className={`py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border transition-all ${data.type === 'payment' ? 'bg-green-600 text-white border-green-600 shadow-lg shadow-green-500/20' : 'bg-white text-slate-400 border-slate-200 hover:border-green-300'}`}
-                                    >
-                                        Payment Receipt
-                                    </button>
-                                </div>
-                                {errors.type && <p className="text-red-500 text-xs font-bold">{errors.type}</p>}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Branding & Assets */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                                <ImageIcon size={20} className="text-purple-500" /> Branding Assets
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '2rem' }} className="responsive-grid">
+                    
+                    {/* Left Form */}
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        <div style={cardStyle}>
+                            <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Layout size={16} color="#6366f1" /> Core Identity
                             </h3>
-
-                            <div className="space-y-8">
-                                <div className="space-y-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t('header_logo', language)}</label>
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-24 h-24 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                                            {logoPreview ? (
-                                                <img src={logoPreview} className="w-full h-full object-contain p-2" />
-                                            ) : (
-                                                <Upload size={24} className="text-slate-300" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <input type="file" id="logo_upload" onChange={handleLogoChange} className="hidden" accept="image/*" />
-                                            <label htmlFor="logo_upload" className="cursor-pointer inline-block px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors">
-                                                Change Logo
-                                            </label>
-                                            <p className="text-[10px] text-slate-400 mt-2 italic">Recommended: PNG with transparent background</p>
-                                        </div>
-                                    </div>
-                                    {errors.header_logo && <p className="text-red-500 text-xs font-bold">{errors.header_logo}</p>}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="form-cols">
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Template Title</label>
+                                    <input type="text" value={data.name} onChange={(e) => setData('name', e.target.value)} style={inputStyle} placeholder="e.g. Standard Corporate" />
+                                    {errors.name && <p style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 800, marginTop: '4px' }}>{errors.name}</p>}
                                 </div>
-
-                                <div className="space-y-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t('watermark', language)}</label>
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-24 h-24 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
-                                            {watermarkPreview ? (
-                                                <img src={watermarkPreview} className="w-full h-full object-contain p-2 opacity-50" />
-                                            ) : (
-                                                <FileText size={24} className="text-slate-300" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <input type="file" id="watermark_upload" onChange={handleWatermarkChange} className="hidden" accept="image/*" />
-                                            <label htmlFor="watermark_upload" className="cursor-pointer inline-block px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors">
-                                                Change Watermark
-                                            </label>
-                                            <p className="text-[10px] text-slate-400 mt-2 italic">Low opacity background image</p>
-                                        </div>
-                                    </div>
-                                    {errors.watermark_image && <p className="text-red-500 text-xs font-bold">{errors.watermark_image}</p>}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Styling */}
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                                <Palette size={20} className="text-pink-500" /> Styling & Content
-                            </h3>
-
-                            <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t('accent_color', language)}</label>
-                                    <div className="flex items-center gap-4">
-                                        <input
-                                            type="color"
-                                            value={data.accent_color}
-                                            onChange={(e) => setData('accent_color', e.target.value)}
-                                            className="w-12 h-12 rounded-xl border-none cursor-pointer"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={data.accent_color}
-                                            onChange={(e) => setData('accent_color', e.target.value)}
-                                            className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm uppercase"
-                                        />
-                                    </div>
-                                    {errors.accent_color && <p className="text-red-500 text-xs font-bold">{errors.accent_color}</p>}
-                                </div>
-
-                                <div className="space-y-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t('font_family', language)}</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {['Inter', 'Roboto', 'Open Sans', 'Lato'].map((font) => (
-                                            <div
-                                                key={font}
-                                                onClick={() => setData('font_family', font)}
-                                                className={`p-3 rounded-xl border cursor-pointer transition-all text-center ${data.font_family === font ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Target Document</label>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        {['invoice', 'payment'].map(type => (
+                                            <button 
+                                                key={type}
+                                                type="button" 
+                                                onClick={() => setData('type', type)}
+                                                style={{ flex: 1, padding: '12px', border: `1.5px solid ${data.type === type ? '#6366f1' : '#f0eeff'}`, background: data.type === type ? '#6366f1' : '#fff', color: data.type === type ? '#fff' : '#64748b', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, textTransform: 'capitalize', cursor: 'pointer', transition: 'all 0.2s' }}
                                             >
-                                                <span className="text-sm font-bold" style={{ fontFamily: font }}>{font}</span>
-                                            </div>
+                                                {type}
+                                            </button>
                                         ))}
                                     </div>
-                                    {errors.font_family && <p className="text-red-500 text-xs font-bold">{errors.font_family}</p>}
+                                    {errors.type && <p style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 800, marginTop: '4px' }}>{errors.type}</p>}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={cardStyle}>
+                            <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <ImageIcon size={16} color="#6366f1" /> Visual Branding
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                                    <div style={{ width: '100px', height: '100px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        {logoPreview ? <img src={logoPreview} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '10px' }} /> : <Upload size={24} color="#94a3b8" />}
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Brand Logo</label>
+                                        <input type="file" id="logo_upload" onChange={handleLogoChange} style={{ display: 'none' }} accept="image/*" />
+                                        <label htmlFor="logo_upload" style={{ display: 'inline-block', padding: '10px 16px', background: '#f8fafc', border: '1.5px solid #f0eeff', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, color: '#1e1b4b', cursor: 'pointer' }}>Select Image File</label>
+                                        <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, margin: '6px 0 0' }}>High quality transparent PNG recommended</p>
+                                    </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t('footer_text', language)}</label>
-                                    <textarea
-                                        value={data.footer_text}
-                                        onChange={(e) => setData('footer_text', e.target.value)}
-                                        rows="3"
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
-                                        placeholder="Company address, terms, or thank you note..."
-                                    ></textarea>
-                                    {errors.footer_text && <p className="text-red-500 text-xs font-bold">{errors.footer_text}</p>}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', paddingTop: '1.5rem', borderTop: '1.5px solid #f9faff' }}>
+                                    <div style={{ width: '100px', height: '100px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        {watermarkPreview ? <img src={watermarkPreview} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '10px', opacity: 0.3 }} /> : <FileText size={24} color="#94a3b8" />}
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Document Watermark</label>
+                                        <input type="file" id="watermark_upload" onChange={handleWatermarkChange} style={{ display: 'none' }} accept="image/*" />
+                                        <label htmlFor="watermark_upload" style={{ display: 'inline-block', padding: '10px 16px', background: '#f8fafc', border: '1.5px solid #f0eeff', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, color: '#1e1b4b', cursor: 'pointer' }}>Select Image File</label>
+                                        <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, margin: '6px 0 0' }}>Light background graphic pattern or crest</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={cardStyle}>
+                            <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Palette size={16} color="#6366f1" /> Layout & Typography
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }} className="form-cols">
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Primary Color</label>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <input type="color" value={data.accent_color} onChange={e => setData('accent_color', e.target.value)} style={{ width: '48px', height: '48px', padding: 0, border: 'none', borderRadius: '12px', cursor: 'pointer', background: 'transparent' }} />
+                                        <input type="text" value={data.accent_color} onChange={e => setData('accent_color', e.target.value)} style={{ ...inputStyle, fontFamily: 'monospace', textTransform: 'uppercase' }} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Typography Base</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                        {['Inter', 'Roboto', 'Open Sans', 'Lato'].map((font) => (
+                                            <button 
+                                                key={font} type="button" onClick={() => setData('font_family', font)}
+                                                style={{ padding: '10px', border: `1.5px solid ${data.font_family === font ? '#6366f1' : '#f0eeff'}`, background: data.font_family === font ? '#f5f3ff' : '#fff', color: data.font_family === font ? '#4f46e5' : '#64748b', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800, fontFamily: font, cursor: 'pointer' }}
+                                            >
+                                                {font}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Footer Document Text</label>
+                                <textarea value={data.footer_text} onChange={e => setData('footer_text', e.target.value)} style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }} placeholder="Terms and conditions, thank you messages, or corporate addresses." />
+                            </div>
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={data.is_active} onChange={e => setData('is_active', e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e1b4b' }}>Use as active default format</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" disabled={processing} style={{ height: '56px', background: '#1e1b4b', color: '#fff', border: 'none', borderRadius: '16px', fontSize: '1rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 8px 25px rgba(30,27,75,0.2)' }}>
+                            <Save size={20} /> Update Layout Rules
+                        </button>
+                    </form>
+
+                    {/* Right Live Preview Box */}
+                    <div className="preview-container">
+                        <div style={{ ...cardStyle, position: 'sticky', top: '100px', background: '#f8fafc', padding: '1rem', border: 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h3 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Render Preview</h3>
+                                <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800 }}>A4 SIZE FRAME</span>
+                            </div>
+
+                            {/* Actual A4 Scale Box */}
+                            <div style={{ width: '100%', aspectRatio: '210/297', background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', fontFamily: data.font_family, boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+                                
+                                {/* Header */}
+                                <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.5px solid #f1f5f9', position: 'relative', zIndex: 10 }}>
+                                    {logoPreview ? (
+                                        <img src={logoPreview} style={{ height: '32px', objectFit: 'contain' }} />
+                                    ) : (
+                                        <div style={{ height: '32px', width: '80px', border: '1px dashed #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', fontWeight: 800, color: '#94a3b8', background: '#f8fafc' }}>LOGO AREA</div>
+                                    )}
+                                    <div style={{ textAlign: 'right' }}>
+                                        <h2 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, textTransform: 'uppercase', color: data.accent_color }}>{data.type}</h2>
+                                        <p style={{ fontSize: '0.5rem', fontWeight: 800, color: '#94a3b8', margin: '2px 0 0' }}># {data.type.substring(0,3).toUpperCase()}-2024</p>
+                                    </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id="is_active"
-                                        checked={data.is_active}
-                                        onChange={(e) => setData('is_active', e.target.checked)}
-                                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <label htmlFor="is_active" className="text-sm font-bold text-slate-700 select-none cursor-pointer">
-                                        Set as Active Design
-                                    </label>
+                                {watermarkPreview && (
+                                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.05, zIndex: 1, pointerEvents: 'none' }}>
+                                        <img src={watermarkPreview} style={{ width: '60%', objectFit: 'contain' }} />
+                                    </div>
+                                )}
+
+                                {/* Body */}
+                                <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 10 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.55rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 2px' }}>Attn To:</p>
+                                            <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Sample Client Corp.</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Mock Table */}
+                                    <div style={{ borderBottom: `2px solid ${data.accent_color}`, display: 'flex', paddingBottom: '4px', marginBottom: '8px' }}>
+                                        <div style={{ flex: 1, fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8' }}>Item Description</div>
+                                        <div style={{ width: '40px', textAlign: 'right', fontSize: '0.5rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8' }}>Amt</div>
+                                    </div>
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '6px 0' }}>
+                                            <div style={{ flex: 1, fontSize: '0.65rem', color: '#475569', fontWeight: 600 }}>Standard Service Execution</div>
+                                            <div style={{ width: '40px', textAlign: 'right', fontSize: '0.65rem', fontWeight: 800, color: '#1e1b4b' }}>$150</div>
+                                        </div>
+                                    ))}
+
+                                    <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end', paddingTop: '16px' }}>
+                                        <div style={{ width: '50%', borderTop: '1px solid #f1f5f9', paddingTop: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: data.accent_color, textTransform: 'uppercase' }}>Net Total</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#1e1b4b' }}>$450</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <div style={{ background: '#f8fafc', padding: '16px 24px', position: 'relative', zIndex: 10, borderTop: '1.5px solid #f0eeff' }}>
+                                    <p style={{ fontSize: '0.5rem', color: '#94a3b8', fontWeight: 600, margin: 0, textAlign: 'center', whiteSpace: 'pre-wrap' }}>{data.footer_text || 'System generated financial document. Please retain for your records.'}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div className="flex justify-end">
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 transition-all font-bold text-lg flex items-center gap-2 disabled:opacity-50"
-                        >
-                            <Save size={20} />
-                            {t('save', language)}
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
-        </AuthenticatedLayout>
+
+            <style>{`
+                @media (max-width: 1000px) {
+                    .responsive-grid { grid-template-columns: 1fr !important; }
+                    .form-cols { grid-template-columns: 1fr !important; }
+                    .preview-container { display: none; }
+                }
+            `}</style>
+        </FigmaLayout>
     );
 }

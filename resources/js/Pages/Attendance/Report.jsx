@@ -1,16 +1,45 @@
+import React from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
-    CalendarDaysIcon,
-    ArrowDownTrayIcon,
-    UserGroupIcon,
-    ClockIcon,
-    ExclamationTriangleIcon,
-    FunnelIcon
-} from '@heroicons/react/24/outline';
+    Calendar,
+    Download,
+    Users,
+    Clock,
+    AlertTriangle,
+    Filter,
+    ArrowRight,
+    TrendingUp,
+    CheckCircle2,
+    CalendarDays
+} from 'lucide-react';
 
-export default function AttendanceReport({ reportData, filters, months }) {
-    const { data, setData, get } = useForm({
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '1.5rem',
+    overflow: 'hidden'
+};
+
+const selectStyle = {
+    width: '100%',
+    height: '48px',
+    padding: '0 1rem 0 2.75rem',
+    borderRadius: '12px',
+    border: '1.5px solid #f0eeff',
+    background: '#f8fafc',
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    outline: 'none',
+    appearance: 'none',
+    cursor: 'pointer',
+    color: '#1e1b4b'
+};
+
+export default function AttendanceReport({ auth, reportData, filters, months }) {
+    const { data, setData, get, processing } = useForm({
         month: filters.month || new Date().getMonth() + 1,
         year: filters.year || new Date().getFullYear(),
     });
@@ -31,131 +60,140 @@ export default function AttendanceReport({ reportData, filters, months }) {
     };
 
     return (
-        <FigmaLayout>
-            <Head title="Attendance Report" />
+        <FigmaLayout user={auth.user}>
+            <Head title="Attendance Summary" />
 
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight text-gray-900">Attendance Report</h1>
-                        <p className="text-sm text-gray-500 font-medium mt-1">Monthly summary of work hours and punctuality.</p>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 8px 20px rgba(99,102,241,0.2)' }}>
+                            <TrendingUp size={28} />
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>Attendance Summary</h1>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>A quick look at how everyone is doing this month</p>
+                        </div>
                     </div>
-                    <button className="inline-flex items-center px-6 py-3 bg-white border border-gray-200 text-gray-900 rounded-2xl text-sm font-bold shadow-sm hover:bg-gray-50 active:scale-95 transition-all">
-                        <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                    
+                    <button style={{ height: '52px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #f0eeff', borderRadius: '14px', color: '#6366f1', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Download size={18} />
                         Export PDF
                     </button>
                 </div>
 
-                {/* Filters */}
-                <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center">
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                        <div className="relative group">
-                            <CalendarDaysIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#22C55E] transition-colors" />
-                            <select
-                                value={data.month}
-                                onChange={e => { setData('month', e.target.value); }}
-                                className="w-full bg-gray-50/50 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-[#22C55E]/10 font-bold text-gray-700"
-                            >
-                                {months.map(m => (
-                                    <option key={m.value} value={m.value}>{m.label}</option>
-                                ))}
+                {/* Filters Row */}
+                <div style={{ ...cardStyle, padding: '1.25rem' }}>
+                    <form onSubmit={handleFilter} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 180px', gap: '1rem' }} className="filter-grid">
+                        <div style={{ position: 'relative' }}>
+                            <Calendar size={18} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }} />
+                            <select value={data.month} onChange={e => setData('month', e.target.value)} style={selectStyle}>
+                                {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                             </select>
                         </div>
-                        <div className="relative group">
-                            <CalendarDaysIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#22C55E] transition-colors" />
-                            <select
-                                value={data.year}
-                                onChange={e => { setData('year', e.target.value); }}
-                                className="w-full bg-gray-50/50 border-none rounded-xl py-3 pl-11 text-sm focus:ring-2 focus:ring-[#22C55E]/10 font-bold text-gray-700"
-                            >
-                                {years.map(y => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))}
+                        <div style={{ position: 'relative' }}>
+                            <CalendarDays size={18} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', zIndex: 10 }} />
+                            <select value={data.year} onChange={e => setData('year', e.target.value)} style={selectStyle}>
+                                {years.map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
-                    </div>
-                    <button
-                        onClick={handleFilter}
-                        className="w-full md:w-auto px-10 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
-                    >
-                        Generate Report
-                    </button>
+                        <button type="submit" disabled={processing} style={{ height: '48px', background: '#1e1b4b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer' }}>
+                            Update View
+                        </button>
+                    </form>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-emerald-50/50 p-8 rounded-[32px] border border-emerald-100 relative overflow-hidden group hover:scale-[1.02] transition-all">
-                        <UserGroupIcon className="absolute right-[-20px] bottom-[-20px] w-40 h-40 text-emerald-500/10 rotate-12" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">Total Presence</p>
-                        <h4 className="text-4xl font-black text-emerald-900">{stats.totalPresent} <span className="text-lg font-bold text-emerald-600/50 italic ml-1">Days</span></h4>
+                {/* Stats Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }} className="stats-grid">
+                    <div style={{ ...cardStyle }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                                <CheckCircle2 size={20} />
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981', background: '#d1fae5', padding: '4px 10px', borderRadius: '10px' }}>PERFORMANCE</span>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Days Arrived</p>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{stats.totalPresent} <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Total Days</span></h2>
                     </div>
-                    <div className="bg-rose-50/50 p-8 rounded-[32px] border border-rose-100 relative overflow-hidden group hover:scale-[1.02] transition-all">
-                        <ExclamationTriangleIcon className="absolute right-[-20px] bottom-[-20px] w-40 h-40 text-rose-500/10 rotate-12" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-2">Punctuality Score (Lates)</p>
-                        <h4 className="text-4xl font-black text-rose-900">{stats.totalLate} <span className="text-lg font-bold text-rose-600/50 italic ml-1">Occurrences</span></h4>
+
+                    <div style={{ ...cardStyle }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e11d48' }}>
+                                <AlertTriangle size={20} />
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#e11d48', background: '#ffe4e6', padding: '4px 10px', borderRadius: '10px' }}>PUNCTUALITY</span>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Late Arrival</p>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#e11d48', margin: 0 }}>{stats.totalLate} <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Times</span></h2>
                     </div>
-                    <div className="bg-[#111827] p-8 rounded-[32px] relative overflow-hidden group hover:scale-[1.02] transition-all shadow-xl shadow-gray-200">
-                        <ClockIcon className="absolute right-[-20px] bottom-[-20px] w-40 h-40 text-white/5 rotate-12" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Avg. Working Hours</p>
-                        <h4 className="text-4xl font-black text-white">{stats.avgHours} <span className="text-lg font-bold text-gray-500 italic ml-1">Hrs/User</span></h4>
+
+                    <div style={{ ...cardStyle, background: '#1e1b4b', color: '#fff', border: 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                                <Clock size={20} />
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '10px' }}>AVERAGE</span>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', marginBottom: '4px' }}>Average Hours Worked</p>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', margin: 0 }}>{stats.avgHours} <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.4)' }}>Hours per Person</span></h2>
                     </div>
                 </div>
 
-                {/* Report Table */}
-                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50/50 text-gray-400 text-[11px] uppercase tracking-widest font-black border-b border-gray-100">
-                                <tr>
-                                    <th className="px-8 py-6">Employee</th>
-                                    <th className="px-8 py-6">Days Present</th>
-                                    <th className="px-8 py-6">Late Count</th>
-                                    <th className="px-8 py-6">Total Productive Hours</th>
-                                    <th className="px-8 py-6 text-right">Activity Level</th>
+                {/* Table Section */}
+                <div style={{ ...cardStyle, padding: 0 }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ textAlign: 'left', borderBottom: '1.5px solid #f5f3ff', background: '#f9faff' }}>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member</th>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Arrived</th>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Late</th>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Working Hours</th>
+                                    <th style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Work Status</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody>
                                 {reportData.map((item) => (
-                                    <tr key={item.user_id} className="group hover:bg-gray-50/40 transition-all">
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-[10px] text-gray-500 border border-gray-200/50 group-hover:border-[#22C55E]/30 transition-all">
-                                                    {item.employee
-                                                        ? `${item.employee.first_name.charAt(0)}${item.employee.last_name?.charAt(0)}`
-                                                        : '??'}
+                                    <tr key={item.user_id} style={{ borderBottom: '1.5px solid #f9f9fb', transition: 'all 0.2s' }} className="table-row">
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f8fafc', border: '1.5px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#6366f1', fontSize: '0.75rem' }}>
+                                                    {item.employee ? `${item.employee.first_name[0]}${item.employee.last_name?.[0] || ''}` : '??'}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-gray-900 leading-tight">
-                                                        {item.employee ? `${item.employee.first_name} ${item.employee.last_name || ''}` : 'Unknown'}
-                                                    </p>
-                                                    <p className="text-[10px] font-mono font-bold text-indigo-500 uppercase tracking-tighter">
-                                                        ID: {item.user_id}
-                                                    </p>
+                                                    <p style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{item.employee ? `${item.employee.first_name} ${item.employee.last_name || ''}` : 'Unknown'}</p>
+                                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>ID: {item.user_id}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5">
-                                            <span className="text-sm font-black text-gray-700">{item.days_present} Days</span>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e1b4b' }}>{item.days_present} Days</span>
                                         </td>
-                                        <td className="px-8 py-5">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${item.late_count > 3 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                                                {item.late_count} Lates
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <span style={{ 
+                                                display: 'inline-flex', 
+                                                padding: '4px 10px', 
+                                                borderRadius: '8px', 
+                                                fontSize: '0.75rem', 
+                                                fontWeight: 800, 
+                                                background: item.late_count > 3 ? '#fff1f2' : '#ecfdf5', 
+                                                color: item.late_count > 3 ? '#ef4444' : '#10b981',
+                                                border: `1.5px solid ${item.late_count > 3 ? '#ef4444' : '#10b981'}15`
+                                            }}>
+                                                {item.late_count} Late
                                             </span>
                                         </td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center space-x-2">
-                                                <span className="text-sm font-black text-gray-900">{item.total_hours}h</span>
-                                                <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-[#22C55E] rounded-full transition-all duration-1000"
-                                                        style={{ width: `${Math.min((item.total_hours / 160) * 100, 100)}%` }}
-                                                    />
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#1e1b4b', minWidth: '40px' }}>{item.total_hours}h</span>
+                                                <div style={{ flex: 1, height: '6px', background: '#f1f5f9', borderRadius: '3px', position: 'relative', overflow: 'hidden', minWidth: '100px', maxWidth: '150px' }}>
+                                                    <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', background: '#10b981', borderRadius: '3px', width: `${Math.min((item.total_hours / 160) * 100, 100)}%` }}></div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5 text-right">
-                                            <span className="text-xs font-bold text-gray-400 italic">
+                                        <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: item.total_hours > 100 ? '#f59e0b' : '#94a3b8' }}>
                                                 {item.total_hours > 100 ? '🔥 High' : '⭐ Normal'}
                                             </span>
                                         </td>
@@ -163,8 +201,9 @@ export default function AttendanceReport({ reportData, filters, months }) {
                                 ))}
                                 {reportData.length === 0 && (
                                     <tr>
-                                        <td colSpan="5" className="px-8 py-20 text-center text-gray-400 font-bold italic">
-                                            No data available for the selected period.
+                                        <td colSpan="5" style={{ padding: '4rem', textAlign: 'center', opacity: 0.5 }}>
+                                            <Calendar size={32} style={{ margin: '0 auto 1rem' }} />
+                                            <p style={{ fontWeight: 800 }}>No data for this period</p>
                                         </td>
                                     </tr>
                                 )}
@@ -173,6 +212,20 @@ export default function AttendanceReport({ reportData, filters, months }) {
                     </div>
                 </div>
             </div>
+
+            <style>{`
+                .table-row:hover { background: #fdfcff !important; box-shadow: inset 4px 0 0 #6366f1; }
+                @media (max-width: 1000px) {
+                    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+                }
+                @media (max-width: 800px) {
+                    .filter-grid { grid-template-columns: 1fr 1fr !important; }
+                }
+                @media (max-width: 600px) {
+                    .stats-grid { grid-template-columns: 1fr !important; }
+                    .filter-grid { grid-template-columns: 1fr !important; }
+                }
+            `}</style>
         </FigmaLayout>
     );
 }

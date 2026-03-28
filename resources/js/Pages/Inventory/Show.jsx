@@ -21,301 +21,293 @@ import {
     Building,
     User,
     Clock,
-    Truck
+    Truck,
+    CheckCircle2,
+    BarChart3
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '20px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '1.5rem',
+    overflow: 'hidden'
+};
+
+const badgeStyle = (bg, color) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    background: bg,
+    color: color
+});
 
 export default function Show({ auth, item }) {
     const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this tactical resource node?')) {
+        if (confirm('Are you sure you want to delete this inventory item?')) {
             router.delete(route('inventory.destroy', item.id));
         }
     };
 
-    const getStatusStyle = (s) => {
-        const styles = {
-            active: "bg-emerald-50 text-emerald-600 border-emerald-100",
-            inactive: "bg-slate-100 text-slate-500 border-slate-200",
-            discontinued: "bg-rose-50 text-rose-600 border-rose-100",
+    const getStatusInfo = (s) => {
+        const stats = {
+            active: { label: 'Active', color: '#10b981', bg: '#ecfdf5', icon: CheckCircle2 },
+            inactive: { label: 'Inactive', color: '#6b7280', bg: '#f3f4f6', icon: clock },
+            discontinued: { label: 'Discontinued', color: '#ef4444', bg: '#fef2f2', icon: X },
         };
-        return styles[s] || "bg-amber-50 text-amber-600 border-amber-100";
+        const res = stats[s] || { label: s.toUpperCase(), color: '#f59e0b', bg: '#fffbeb', icon: AlertCircle };
+        return res;
     };
 
-    const totalValue = item.quantity_in_stock * item.unit_price;
+    const statusInfo = getStatusInfo(item.status);
+    const totalValue = (item.quantity_in_stock || 0) * (item.unit_price || 0);
+
+    const stats = [
+        { label: 'Total Value', value: `৳${new Intl.NumberFormat().format(totalValue)}`, icon: Scale, color: '#6366f1', bg: '#f5f3ff' },
+        { label: 'Stock Level', value: `${item.quantity_in_stock} ${item.unit || 'pcs'}`, icon: Package, color: '#10b981', bg: '#ecfdf5' },
+        { label: 'Unit Price', value: `৳${new Intl.NumberFormat().format(item.unit_price)}`, icon: Tag, color: '#8b5cf6', bg: '#f9f7ff' },
+    ];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Resource Dossier - ${item.name}`} />
+            <Head title={`Inventory Item - ${item.name}`} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div className="flex items-center gap-6">
+            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                
+                {/* Header Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                         <Link href={route('inventory.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
-                                <ArrowLeft size={20} />
-                            </Button>
+                            <button style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fff', border: '1.5px solid #ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6366f1', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                                <ArrowLeft size={18} />
+                            </button>
                         </Link>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                    {item.name}
-                                </h1>
-                                <div className={cn("px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest border shadow-sm", getStatusStyle(item.status))}>
-                                    {item.status.toUpperCase()}
-                                </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '4px' }}>
+                                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>{item.name}</h1>
+                                <span style={badgeStyle(statusInfo.bg, statusInfo.color)}>
+                                    {statusInfo.icon && <statusInfo.icon size={12} />}
+                                    {statusInfo.label}
+                                </span>
                             </div>
-                            <div className="flex items-center gap-6">
-                                <div className="flex items-center gap-2">
-                                    <Tag size={14} className="text-slate-400" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">
-                                        SKU: {item.sku || 'N/A PROTOCOL'}
-                                    </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Tag size={14} color="#9ca3af" />
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b7280' }}>SKU: {item.sku || 'Not set'}</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Building size={14} className="text-slate-400" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">
-                                        Architecture: {item.brand?.name || 'GENERIC'}
-                                    </p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Building size={14} color="#9ca3af" />
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b7280' }}>Brand: {item.brand?.name || 'Generic'}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <Link href={route('inventory.edit', item.id)}>
-                            <Button className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest italic shadow-xl shadow-slate-200 dark:shadow-none gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <Link href={route('inventory.edit', item.id)} style={{ textDecoration: 'none' }}>
+                            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.7rem 1.5rem', background: '#1e1b4b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(30,27,75,0.2) transition: all 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#312e81'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#1e1b4b'}>
                                 <Pencil size={18} />
-                                Refine Record
-                            </Button>
+                                Edit Item
+                            </button>
                         </Link>
-                        <Button
-                            onClick={handleDelete}
-                            variant="ghost"
-                            size="icon"
-                            className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-900/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
-                        >
-                            <Trash2 size={24} />
-                        </Button>
+                        <button onClick={handleDelete} title="Delete Item" style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fff', border: '1.5px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444', transition: 'all 0.2s' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#ef4444'; }}>
+                            <Trash2 size={20} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Magnitude Pulse Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="rounded-[32px] border-none bg-indigo-600 shadow-2xl shadow-indigo-100 dark:shadow-none p-8 space-y-4 text-white relative overflow-hidden group">
-                        <Scale size={120} className="absolute -bottom-10 -right-10 text-white/10 group-hover:scale-110 transition-transform duration-700" />
-                        <div className="flex items-center justify-between relative z-10">
-                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                                <TrendingUp size={20} />
+                {/* Summary Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }} className="stats-grid">
+                    {stats.map((s, i) => (
+                        <div key={i} style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1.2px solid #f5f3ff' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <s.icon size={16} color={s.color} />
+                                </div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</span>
                             </div>
-                            <div className="text-[9px] font-black text-white/60 uppercase tracking-widest italic">Capital magnitude</div>
+                            <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{s.value}</p>
                         </div>
-                        <div className="space-y-1 relative z-10">
-                            <p className="text-3xl font-black tracking-tighter italic leading-none text-white">
-                                ৳{new Intl.NumberFormat().format(totalValue)}
-                            </p>
-                            <p className="text-[10px] font-bold text-white/60 uppercase">Liquid Asset Magnitude</p>
-                        </div>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm p-8 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                                <Package size={20} />
-                            </div>
-                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Current Resonance</div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic leading-none">
-                                {item.quantity_in_stock} <span className="text-xs uppercase text-slate-400">{item.unit || 'units'}</span>
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Magnitude on Hand</p>
-                        </div>
-                    </Card>
-
-                    <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm p-8 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
-                                <Layers size={20} />
-                            </div>
-                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Unit Protocol</div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-3xl font-black text-indigo-600 tracking-tighter italic leading-none">
-                                ৳{new Intl.NumberFormat().format(item.unit_price)}
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Capital Magnitude per Unit</p>
-                        </div>
-                    </Card>
+                    ))}
                 </div>
 
-                {/* Sub-Surface Intelligence */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    <div className="lg:col-span-8 space-y-10">
-                        {/* Assignment Matrix */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 md:p-14 space-y-10">
-                                <div className="flex items-center gap-3 pl-2 mb-2">
-                                    <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Strategic Assignment Matrix</h3>
+                {/* Main Content Layout */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }} className="content-grid">
+                    
+                    {/* Left Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        {/* Assignment Details */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
+                                <Briefcase size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Project & Client Assignment</h3>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                <div style={{ background: '#f9f7ff', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #f0eeff' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 10px', textTransform: 'uppercase' }}>Target Project</p>
+                                    {item.project ? (
+                                        <Link href={route('projects.show', item.project.id)} style={{ textDecoration: 'none' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <Target size={16} color="#6366f1" />
+                                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e1b4b' }}>{item.project.title}</span>
+                                                <ChevronRight size={14} color="#a78bfa" />
+                                            </div>
+                                        </Link>
+                                    ) : (
+                                        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#d1d5db', margin: 0 }}>Unassigned (Stock)</p>
+                                    )}
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 space-y-6 group hover:border-indigo-100 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-indigo-600 shadow-sm group-hover:scale-110 transition-transform">
-                                                <Target size={24} />
+                                <div style={{ background: '#f9f7ff', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #f0eeff' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 10px', textTransform: 'uppercase' }}>Assigned Client</p>
+                                    {item.client ? (
+                                        <Link href={route('clients.show', item.client.id)} style={{ textDecoration: 'none' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <Building2 size={16} color="#6366f1" />
+                                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e1b4b' }}>{item.client.company_name || item.client.name}</span>
+                                                <ChevronRight size={14} color="#a78bfa" />
                                             </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Tactical Vector</p>
-                                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Project Node</h4>
-                                            </div>
-                                        </div>
-                                        <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                                            {item.project ? (
-                                                <Link href={route('projects.show', item.project.id)} className="flex items-center justify-between group/link">
-                                                    <span className="text-xs font-black text-indigo-600 uppercase italic tracking-widest">{item.project.title}</span>
-                                                    <ShieldCheck size={16} className="text-slate-200 group-hover/link:text-indigo-600 transition-colors" />
-                                                </Link>
-                                            ) : (
-                                                <p className="text-xs font-black text-slate-300 uppercase italic tracking-widest">UNASSIGNED BUFFER</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 space-y-6 group hover:border-indigo-100 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-indigo-600 shadow-sm group-hover:scale-110 transition-transform">
-                                                <Building2 size={24} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Entity Vector</p>
-                                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Host Client</h4>
-                                            </div>
-                                        </div>
-                                        <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                                            {item.client ? (
-                                                <Link href={route('clients.show', item.client.id)} className="flex items-center justify-between group/link">
-                                                    <span className="text-xs font-black text-indigo-600 uppercase italic tracking-widest">{item.client.company_name || item.client.name}</span>
-                                                    <ShieldCheck size={16} className="text-slate-200 group-hover/link:text-indigo-600 transition-colors" />
-                                                </Link>
-                                            ) : (
-                                                <p className="text-xs font-black text-slate-300 uppercase italic tracking-widest">INTERNAL STOCK</p>
-                                            )}
-                                        </div>
-                                    </div>
+                                        </Link>
+                                    ) : (
+                                        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#d1d5db', margin: 0 }}>Internal Inventory</p>
+                                    )}
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
 
-                        {/* Lifecycle History Pulse */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 md:p-14 space-y-10">
-                                <div className="flex items-center gap-3 pl-2 mb-2">
-                                    <div className="w-2 h-8 rounded-full bg-emerald-500" />
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Temporal Lifecycle node</h3>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-8 bg-slate-50 dark:bg-slate-800/30 rounded-[2.5rem] border border-transparent hover:border-slate-100 transition-all">
-                                        <div className="flex items-center gap-6">
-                                            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-slate-300 shadow-sm">
-                                                <Clock size={20} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Initialization</p>
-                                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Node Synergy Start</h4>
-                                            </div>
-                                        </div>
-                                        <p className="text-lg font-black text-slate-900 dark:text-white tracking-tighter italic">{format(new Date(item.created_at), 'dd MMM, yyyy')}</p>
+                        {/* Activity Log / Info */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
+                                <Activity size={18} color="#10b981" />
+                                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Item Timeline</h3>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Clock size={18} color="#10b981" />
                                     </div>
-
-                                    <div className="flex items-center justify-between p-8 bg-slate-50 dark:bg-slate-800/30 rounded-[2.5rem] border border-transparent hover:border-slate-100 transition-all">
-                                        <div className="flex items-center gap-6">
-                                            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-slate-300 shadow-sm">
-                                                <Activity size={20} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Pulse</p>
-                                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Record Refinement</h4>
-                                            </div>
-                                        </div>
-                                        <p className="text-lg font-black text-slate-900 dark:text-white tracking-tighter italic">{format(new Date(item.updated_at), 'dd MMM, yyyy')}</p>
+                                    <div>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 2px', textTransform: 'uppercase' }}>Created On</p>
+                                        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151', margin: 0 }}>{new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Right Column (Sub-details) */}
-                    <div className="lg:col-span-4 space-y-10">
-                        {/* Source Intelligence */}
-                        <Card className="rounded-[44px] border-none bg-slate-900 shadow-2xl shadow-slate-200 dark:shadow-none p-10 space-y-10 text-white">
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-6 rounded-full bg-white/20" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 italic">Source Intelligence</h3>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-6 p-6 bg-white/5 rounded-[2rem] border border-white/5 group hover:bg-white/10 transition-all">
-                                        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-xl">
-                                            <Truck size={28} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h4 className="text-sm font-black uppercase italic tracking-tight leading-none truncate w-40">
-                                                {item.supplier?.company_name || item.brand?.supplier?.company_name || 'DIRECT SOURCE'}
-                                            </h4>
-                                            <p className="text-[9px] font-black text-white/50 uppercase tracking-widest italic">Origin Provider</p>
-                                        </div>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Activity size={18} color="#6366f1" />
                                     </div>
-
-                                    <div className="space-y-4">
-                                        <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5 space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Magnitude Sync</p>
-                                                <span className="px-3 py-0.5 rounded-full bg-emerald-500 text-[8px] font-black text-white uppercase tracking-widest leading-none">Verified</span>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-emerald-500 w-full" />
-                                                </div>
-                                                <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] text-center">Node integrity Protocol active</p>
-                                            </div>
-                                        </div>
+                                    <div>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 2px', textTransform: 'uppercase' }}>Last Updated</p>
+                                        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151', margin: 0 }}>{new Date(item.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                                     </div>
                                 </div>
                             </div>
-                        </Card>
+                        </div>
+                    </div>
 
-                        {/* Critical Alert Node */}
+                    {/* Right Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        {/* Supplier Info */}
+                        <div style={{ ...cardStyle, background: '#1e1b4b', border: 'none' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                                <Truck size={16} color="#a5b4fc" />
+                                <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', margin: 0 }}>Supplier Details</h3>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '14px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 800, color: '#1e1b4b' }}>
+                                    {(item.supplier?.company_name || 'D').charAt(0)}
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff', margin: 0 }}>{item.supplier?.company_name || 'Direct / Unknown'}</p>
+                                    <p style={{ fontSize: '0.7rem', color: '#a5b4fc', margin: '2px 0 0' }}>Origin Source</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Low Stock Alert */}
                         {item.quantity_in_stock <= (item.reorder_level || 0) && (
-                            <div className="p-8 bg-rose-500 rounded-[2.5rem] text-white shadow-2xl shadow-rose-100 dark:shadow-none space-y-4 animate-pulse">
-                                <div className="flex items-center gap-4">
-                                    <AlertCircle size={24} />
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] italic">Critical Depletion</h3>
+                            <div style={{ padding: '1.25rem', borderRadius: '20px', background: '#fef2f2', border: '1.5px solid #fecaca', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <AlertCircle size={18} color="#ef4444" />
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase' }}>Low Stock Alert</span>
                                 </div>
-                                <p className="text-xs font-bold uppercase italic leading-tight">Node magnitude has reached critical threshold limits. Initiate PROCUREMENT PROTOCOL immediately.</p>
+                                <p style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600, margin: 0, lineHeight: '1.5' }}>
+                                    This item has reached its reorder level ({item.reorder_level || 0}). Please consider restocking.
+                                </p>
                             </div>
                         )}
 
-                        {/* Integration pulse */}
-                        <div className="p-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all">
-                            <div className="flex items-center gap-4">
-                                <Activity size={24} className="text-emerald-500 animate-pulse group-hover:scale-110 transition-transform" />
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Central node Link</p>
-                                    <p className="text-[8px] font-black text-slate-300 uppercase leading-none">Stock Flux Synchronization Active</p>
-                                </div>
+                        {/* Visual Asset (Thumbnail if exists) */}
+                        <div style={cardStyle}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <ImageIcon size={14} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Item Photo</h3>
                             </div>
-                            <Zap size={18} className="text-slate-200 group-hover:text-indigo-600 transition-colors" />
+                            <div style={{ width: '100%', height: '180px', borderRadius: '14px', background: '#f9f9fb', border: '1.5px solid #f0eeff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                <Package size={32} color="#d1d5db" />
+                                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>Standard Stock Unit</span>
+                            </div>
                         </div>
+
+                        {/* System Status */}
+                        <div style={{ padding: '1rem', borderRadius: '16px', background: '#ecfdf5', border: '1.5px solid #d1fae5', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}></div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#065f46' }}>Stock Sync: Operational</span>
+                                <span style={{ fontSize: '0.65rem', color: '#059669' }}>Real-time database active</span>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
+
+            <style>{`
+                @media (max-width: 992px) {
+                    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+                    .content-grid { grid-template-columns: 1fr !important; }
+                }
+                @media (max-width: 576px) {
+                    .stats-grid { grid-template-columns: 1fr !important; }
+                }
+            `}</style>
         </FigmaLayout>
     );
+}
+
+function ChevronRight({ size, color, style }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
+            <path d="m9 18 6-6-6-6"/>
+        </svg>
+    );
+}
+
+function X({ size }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        </svg>
+    )
+}
+
+function clock({ size }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+    )
 }

@@ -2,597 +2,688 @@ import React, { useState, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    Save,
-    X,
-    Plus,
-    Trash2,
-    Upload,
-    Pencil,
-    FileText,
-    Activity,
-    ShieldCheck,
-    Zap,
-    Briefcase,
-    Building,
-    Calendar,
-    DollarSign,
-    Clock,
-    TrendingUp,
-    Layers,
-    PlusCircle,
-    Check,
-    Loader2,
-    FileUp,
-    ChevronDown,
-    MapPin,
-    Mail,
-    Phone
+    ArrowLeft, Save, X, Plus, Trash2, Pencil,
+    FileText, Briefcase, Building2, Calendar, DollarSign,
+    Clock, PlusCircle, Loader2, Upload, MapPin, Mail, Phone,
+    User, FileUp, AlertCircle, CheckCircle2, ChevronDown,
+    AlignLeft, Flag, Hash,
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
 import Modal from '@/Components/Modal';
 
+// ─── Reusable styled field components ────────────────────────────
+const label = (text, required = false) => (
+    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4b5563', display: 'block', marginBottom: '6px' }}>
+        {text}{required && <span style={{ color: '#ef4444', marginLeft: '3px' }}>*</span>}
+    </label>
+);
+
+const fieldStyle = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '0.65rem 1rem 0.65rem 2.5rem',
+    background: '#f9f7ff', border: '1.5px solid #ede9fe',
+    borderRadius: '12px', fontSize: '0.88rem',
+    color: '#1e1b4b', outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    fontFamily: 'inherit',
+};
+
+const fieldNoIcon = { ...fieldStyle, paddingLeft: '1rem' };
+
+function Field({ icon: Icon, error, children }) {
+    return (
+        <div style={{ position: 'relative' }}>
+            {Icon && (
+                <Icon size={15} color="#a78bfa" style={{
+                    position: 'absolute', left: '12px', top: '50%',
+                    transform: 'translateY(-50%)', pointerEvents: 'none',
+                }} />
+            )}
+            {children}
+            {error && (
+                <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px',
+                    display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <AlertCircle size={11} /> {error}
+                </p>
+            )}
+        </div>
+    );
+}
+
+function SectionCard({ title, subtitle, icon: Icon, children, accent = '#6366f1' }) {
+    return (
+        <div style={{
+            background: '#fff', borderRadius: '18px',
+            border: '1.5px solid #f0eeff',
+            boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+            overflow: 'hidden',
+        }}>
+            <div style={{
+                padding: '1.1rem 1.5rem',
+                borderBottom: '1px solid #f5f3ff',
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+            }}>
+                <div style={{
+                    width: '36px', height: '36px', borderRadius: '10px',
+                    background: `${accent}18`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                    <Icon size={18} color={accent} />
+                </div>
+                <div>
+                    <p style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{title}</p>
+                    {subtitle && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>}
+                </div>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem' }}>{children}</div>
+        </div>
+    );
+}
+
+// Focus / blur helpers
+const onFocus = e => { e.target.style.borderColor = '#8b5cf6'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; };
+const onBlur  = e => { e.target.style.borderColor = '#ede9fe'; e.target.style.boxShadow = 'none'; };
+
+// ─── Main component ───────────────────────────────────────────────
 export default function Create({ auth, clients }) {
-    const [contractDetails, setContractDetails] = useState([]);
-    const [editingDetail, setEditingDetail] = useState(null);
-    const [detailForm, setDetailForm] = useState({ description: '', amount: '' });
+    const [milestones, setMilestones]       = useState([]);
+    const [editIdx, setEditIdx]             = useState(null);
+    const [milestoneForm, setMilestoneForm] = useState({ description: '', amount: '' });
     const [showClientModal, setShowClientModal] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
-        title: '',
-        client_id: '',
-        start_date: '',
-        deadline: '',
-        contract_amount: '',
-        contract_details: [],
-        status: 'pending',
-        priority: 'medium',
-        description: '',
-        designs: [],
+        title: '', client_id: '', start_date: '', deadline: '',
+        contract_amount: '', contract_details: [], status: 'pending',
+        priority: 'medium', description: '', designs: [],
     });
 
     const clientForm = useForm({
-        name: '',
-        company_name: '',
-        email: '',
-        phone: '',
-        address: '',
-        status: 'active',
+        name: '', company_name: '', email: '', phone: '', address: '', status: 'active',
     });
 
     useEffect(() => {
         setData(prev => ({
             ...prev,
-            contract_details: JSON.stringify(contractDetails),
-            contract_amount: contractDetails.reduce((sum, detail) => sum + parseFloat(detail.amount || 0), 0)
+            contract_details: JSON.stringify(milestones),
+            contract_amount: milestones.reduce((s, m) => s + parseFloat(m.amount || 0), 0),
         }));
-    }, [contractDetails]);
+    }, [milestones]);
 
-    const handleAddDetail = () => {
-        if (detailForm.description && detailForm.amount) {
-            if (editingDetail !== null) {
-                const updated = [...contractDetails];
-                updated[editingDetail] = detailForm;
-                setContractDetails(updated);
-                setEditingDetail(null);
-            } else {
-                setContractDetails([...contractDetails, detailForm]);
-            }
-            setDetailForm({ description: '', amount: '' });
+    const addMilestone = () => {
+        if (!milestoneForm.description || !milestoneForm.amount) return;
+        if (editIdx !== null) {
+            const updated = [...milestones];
+            updated[editIdx] = milestoneForm;
+            setMilestones(updated);
+            setEditIdx(null);
+        } else {
+            setMilestones([...milestones, milestoneForm]);
         }
+        setMilestoneForm({ description: '', amount: '' });
     };
 
-    const handleEditDetail = (index) => {
-        setDetailForm(contractDetails[index]);
-        setEditingDetail(index);
+    const handleDesignUpload = e => {
+        setData('designs', [...data.designs, ...Array.from(e.target.files)]);
     };
 
-    const handleDeleteDetail = (index) => {
-        setContractDetails(contractDetails.filter((_, i) => i !== index));
-    };
-
-    const handleDesignUpload = (e) => {
-        const files = Array.from(e.target.files);
-        setData('designs', [...data.designs, ...files]);
-    };
-
-    const handleRemoveDesign = (index) => {
-        setData('designs', data.designs.filter((_, i) => i !== index));
-    };
-
-    const handleCreateClient = (e) => {
+    const handleCreateClient = e => {
         e.preventDefault();
         clientForm.post(route('clients.store'), {
-            onSuccess: () => {
-                setShowClientModal(false);
-                clientForm.reset();
-                router.reload({ only: ['clients'] });
-            },
+            onSuccess: () => { setShowClientModal(false); clientForm.reset(); router.reload({ only: ['clients'] }); },
             preserveScroll: true,
         });
     };
 
-    const submit = (e) => {
-        e.preventDefault();
-        post(route('projects.store'), {
-            forceFormData: true,
-        });
-    };
+    const submit = e => { e.preventDefault(); post(route('projects.store'), { forceFormData: true }); };
 
-    const totalContractAmount = contractDetails.reduce((sum, detail) => sum + parseFloat(detail.amount || 0), 0);
+    const total = milestones.reduce((s, m) => s + parseFloat(m.amount || 0), 0);
+
+    const PRIORITY_OPTIONS = [
+        { value: 'low',      label: 'Low',      color: '#22c55e' },
+        { value: 'medium',   label: 'Medium',   color: '#f59e0b' },
+        { value: 'high',     label: 'High',     color: '#ef4444' },
+        { value: 'critical', label: 'Critical', color: '#7c3aed' },
+    ];
+
+    const STATUS_OPTIONS = [
+        { value: 'pending',   label: 'Pending'     },
+        { value: 'ongoing',   label: 'In Progress' },
+        { value: 'on_hold',   label: 'On Hold'     },
+        { value: 'completed', label: 'Completed'   },
+        { value: 'cancelled', label: 'Cancelled'   },
+    ];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Initialize Tactical Project" />
+            <Head title="New Project" />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
+            <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                {/* ── Page header ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
                         <Link href={route('projects.index')}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
-                                <ArrowLeft size={20} />
-                            </Button>
+                            <button style={{
+                                width: '40px', height: '40px', borderRadius: '11px',
+                                background: '#fff', border: '1.5px solid #ede9fe',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', color: '#6366f1',
+                                boxShadow: '0 1px 6px rgba(99,102,241,0.08)',
+                                transition: 'all 0.15s',
+                            }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                            >
+                                <ArrowLeft size={18} />
+                            </button>
                         </Link>
-                        <div className="space-y-1">
-                            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                                Initialize Project
-                            </h1>
-                            <div className="flex items-center gap-2">
-                                <Activity size={12} className="text-indigo-600" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">New Portfolio Resonance Node</p>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '2px' }}>
+                                <Briefcase size={15} color="#a78bfa" />
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Projects</span>
                             </div>
+                            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Create New Project</h1>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="px-5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border-2 border-indigo-100 dark:border-indigo-800 font-black text-[10px] uppercase tracking-widest shadow-sm">
-                            Phase: Concept Initialization
-                        </div>
-                    </div>
+                    {/* Save button (top) */}
+                    <button
+                        form="project-form"
+                        type="submit"
+                        disabled={processing}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '0.65rem 1.5rem',
+                            background: processing ? '#a78bfa' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                            border: 'none', borderRadius: '12px',
+                            color: '#fff', fontSize: '0.88rem', fontWeight: 700,
+                            cursor: processing ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                            transition: 'opacity 0.15s',
+                        }}
+                        onMouseEnter={e => { if (!processing) e.currentTarget.style.opacity = '0.88'; }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                    >
+                        {processing ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {processing ? 'Saving…' : 'Save Project'}
+                    </button>
                 </div>
 
-                <form onSubmit={submit} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Main Synthesis Panel */}
-                    <div className="lg:col-span-8 space-y-10">
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none rotate-12">
-                                <Briefcase size={240} className="text-indigo-600" />
-                            </div>
+                {/* ── Main form (2-col on desktop) ── */}
+                <form id="project-form" onSubmit={submit}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem' }} className="form-grid">
 
-                            <CardContent className="p-10 md:p-14 space-y-12 relative z-10">
-                                {/* Core Resonance Parameters */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Core Resonance Parameters</h3>
+                        {/* LEFT column */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+                            {/* Basic info */}
+                            <SectionCard title="Project Details" subtitle="Basic information about this project" icon={Briefcase}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                                    {/* Title */}
+                                    <div>
+                                        {label('Project Title', true)}
+                                        <Field icon={Hash} error={errors.title}>
+                                            <input
+                                                type="text"
+                                                value={data.title}
+                                                onChange={e => setData('title', e.target.value)}
+                                                placeholder="e.g. Website Redesign, Mobile App Development…"
+                                                style={fieldStyle}
+                                                onFocus={onFocus} onBlur={onBlur}
+                                                required
+                                            />
+                                        </Field>
                                     </div>
 
-                                    <div className="space-y-6">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Project Tactical Title" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Zap size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="text"
-                                                    className="w-full h-18 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] font-black text-lg text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all uppercase italic tracking-tight"
-                                                    value={data.title}
-                                                    onChange={e => setData('title', e.target.value)}
-                                                    placeholder="PROJECT CODENAME / IDENTIFIER"
-                                                    required
-                                                />
-                                            </div>
-                                            <InputError message={errors.title} className="mt-2" />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between pl-4">
-                                                    <InputLabel value="Resource Node (Client)" className="text-[10px] font-black uppercase tracking-widest text-slate-500" />
-                                                    <Button
-                                                        type="button"
-                                                        onClick={() => setShowClientModal(true)}
-                                                        variant="ghost"
-                                                        className="h-6 px-3 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 gap-1 active:scale-95 transition-all"
-                                                    >
-                                                        <PlusCircle size={10} /> Add New Node
-                                                    </Button>
-                                                </div>
-                                                <div className="relative group">
-                                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                        <Building size={18} />
-                                                    </div>
+                                    {/* Client + Priority row */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            {label('Client', true)}
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                <Field icon={Building2} error={errors.client_id}>
                                                     <select
-                                                        className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
                                                         value={data.client_id}
                                                         onChange={e => setData('client_id', e.target.value)}
+                                                        style={{ ...fieldStyle, appearance: 'none', cursor: 'pointer' }}
+                                                        onFocus={onFocus} onBlur={onBlur}
                                                         required
                                                     >
-                                                        <option value="">Select Resource Entity</option>
-                                                        {clients.map(client => (
-                                                            <option key={client.id} value={client.id}>
-                                                                {client.company_name} ({client.name})
+                                                        <option value="">Select a client</option>
+                                                        {clients.map(c => (
+                                                            <option key={c.id} value={c.id}>
+                                                                {c.company_name} — {c.name}
                                                             </option>
                                                         ))}
                                                     </select>
-                                                </div>
+                                                </Field>
                                             </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowClientModal(true)}
+                                                style={{
+                                                    marginTop: '6px', background: 'none', border: 'none',
+                                                    color: '#6366f1', fontSize: '0.72rem', fontWeight: 700,
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px',
+                                                    padding: 0,
+                                                }}
+                                            >
+                                                <Plus size={11} /> Add new client
+                                            </button>
+                                        </div>
 
-                                            <div className="space-y-4">
-                                                <InputLabel value="Priority Magnitude" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
+                                        <div>
+                                            {label('Priority')}
+                                            <Field icon={Flag}>
                                                 <select
-                                                    className="w-full h-16 px-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest text-slate-600 dark:text-slate-300 appearance-none focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
                                                     value={data.priority}
                                                     onChange={e => setData('priority', e.target.value)}
+                                                    style={{ ...fieldStyle, appearance: 'none', cursor: 'pointer' }}
+                                                    onFocus={onFocus} onBlur={onBlur}
                                                 >
-                                                    <option value="low">LOW PRIORITY</option>
-                                                    <option value="medium">MEDIUM VECTOR</option>
-                                                    <option value="high">HIGH MAGNITUDE</option>
-                                                    <option value="critical">CRITICAL RESONANCE</option>
+                                                    {PRIORITY_OPTIONS.map(o => (
+                                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                                    ))}
                                                 </select>
-                                            </div>
+                                            </Field>
                                         </div>
+                                    </div>
 
-                                        <div className="space-y-4">
-                                            <InputLabel value="Strategic Objective (Description)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
+                                    {/* Status */}
+                                    <div>
+                                        {label('Status')}
+                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                            {STATUS_OPTIONS.map(o => (
+                                                <button
+                                                    key={o.value}
+                                                    type="button"
+                                                    onClick={() => setData('status', o.value)}
+                                                    style={{
+                                                        padding: '0.4rem 0.875rem',
+                                                        borderRadius: '20px', border: '1.5px solid',
+                                                        fontSize: '0.75rem', fontWeight: 700,
+                                                        cursor: 'pointer', transition: 'all 0.15s',
+                                                        borderColor: data.status === o.value ? '#8b5cf6' : '#ede9fe',
+                                                        background: data.status === o.value ? 'linear-gradient(135deg,#ede9fe,#f5f3ff)' : '#fff',
+                                                        color: data.status === o.value ? '#6d28d9' : '#9ca3af',
+                                                    }}
+                                                >
+                                                    {o.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        {label('Description')}
+                                        <Field icon={null}>
                                             <textarea
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] p-8 text-sm font-bold text-slate-600 dark:text-slate-300 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all resize-none min-h-[160px]"
                                                 value={data.description}
                                                 onChange={e => setData('description', e.target.value)}
-                                                placeholder="Define the primary strategic trajectory and project deliverables..."
+                                                placeholder="Briefly describe what this project is about, goals, and what needs to be delivered…"
+                                                rows={4}
+                                                style={{ ...fieldNoIcon, resize: 'vertical', paddingTop: '0.65rem', paddingBottom: '0.65rem', lineHeight: 1.6 }}
+                                                onFocus={onFocus} onBlur={onBlur}
                                             />
-                                        </div>
+                                        </Field>
                                     </div>
                                 </div>
+                            </SectionCard>
 
-                                {/* Temporal Trajectories */}
-                                <div className="space-y-8">
-                                    <div className="flex items-center gap-3 pl-2 mb-2">
-                                        <div className="w-2 h-8 rounded-full bg-emerald-500" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Temporal Trajectories</h3>
+                            {/* Dates */}
+                            <SectionCard title="Timeline" subtitle="When does this project start and end?" icon={Calendar} accent="#22c55e">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        {label('Start Date')}
+                                        <Field icon={Calendar}>
+                                            <input
+                                                type="date"
+                                                value={data.start_date}
+                                                onChange={e => setData('start_date', e.target.value)}
+                                                style={fieldStyle}
+                                                onFocus={onFocus} onBlur={onBlur}
+                                            />
+                                        </Field>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-4">
-                                            <InputLabel value="Initialization Date" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Calendar size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="date"
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.start_date}
-                                                    onChange={e => setData('start_date', e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <InputLabel value="Realization Deadline" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-4" />
-                                            <div className="relative group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                                    <Clock size={18} />
-                                                </div>
-                                                <TextInput
-                                                    type="date"
-                                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[1.8rem] font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner transition-all"
-                                                    value={data.deadline}
-                                                    onChange={e => setData('deadline', e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
+                                    <div>
+                                        {label('Deadline', true)}
+                                        <Field icon={Clock} error={errors.deadline}>
+                                            <input
+                                                type="date"
+                                                value={data.deadline}
+                                                onChange={e => setData('deadline', e.target.value)}
+                                                style={fieldStyle}
+                                                onFocus={onFocus} onBlur={onBlur}
+                                                required
+                                            />
+                                        </Field>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </SectionCard>
 
-                        {/* Contract Breakdown Surface */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 md:p-14 space-y-10">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                                    <div className="flex items-center gap-3 pl-2">
-                                        <div className="w-2 h-8 rounded-full bg-rose-500" />
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Capital Milestone Matrix</h3>
-                                    </div>
-                                    {totalContractAmount > 0 && (
-                                        <div className="px-6 py-2 rounded-2xl bg-slate-900 text-white font-black text-lg tracking-tighter italic">
-                                            ৳{new Intl.NumberFormat().format(totalContractAmount)}
-                                        </div>
-                                    )}
-                                </div>
+                            {/* Payment milestones */}
+                            <SectionCard title="Payment Milestones" subtitle="Break the project budget into phases or tasks" icon={DollarSign} accent="#f59e0b">
 
-                                {/* Milestone Integration Form */}
-                                <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                                        <div className="md:col-span-8 space-y-3">
-                                            <InputLabel value="Milestone / Phase Identifier" className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-4" />
+                                {/* Add milestone form */}
+                                <div style={{
+                                    background: '#fafafa', borderRadius: '12px',
+                                    border: '1.5px solid #f3f4f6', padding: '1rem',
+                                    marginBottom: '1rem',
+                                }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', marginBottom: '0.75rem' }}>
+                                        {editIdx !== null ? 'Edit milestone' : 'Add a milestone'}
+                                    </p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.625rem', alignItems: 'flex-end' }}>
+                                        <div>
+                                            {label('Milestone name')}
                                             <input
                                                 type="text"
-                                                value={detailForm.description}
-                                                onChange={e => setDetailForm({ ...detailForm, description: e.target.value })}
-                                                placeholder="e.g. Initial Sprint Realization, Prototype Deployment..."
-                                                className="w-full h-14 px-6 bg-white dark:bg-slate-900 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-sm"
+                                                value={milestoneForm.description}
+                                                onChange={e => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
+                                                placeholder="e.g. Design phase, Final delivery…"
+                                                style={{ ...fieldNoIcon, padding: '0.6rem 0.875rem' }}
+                                                onFocus={onFocus} onBlur={onBlur}
                                             />
                                         </div>
-                                        <div className="md:col-span-3 space-y-3">
-                                            <InputLabel value="Capital Magnitude" className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">৳</span>
-                                                <input
-                                                    type="number"
-                                                    value={detailForm.amount}
-                                                    onChange={e => setDetailForm({ ...detailForm, amount: e.target.value })}
-                                                    placeholder="0.00"
-                                                    className="w-full h-14 pl-10 pr-6 bg-white dark:bg-slate-900 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-sm text-right"
-                                                />
-                                            </div>
+                                        <div style={{ width: '130px' }}>
+                                            {label('Amount (৳)')}
+                                            <input
+                                                type="number"
+                                                value={milestoneForm.amount}
+                                                onChange={e => setMilestoneForm({ ...milestoneForm, amount: e.target.value })}
+                                                placeholder="0"
+                                                min="0"
+                                                style={{ ...fieldNoIcon, padding: '0.6rem 0.875rem', textAlign: 'right' }}
+                                                onFocus={onFocus} onBlur={onBlur}
+                                            />
                                         </div>
-                                        <div className="md:col-span-1">
-                                            <Button
+                                        <div style={{ paddingBottom: '0' }}>
+                                            <div style={{ marginBottom: '6px', height: '17px' }} />
+                                            <button
                                                 type="button"
-                                                onClick={handleAddDetail}
-                                                className="w-full h-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none hover:scale-105 transition-all"
-                                                disabled={!detailForm.description || !detailForm.amount}
+                                                onClick={addMilestone}
+                                                disabled={!milestoneForm.description || !milestoneForm.amount}
+                                                style={{
+                                                    height: '38px', padding: '0 1rem',
+                                                    background: (!milestoneForm.description || !milestoneForm.amount)
+                                                        ? '#f3f4f6' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                                    border: 'none', borderRadius: '10px',
+                                                    color: (!milestoneForm.description || !milestoneForm.amount) ? '#9ca3af' : '#fff',
+                                                    fontWeight: 700, fontSize: '0.8rem',
+                                                    cursor: (!milestoneForm.description || !milestoneForm.amount) ? 'not-allowed' : 'pointer',
+                                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                                    whiteSpace: 'nowrap',
+                                                }}
                                             >
-                                                {editingDetail !== null ? <Pencil size={18} /> : <PlusCircle size={22} />}
-                                            </Button>
+                                                {editIdx !== null ? <><Pencil size={13} /> Update</> : <><Plus size={13} /> Add</>}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Milestone List */}
-                                <div className="space-y-4">
-                                    {contractDetails.map((detail, index) => (
-                                        <div key={index} className="group flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/30 rounded-3xl border border-transparent hover:border-indigo-100 transition-all">
-                                            <div className="flex items-center gap-6">
-                                                <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-300 italic shadow-sm">
-                                                    #{index + 1}
+                                {/* Milestone list */}
+                                {milestones.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        {milestones.map((m, i) => (
+                                            <div key={i} style={{
+                                                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                                padding: '0.75rem 1rem', borderRadius: '12px',
+                                                background: '#f9f7ff', border: '1.5px solid #ede9fe',
+                                            }}>
+                                                <div style={{
+                                                    width: '26px', height: '26px', borderRadius: '7px',
+                                                    background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: '0.7rem', fontWeight: 800, color: '#6d28d9', flexShrink: 0,
+                                                }}>{i + 1}</div>
+                                                <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>{m.description}</span>
+                                                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#4338ca' }}>
+                                                    ৳{new Intl.NumberFormat().format(m.amount)}
+                                                </span>
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    <button type="button" onClick={() => { setMilestoneForm(m); setEditIdx(i); }}
+                                                        style={{ width: '28px', height: '28px', borderRadius: '7px', background: '#f0fdf4', border: 'none', cursor: 'pointer', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <Pencil size={12} />
+                                                    </button>
+                                                    <button type="button" onClick={() => setMilestones(milestones.filter((_, idx) => idx !== i))}
+                                                        style={{ width: '28px', height: '28px', borderRadius: '7px', background: '#fff1f2', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <Trash2 size={12} />
+                                                    </button>
                                                 </div>
-                                                <p className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase italic">{detail.description}</p>
                                             </div>
-                                            <div className="flex items-center gap-6">
-                                                <p className="text-lg font-black text-indigo-600 tracking-tighter italic">৳{new Intl.NumberFormat().format(detail.amount)}</p>
-                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button type="button" onClick={() => handleEditDetail(index)} variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 text-slate-400 hover:text-indigo-600 shadow-sm">
-                                                        <Pencil size={14} />
-                                                    </Button>
-                                                    <Button type="button" onClick={() => handleDeleteDetail(index)} variant="ghost" size="icon" className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 hover:bg-rose-100 shadow-sm">
-                                                        <Trash2 size={14} />
-                                                    </Button>
-                                                </div>
-                                            </div>
+                                        ))}
+
+                                        {/* Total */}
+                                        <div style={{
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            padding: '0.75rem 1rem', borderRadius: '12px',
+                                            background: 'linear-gradient(135deg,#ede9fe,#f5f3ff)',
+                                            border: '1.5px solid #c4b5fd', marginTop: '4px',
+                                        }}>
+                                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#6d28d9' }}>Total Budget</span>
+                                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#4338ca' }}>
+                                                ৳{new Intl.NumberFormat().format(total)}
+                                            </span>
                                         </div>
-                                    ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '2rem', border: '2px dashed #ede9fe', borderRadius: '12px' }}>
+                                        <DollarSign size={28} color="#e0d9ff" style={{ margin: '0 auto 0.5rem' }} />
+                                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No milestones added yet</p>
+                                    </div>
+                                )}
+                            </SectionCard>
+                        </div>
 
-                                    {contractDetails.length === 0 && (
-                                        <div className="py-16 text-center space-y-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
-                                            <FileText size={48} className="mx-auto text-slate-200" />
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Record Empty</p>
-                                                <p className="text-xs font-bold text-slate-300 italic mt-2">No capital milestones defined for this trajectory.</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                        {/* RIGHT column (sticky panel) */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-                    {/* Evidence & Protocol Lateral */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8">
-                        {/* Design Artifact Surface */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <CardContent className="p-10 space-y-8">
-                                <div className="flex items-center gap-3 pl-2">
-                                    <div className="w-2 h-8 rounded-full bg-indigo-600" />
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Technical Evidence</h3>
-                                </div>
+                            {/* File upload */}
+                            <SectionCard title="Attachments" subtitle="Upload designs, documents, or references" icon={Upload} accent="#3b82f6">
+                                <label style={{
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                    padding: '2rem 1rem', border: '2px dashed #ede9fe', borderRadius: '14px',
+                                    cursor: 'pointer', background: '#faf9ff', transition: 'all 0.2s',
+                                }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#c4b5fd'; e.currentTarget.style.background = '#f5f3ff'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#ede9fe'; e.currentTarget.style.background = '#faf9ff'; }}
+                                >
+                                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ede9fe',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                        <FileUp size={20} color="#6366f1" />
+                                    </div>
+                                    <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4338ca', margin: '0 0 4px' }}>
+                                        Click to upload files
+                                    </p>
+                                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>JPG, PNG, PDF, DWG — max 20MB</p>
+                                    <input type="file" multiple className="hidden" style={{ display: 'none' }}
+                                        onChange={handleDesignUpload} accept="image/*,.pdf,.dwg,.dxf" />
+                                </label>
 
-                                <div className="space-y-6">
-                                    <label className="flex flex-col items-center justify-center w-full h-48 bg-slate-50 dark:bg-slate-800 border-4 border-dashed border-slate-100 dark:border-slate-700 rounded-[2.5rem] cursor-pointer hover:bg-white transition-all group overflow-hidden relative">
-                                        <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <div className="text-center relative z-10 space-y-3">
-                                            <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto text-slate-400 group-hover:text-indigo-600 transition-colors shadow-sm">
-                                                <FileUp size={28} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Upload Design Nodes</p>
-                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">JPG, PNG, PDF, DWG (MAX 20MB)</p>
-                                            </div>
-                                        </div>
-                                        <input
-                                            type="file"
-                                            multiple
-                                            className="hidden"
-                                            onChange={handleDesignUpload}
-                                            accept="image/*,.pdf,.dwg,.dxf"
-                                        />
-                                    </label>
-
-                                    <div className="space-y-3">
-                                        {data.designs.map((file, index) => (
-                                            <div key={index} className="group flex items-center justify-between p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100/50">
-                                                <div className="flex items-center gap-4 flex-1 truncate">
-                                                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-indigo-600 shadow-sm">
-                                                        <FileText size={14} />
-                                                    </div>
-                                                    <div className="truncate">
-                                                        <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase truncate">{file.name}</p>
-                                                        <p className="text-[8px] font-bold text-slate-400 uppercase">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                    </div>
-                                                </div>
-                                                <Button type="button" onClick={() => handleRemoveDesign(index)} variant="ghost" size="icon" className="w-8 h-8 rounded-xl text-rose-500 hover:bg-rose-100">
-                                                    <X size={14} />
-                                                </Button>
+                                {data.designs.length > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '0.75rem' }}>
+                                        {data.designs.map((file, i) => (
+                                            <div key={i} style={{
+                                                display: 'flex', alignItems: 'center', gap: '0.625rem',
+                                                padding: '0.5rem 0.75rem', borderRadius: '10px',
+                                                background: '#f5f3ff', border: '1px solid #ede9fe',
+                                            }}>
+                                                <FileText size={14} color="#8b5cf6" style={{ flexShrink: 0 }} />
+                                                <span style={{ flex: 1, fontSize: '0.75rem', fontWeight: 600, color: '#4338ca',
+                                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                                <span style={{ fontSize: '0.65rem', color: '#9ca3af', flexShrink: 0 }}>
+                                                    {(file.size / 1024 / 1024).toFixed(1)}MB
+                                                </span>
+                                                <button type="button"
+                                                    onClick={() => setData('designs', data.designs.filter((_, idx) => idx !== i))}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444',
+                                                        display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0 }}>
+                                                    <X size={13} />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                )}
+                            </SectionCard>
 
-                        {/* Submission Protocols */}
-                        <div className="space-y-4 pt-4">
-                            <Button
+                            {/* Save button */}
+                            <button
+                                form="project-form"
                                 type="submit"
                                 disabled={processing}
-                                className="w-full h-20 rounded-[2.2rem] bg-indigo-600 hover:bg-slate-900 text-white font-black text-xl shadow-2xl shadow-indigo-100 dark:shadow-none gap-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                style={{
+                                    width: '100%', padding: '0.875rem',
+                                    background: processing ? '#a78bfa' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                    border: 'none', borderRadius: '14px',
+                                    color: '#fff', fontSize: '0.95rem', fontWeight: 800,
+                                    cursor: processing ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    boxShadow: '0 6px 20px rgba(99,102,241,0.35)',
+                                    transition: 'opacity 0.15s',
+                                }}
+                                onMouseEnter={e => { if (!processing) e.currentTarget.style.opacity = '0.88'; }}
+                                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
                             >
-                                {processing ? (
-                                    <Loader2 className="animate-spin" size={24} />
-                                ) : (
-                                    <>
-                                        <ShieldCheck size={28} />
-                                        <span className="uppercase italic tracking-tighter">Commit Portfolio Node</span>
-                                    </>
-                                )}
-                            </Button>
+                                {processing ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                {processing ? 'Saving project…' : 'Save Project'}
+                            </button>
 
-                            <div className="flex items-center gap-3 justify-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-[2rem]">
-                                <Activity size={14} className="text-indigo-500 animate-pulse" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 italic">Initiating Tactical Circuit</p>
-                            </div>
+                            <Link href={route('projects.index')} style={{ textAlign: 'center' }}>
+                                <button type="button" style={{
+                                    width: '100%', padding: '0.75rem',
+                                    background: '#fff', border: '1.5px solid #ede9fe',
+                                    borderRadius: '14px', color: '#9ca3af',
+                                    fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                                }}>
+                                    Cancel
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 </form>
             </div>
 
-            {/* Quick Client Synthesis Modal */}
-            <Modal show={showClientModal} onClose={() => setShowClientModal(false)} maxWidth="2xl">
-                <div className="bg-white dark:bg-slate-900 rounded-[44px] overflow-hidden shadow-2xl relative">
-                    {/* Background Accents */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-100/50 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
-
-                    <div className="p-10 md:p-14 space-y-10 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Quick Synthesis</h2>
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic">New Resource Node Integration</p>
+            {/* ── Add Client Modal ── */}
+            <Modal show={showClientModal} onClose={() => setShowClientModal(false)} maxWidth="lg">
+                <div style={{ background: '#fff', borderRadius: '18px', overflow: 'hidden' }}>
+                    {/* Modal header */}
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f5f3ff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f5f3ff',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <User size={18} color="#6366f1" />
                             </div>
-                            <Button onClick={() => setShowClientModal(false)} variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-300 hover:text-indigo-600 transition-all">
-                                <X size={24} />
-                            </Button>
+                            <div>
+                                <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Add New Client</p>
+                                <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Fill in the client details below</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setShowClientModal(false)} style={{
+                            background: '#f3f4f6', border: 'none', borderRadius: '8px',
+                            padding: '6px', cursor: 'pointer', color: '#9ca3af',
+                            display: 'flex', alignItems: 'center',
+                        }}>
+                            <X size={16} />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleCreateClient} style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                                {label('Company Name', true)}
+                                <Field icon={Building2}>
+                                    <input type="text" value={clientForm.data.company_name}
+                                        onChange={e => clientForm.setData('company_name', e.target.value)}
+                                        placeholder="Acme Corp" style={fieldStyle}
+                                        onFocus={onFocus} onBlur={onBlur} required />
+                                </Field>
+                            </div>
+                            <div>
+                                {label('Contact Name', true)}
+                                <Field icon={User}>
+                                    <input type="text" value={clientForm.data.name}
+                                        onChange={e => clientForm.setData('name', e.target.value)}
+                                        placeholder="John Smith" style={fieldStyle}
+                                        onFocus={onFocus} onBlur={onBlur} required />
+                                </Field>
+                            </div>
                         </div>
 
-                        <form onSubmit={handleCreateClient} className="space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3">
-                                    <InputLabel value="Operational Company Name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                    <div className="relative group">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                            <Building size={16} />
-                                        </div>
-                                        <TextInput
-                                            type="text"
-                                            className="w-full h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner"
-                                            value={clientForm.data.company_name}
-                                            onChange={e => clientForm.setData('company_name', e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <InputLabel value="Primary Liaison Name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                    <div className="relative group">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                            <User size={16} />
-                                        </div>
-                                        <TextInput
-                                            type="text"
-                                            className="w-full h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner"
-                                            value={clientForm.data.name}
-                                            onChange={e => clientForm.setData('name', e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                                {label('Email Address')}
+                                <Field icon={Mail}>
+                                    <input type="email" value={clientForm.data.email}
+                                        onChange={e => clientForm.setData('email', e.target.value)}
+                                        placeholder="email@company.com" style={fieldStyle}
+                                        onFocus={onFocus} onBlur={onBlur} />
+                                </Field>
                             </div>
+                            <div>
+                                {label('Phone Number', true)}
+                                <Field icon={Phone}>
+                                    <input type="text" value={clientForm.data.phone}
+                                        onChange={e => clientForm.setData('phone', e.target.value)}
+                                        placeholder="+880 …" style={fieldStyle}
+                                        onFocus={onFocus} onBlur={onBlur} required />
+                                </Field>
+                            </div>
+                        </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3">
-                                    <InputLabel value="Comms Protocol (Email)" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                    <div className="relative group">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                            <Mail size={16} />
-                                        </div>
-                                        <TextInput
-                                            type="email"
-                                            className="w-full h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner"
-                                            value={clientForm.data.email}
-                                            onChange={e => clientForm.setData('email', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <InputLabel value="Tactical Comms (Phone)" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                    <div className="relative group">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                            <Phone size={16} />
-                                        </div>
-                                        <TextInput
-                                            type="text"
-                                            className="w-full h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner"
-                                            value={clientForm.data.phone}
-                                            onChange={e => clientForm.setData('phone', e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                        <div>
+                            {label('Address')}
+                            <Field icon={MapPin}>
+                                <textarea value={clientForm.data.address}
+                                    onChange={e => clientForm.setData('address', e.target.value)}
+                                    placeholder="Street, City, Country…" rows={3}
+                                    style={{ ...fieldStyle, resize: 'none', paddingTop: '0.65rem', lineHeight: 1.5 }}
+                                    onFocus={onFocus} onBlur={onBlur} />
+                            </Field>
+                        </div>
 
-                            <div className="space-y-3">
-                                <InputLabel value="Operational Geolocation" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-4" />
-                                <div className="relative group">
-                                    <div className="absolute left-6 top-6 text-slate-300 group-focus-within:text-indigo-600 pointer-events-none transition-colors">
-                                        <MapPin size={16} />
-                                    </div>
-                                    <textarea
-                                        className="w-full pl-14 pr-6 pt-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-600/10 shadow-inner resize-none min-h-[100px]"
-                                        value={clientForm.data.address}
-                                        onChange={e => clientForm.setData('address', e.target.value)}
-                                        placeholder="Enter entity physical coordinates..."
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 pt-4">
-                                <Button
-                                    type="submit"
-                                    disabled={clientForm.processing}
-                                    className="flex-1 h-16 rounded-[1.8rem] bg-slate-900 dark:bg-indigo-600 text-white font-black uppercase tracking-widest italic shadow-xl shadow-indigo-100 dark:shadow-none hover:scale-[1.02] active:scale-[0.98] transition-all"
-                                >
-                                    {clientForm.processing ? <Loader2 className="animate-spin" size={24} /> : "Synthesize Node"}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={() => setShowClientModal(false)}
-                                    variant="ghost"
-                                    className="h-16 px-8 rounded-[1.8rem] text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
-                                >
-                                    Abort
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.25rem' }}>
+                            <button type="submit" disabled={clientForm.processing}
+                                style={{
+                                    flex: 1, padding: '0.75rem',
+                                    background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                    border: 'none', borderRadius: '12px',
+                                    color: '#fff', fontWeight: 700, fontSize: '0.88rem',
+                                    cursor: clientForm.processing ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                }}>
+                                {clientForm.processing ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                                Save Client
+                            </button>
+                            <button type="button" onClick={() => setShowClientModal(false)}
+                                style={{
+                                    padding: '0.75rem 1.25rem',
+                                    background: '#fff', border: '1.5px solid #ede9fe',
+                                    borderRadius: '12px', color: '#9ca3af',
+                                    fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer',
+                                }}>
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </Modal>
+
+            <style>{`
+                @media (min-width: 900px) {
+                    .form-grid {
+                        grid-template-columns: 1fr 340px !important;
+                    }
+                }
+                @media (max-width: 600px) {
+                    .form-grid > div > div {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; }
+                select option { font-weight: 500; }
+            `}</style>
         </FigmaLayout>
     );
-}
-
-function User({ className, size }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-        </svg>
-    )
 }

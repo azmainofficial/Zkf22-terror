@@ -35,9 +35,9 @@ class EmployeeController extends Controller
 
         $departments = Employee::whereNotNull('department')->distinct()->pluck('department');
 
-        // Fetch recent attendances
-        $attendances = \App\Models\Attendance::with('employee')
-            ->orderBy('date', 'desc')
+        // Fetch raw attendance device logs
+        $attendances = \App\Models\AttendanceLog::with('employee')
+            ->orderBy('timestamp', 'desc')
             ->paginate(15, ['*'], 'att_page')
             ->withQueryString();
 
@@ -80,9 +80,36 @@ class EmployeeController extends Controller
             'shift_id' => 'nullable|exists:shifts,id',
             'emergency_contact_name' => 'nullable',
             'emergency_contact_phone' => 'nullable',
+            'avatar' => 'nullable|image|max:2048',
+            'attachments' => 'nullable|array',
+            'attachments.*.title' => 'required_with:attachments.*.file|string',
+            'attachments.*.file' => 'required_with:attachments.*.title|file|max:10240',
         ]);
 
-        Employee::create($validated);
+        // Process profile avatar
+        if ($request->hasFile('avatar')) {
+            $validated['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        $employee = Employee::create($validated);
+
+        // Process supplementary documents
+        if ($request->has('attachments')) {
+            foreach ($request->file('attachments', []) as $index => $fileArray) {
+                if (isset($fileArray['file'])) {
+                    $file = $fileArray['file'];
+                    $title = $request->input("attachments.{$index}.title", 'Document');
+                    
+                    \App\Models\EmployeeDocument::create([
+                        'employee_id' => $employee->id,
+                        'title' => $title,
+                        'file_path' => $file->store('employee_documents', 'public'),
+                        'file_type' => $file->getClientOriginalExtension(),
+                        'file_size' => round($file->getSize() / 1024), // inside kilobytes
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('employees.index')->with('success', 'Employee created successfully.');
     }

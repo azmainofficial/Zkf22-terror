@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
@@ -13,14 +13,10 @@ import {
     XCircle,
     Clock,
     Tag,
-    ArrowRight,
-    MoreVertical,
     Save,
     Receipt,
-    DollarSign,
     Target,
     Zap,
-    History,
     FileText,
     Download,
     ChevronDown,
@@ -28,28 +24,91 @@ import {
     Loader2,
     Activity,
     Grid,
-    CornerRightDown
+    CornerRightDown,
+    ArrowUpRight,
+    Briefcase,
+    Building,
+    LifeBuoy,
+    Inbox,
+    Settings,
+    ChevronRight,
+    ShieldAlert
 } from 'lucide-react';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { Button } from '@/Components/ui/Button';
-import { Badge } from '@/Components/ui/Badge';
-import { cn } from '@/lib/utils';
 import Modal from '@/Components/Modal';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
+
+// ─── Shared styles from Inventory patterns ──────────────────────
+const card = {
+    background: '#fff', 
+    borderRadius: '16px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+};
+
+const onFocus = e => { 
+    e.target.style.borderColor = '#8b5cf6'; 
+    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; 
+};
+
+const onBlur = e => { 
+    e.target.style.borderColor = '#ede9fe'; 
+    e.target.style.boxShadow = 'none'; 
+};
+
+const iconBtn = (bg, color) => ({
+    width: '32px', height: '32px', borderRadius: '8px',
+    background: bg, border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color,
+    transition: 'all 0.2s'
+});
+
+const getStatusConfig = (s) => {
+    const status = (s || 'pending').toLowerCase();
+    const config = {
+        approved: { label: 'Approved', bg: '#f0fdf4', color: '#16a34a', icon: CheckCircle2 },
+        paid:      { label: 'Paid',      bg: '#eff6ff', color: '#3b82f6', icon: Zap },
+        pending:   { label: 'Pending',   bg: '#fffbeb', color: '#d97706', icon: Clock },
+        rejected:  { label: 'Rejected',  bg: '#fff1f2', color: '#e11d48', icon: XCircle },
+    };
+    return config[status] || config.pending;
+};
+
+const inputStyle = {
+    width: '100%',
+    height: '46px',
+    padding: '0 1rem',
+    borderRadius: '10px',
+    border: '1.5px solid #ede9fe',
+    background: '#f9f7ff',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
+
+const labelStyle = {
+    fontSize: '0.68rem',
+    fontWeight: 800,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.07em',
+    display: 'block',
+    marginBottom: '6px',
+    paddingLeft: '2px'
+};
 
 export default function Index({ auth, expenses, filters, categories = [], projects = [], paymentMethods = [] }) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || '');
     const [categoryId, setCategoryId] = useState(filters.category_id || '');
+    const isFirstRender = useRef(true);
 
     // Modals State
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
 
-    const { data: expenseData, setData: setExpenseData, post: postExpense, processing: processingExpense, errors: expenseErrors, reset: resetExpense } = useForm({
+    const expenseForm = useForm({
         expense_category_id: '',
         project_id: '',
         title: '',
@@ -63,7 +122,7 @@ export default function Index({ auth, expenses, filters, categories = [], projec
         is_reimbursable: false,
     });
 
-    const { data: categoryData, setData: setCategoryData, post: postCategory, put: putCategory, processing: processingCategory, errors: categoryErrors, reset: resetCategory } = useForm({
+    const categoryForm = useForm({
         name: '',
         code: '',
         description: '',
@@ -71,45 +130,21 @@ export default function Index({ auth, expenses, filters, categories = [], projec
         is_active: true,
     });
 
-    // Handle Category Edit Setup
     useEffect(() => {
-        if (editingCategory) {
-            setCategoryData({
-                name: editingCategory.name,
-                code: editingCategory.code,
-                description: editingCategory.description || '',
-                color: editingCategory.color,
-                is_active: editingCategory.is_active,
-            });
-        } else {
-            resetCategory();
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
         }
-    }, [editingCategory]);
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(route('expenses.index'), {
-            search,
-            status,
-            category_id: categoryId
-        }, { preserveState: true });
-    };
-
-    const handleDelete = (id) => {
-        if (confirm('Are you sure you want to delete this expenditure?')) {
-            router.delete(route('expenses.destroy', id), {
-                preserveScroll: true
-            });
-        }
-    };
+        const t = setTimeout(() => {
+            router.get(route('expenses.index'), { search, status, category_id: categoryId }, { preserveState: true, replace: true });
+        }, 500);
+        return () => clearTimeout(t);
+    }, [search, status, categoryId]);
 
     const handleCreateExpense = (e) => {
         e.preventDefault();
-        postExpense(route('expenses.store'), {
-            onSuccess: () => {
-                setShowCreateModal(false);
-                resetExpense();
-            },
+        expenseForm.post(route('expenses.store'), {
+            onSuccess: () => { setShowCreateModal(false); expenseForm.reset(); },
             preserveScroll: true,
             forceFormData: true,
         });
@@ -118,495 +153,393 @@ export default function Index({ auth, expenses, filters, categories = [], projec
     const handleCategorySubmit = (e) => {
         e.preventDefault();
         if (editingCategory) {
-            putCategory(route('expense-categories.update', editingCategory.id), {
-                onSuccess: () => {
-                    setShowCategoryModal(false);
-                    setEditingCategory(null);
-                    resetCategory();
-                },
+            categoryForm.put(route('expense-categories.update', editingCategory.id), {
+                onSuccess: () => { setShowCategoryModal(false); setEditingCategory(null); categoryForm.reset(); },
                 preserveScroll: true,
             });
         } else {
-            postCategory(route('expense-categories.store'), {
-                onSuccess: () => {
-                    setShowCategoryModal(false);
-                    resetCategory();
-                },
+            categoryForm.post(route('expense-categories.store'), {
+                onSuccess: () => { setShowCategoryModal(false); categoryForm.reset(); },
                 preserveScroll: true,
             });
         }
     };
 
-    const statusConfig = {
-        approved: { color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', label: 'Approved' },
-        paid: { color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20', label: 'Paid' },
-        rejected: { color: 'text-rose-500 bg-rose-500/10 border-rose-500/20', label: 'Rejected' },
-        pending: { color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', label: 'Pending' },
-    };
-
-    const totalExpense = expenses.data.reduce((sum, e) => sum + parseFloat(e.amount), 0);
-    const pendingReview = expenses.data.filter(e => e.status === 'pending').length;
+    const statCards = [
+        { label: 'Outbound Flow', value: `৳${expenses.data.reduce((s,e) => s + parseFloat(e.amount), 0).toLocaleString()}`, icon: ArrowUpRight, bg: '#fff1f2', color: '#e11d48' },
+        { label: 'Cleared Payments', value: `৳${expenses.data.filter(e => e.status === 'paid').reduce((s,e) => s + parseFloat(e.amount), 0).toLocaleString()}`, icon: CheckCircle2, bg: '#f0fdf4', color: '#16a34a' },
+        { label: 'Awaiting Audit', value: `${expenses.data.filter(e => e.status === 'pending').length} Records`, icon: Clock, bg: '#fffbeb', color: '#d97706' },
+        { label: 'Active Categories', value: `${categories.length} Tiers`, icon: Tag, bg: '#f5f3ff', color: '#6366f1' },
+    ];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Expenditure Manifold" />
+            <Head title="Operational Expenditures" />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic">
-                            Expenditure Manifold
-                        </h1>
-                        <div className="flex items-center gap-2">
-                            <Activity size={14} className="text-indigo-600 animate-pulse" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">Operational Capital Tracking</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+
+                {/* ── Header (Inventory Style) ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
+                            <Receipt size={16} color="#fb7185" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#fb7185', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Spending Audit</span>
                         </div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Business Expenditures</h1>
+                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Log vendor payments, operational costs, and project-linked expenses</p>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <Button
-                            onClick={() => setShowCreateModal(true)}
-                            className="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-100 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98] gap-3"
-                        >
-                            <Plus size={20} strokeWidth={3} />
-                            <span>Log Expenditure</span>
-                        </Button>
+                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <button onClick={() => { setEditingCategory(null); categoryForm.reset(); setShowCategoryModal(true); }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '0.6rem 1.125rem',
+                                background: '#fff', border: '1.5px solid #ede9fe',
+                                borderRadius: '12px', color: '#6366f1',
+                                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+                                boxShadow: '0 1px 6px rgba(99,102,241,0.07)',
+                            }}>
+                            <Settings size={15} /> Configure Tiers
+                        </button>
+                        <button onClick={() => setShowCreateModal(true)} style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '0.6rem 1.25rem',
+                            background: 'linear-gradient(135deg,#f43f5e,#e11d48)',
+                            border: 'none', borderRadius: '12px', color: '#fff',
+                            fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                            boxShadow: '0 4px 14px rgba(225,29,72,0.3)',
+                        }}>
+                            <Plus size={16} /> Log Expenditure
+                        </button>
                     </div>
                 </div>
 
-                {/* Intelligence Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[
-                        { label: 'Outflow Matrix', val: `৳${totalExpense.toLocaleString()}`, sub: 'Total Period Expense', icon: DollarSign, color: 'indigo' },
-                        { label: 'Pending Audit', val: pendingReview, sub: 'Awaiting Authorization', icon: Clock, color: 'amber' },
-                        { label: 'Settled Flows', val: `৳${expenses.data.filter(e => e.status === 'paid').reduce((sum, e) => sum + parseFloat(e.amount), 0).toLocaleString()}`, sub: 'Completed Payments', icon: CheckCircle2, color: 'emerald' },
-                        { label: 'Vetoed Log', val: expenses.data.filter(e => e.status === 'rejected').length, sub: 'Expenditures Denied', icon: XCircle, color: 'rose' }
-                    ].map((stat, i) => (
-                        <Card key={i} className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm p-6 group hover:translate-y-[-4px] transition-all duration-300 overflow-hidden relative">
-                            <div className={`absolute top-0 right-0 p-8 opacity-5 -rotate-12 group-hover:scale-110 transition-transform text-${stat.color}-600 dark:text-${stat.color}-400`}>
-                                <stat.icon size={120} />
+                {/* ── Stat cards (Inventory Style) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '1rem' }}>
+                    {statCards.map((s, i) => (
+                        <div key={i} style={{ ...card, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <s.icon size={22} color={s.color} />
                             </div>
-                            <div className="relative z-10 flex flex-col h-full justify-between">
-                                <div className={`w-12 h-12 rounded-2xl bg-${stat.color}-50 dark:bg-${stat.color}-900/30 flex items-center justify-center text-${stat.color}-600 dark:text-${stat.color}-400 mb-6`}>
-                                    <stat.icon size={20} />
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">{stat.label}</h3>
-                                    <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter truncate italic">{stat.val}</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{stat.sub}</p>
-                                </div>
+                            <div>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
+                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
                             </div>
-                        </Card>
+                        </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Category Manifold Sidebar */}
-                    <div className="lg:col-span-3 space-y-6">
-                        <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white italic">
-                                    Expenditure Nodes
-                                </h3>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={openCreateCategory}
-                                    className="w-10 h-10 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600"
-                                >
-                                    <Plus size={18} />
-                                </Button>
+                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.5rem' }} className="main-grid">
+                    
+                    {/* Left: Enhanced Category Sidebar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ ...card, padding: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1.5px solid #f8fafc' }}>
+                                <Grid size={16} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Spending Tiers</h3>
                             </div>
-                            <div className="p-4 space-y-2">
-                                {categories.length === 0 ? (
-                                    <p className="text-center text-[10px] font-black uppercase text-slate-300 py-8 italic tracking-widest">No nodes found</p>
-                                ) : (
-                                    categories.map((cat) => (
-                                        <div
-                                            key={cat.id}
-                                            className={cn(
-                                                "group flex items-center justify-between p-4 rounded-2xl transition-all cursor-pointer",
-                                                cat.id == categoryId
-                                                    ? "bg-indigo-50 dark:bg-indigo-900/20 shadow-inner"
-                                                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                                            )}
-                                            onClick={() => {
-                                                const nid = cat.id === categoryId ? '' : cat.id;
-                                                setCategoryId(nid);
-                                                router.get(route('expenses.index'), { search, status, category_id: nid }, { preserveState: true });
-                                            }}
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: cat.color }} />
-                                                <span className={cn(
-                                                    "text-sm font-black uppercase italic tracking-tight",
-                                                    cat.id == categoryId ? "text-indigo-600 dark:text-indigo-400" : "text-slate-600 dark:text-slate-400"
-                                                )}>
-                                                    {cat.name}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={(e) => { e.stopPropagation(); openEditCategory(cat); }} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
-                                                    <Edit size={14} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Transaction Registry: Main Area */}
-                    <div className="lg:col-span-9 space-y-6">
-                        {/* Search & Filter Bar */}
-                        <div className="flex flex-col md:flex-row gap-4 items-center">
-                            <div className="relative flex-1 w-full group">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20} />
-                                <input
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Scan expenditures by title, number or vendor..."
-                                    className="w-full h-16 pl-16 pr-8 bg-white dark:bg-slate-900 border-none rounded-[2rem] font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-600 shadow-sm transition-all"
-                                />
-                            </div>
-                            <div className="flex gap-4 w-full md:w-auto">
-                                <select
-                                    value={status}
-                                    onChange={(e) => {
-                                        setStatus(e.target.value);
-                                        router.get(route('expenses.index'), { search, status: e.target.value, category_id: categoryId }, { preserveState: true });
-                                    }}
-                                    className="h-16 pl-8 pr-12 bg-white dark:bg-slate-900 border-none rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 shadow-sm appearance-none"
-                                >
-                                    <option value="">Audit State</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
-                                <Button onClick={handleSearch} className="h-16 px-10 rounded-[2rem] bg-slate-900 text-white hover:bg-slate-800 transition-all font-black text-[10px] uppercase tracking-widest gap-3">
-                                    <Filter size={18} />
-                                    <span>Scan</span>
-                                </Button>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <button onClick={() => setCategoryId('')}
+                                    style={{
+                                        padding: '0.625rem 0.875rem', border: 'none', borderRadius: '10px',
+                                        textAlign: 'left', fontSize: '0.82rem', fontWeight: 700,
+                                        background: categoryId === '' ? '#f5f3ff' : 'transparent',
+                                        color: categoryId === '' ? '#6366f1' : '#64748b',
+                                        cursor: 'pointer', transition: 'all 0.2s',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                                    }}>
+                                    <span>All Expenditures</span>
+                                    {categoryId === '' && <ChevronRight size={14} />}
+                                </button>
+                                {categories.map(cat => (
+                                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <button onClick={() => setCategoryId(cat.id)}
+                                            style={{
+                                                flex: 1, padding: '0.625rem 0.875rem', border: 'none', borderRadius: '10px',
+                                                textAlign: 'left', fontSize: '0.82rem', fontWeight: 700,
+                                                background: categoryId == cat.id ? '#f5f3ff' : 'transparent',
+                                                color: categoryId == cat.id ? '#6366f1' : '#64748b',
+                                                cursor: 'pointer', transition: 'all 0.2s',
+                                                display: 'flex', alignItems: 'center', gap: '10px'
+                                            }}>
+                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color }} />
+                                            {cat.name}
+                                        </button>
+                                        <button onClick={() => { setEditingCategory(cat); categoryForm.setData({ name: cat.name, code: cat.code || '', description: cat.description || '', color: cat.color, is_active: !!cat.is_active }); setShowCategoryModal(true); }}
+                                            style={{ width: '28px', height: '28px', border: 'none', background: 'transparent', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Edit size={12} />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
-                        {/* Expenditure Registry Card */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
-                                            <th className="px-10 py-8">Capital Object</th>
-                                            <th className="px-10 py-8">Node / Project</th>
-                                            <th className="px-10 py-8 text-right">Yield (৳)</th>
-                                            <th className="px-10 py-8 text-center">Audit Status</th>
-                                            <th className="px-10 py-8 text-right">Protocols</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {expenses.data.length > 0 ? (
-                                            expenses.data.map((expense) => {
-                                                const config = statusConfig[expense.status] || statusConfig.pending;
-                                                return (
-                                                    <tr key={expense.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all">
-                                                        <td className="px-10 py-8">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:scale-110 transition-transform shadow-inner">
-                                                                    <Receipt size={24} />
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <p className="text-sm font-black text-slate-900 dark:text-white uppercase italic truncate max-w-[200px]">{expense.title}</p>
-                                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                                        {new Date(expense.expense_date).toLocaleDateString()} • {expense.expense_number}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-10 py-8">
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: expense.category?.color || '#cbd5e1' }} />
-                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 italic">{expense.category?.name || '-'}</span>
-                                                            </div>
-                                                            {expense.project && (
-                                                                <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-500 uppercase tracking-tight">
-                                                                    <CornerRightDown size={10} />
-                                                                    {expense.project.title}
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-10 py-8 text-right">
-                                                            <p className="text-lg font-black text-slate-900 dark:text-white tracking-tighter italic">৳{parseFloat(expense.amount).toLocaleString()}</p>
-                                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{expense.payment_method?.replace('_', ' ') || '-'}</p>
-                                                        </td>
-                                                        <td className="px-10 py-8 text-center">
-                                                            <Badge className={cn("px-4 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest border-2", config.color)}>
-                                                                {config.label}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="px-10 py-8 text-right">
-                                                            <div className="flex items-center justify-end gap-3">
-                                                                <Link href={route('expenses.show', expense.id)}>
-                                                                    <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 transition-all hover:scale-110">
-                                                                        <Eye size={18} />
-                                                                    </Button>
-                                                                </Link>
-                                                                <Link href={route('expenses.edit', expense.id)}>
-                                                                    <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-500 transition-all hover:scale-110">
-                                                                        <Edit size={18} />
-                                                                    </Button>
-                                                                </Link>
-                                                                <button onClick={() => handleDelete(expense.id)} className="w-10 h-10 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-500 transition-all hover:scale-110 flex items-center justify-center">
-                                                                    <Trash2 size={18} />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="5" className="px-10 py-32 text-center">
-                                                    <div className="space-y-4 opacity-20">
-                                                        <Receipt size={64} className="mx-auto" />
-                                                        <p className="text-[10px] font-black uppercase tracking-[0.5em] italic">Expenditure Log Empty</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                        <div style={{ ...card, background: '#1e1b4b', color: '#fff', border: 'none', padding: '1.25rem' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                                <LifeBuoy size={18} color="#fff" />
                             </div>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 6px' }}>Auditing Intelligence</h4>
+                            <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, lineHeight: 1.5, margin: 0 }}>Every recorded expense requires a descriptive title and linked category for tax and internal audit compliance.</p>
+                        </div>
+                    </div>
 
-                            {/* Pagination Protocol */}
-                            {expenses.links.length > 3 && (
-                                <div className="px-10 py-10 border-t border-slate-50 dark:border-slate-800 flex flex-wrap gap-2 justify-center">
-                                    {expenses.links.map((link, i) => (
-                                        <Link
-                                            key={i}
-                                            href={link.url || '#'}
-                                            className={cn(
-                                                "min-w-[44px] h-11 rounded-2xl flex items-center justify-center text-xs font-black uppercase tracking-widest transition-all",
-                                                link.active
-                                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                                                    : link.url
-                                                        ? "bg-white dark:bg-slate-800 text-slate-500 hover:bg-indigo-50 shadow-sm"
-                                                        : "text-slate-200 cursor-not-allowed"
-                                            )}
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
-                                        />
+                    {/* Right: Enhanced Transactions List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        
+                        {/* Filters Row */}
+                        <div style={{ ...card, padding: '1rem 1.25rem' }}>
+                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                                    <Search size={16} color="#fb7185" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                                    <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                                        placeholder="Scan by vendor, title, or reference..."
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '0.625rem 1rem 0.625rem 2.25rem', background: '#fff1f2', border: '1.5px solid #fee2e2', borderRadius: '10px', fontSize: '0.85rem', color: '#1e1b4b', outline: 'none', fontWeight: 600 }}
+                                        onFocus={e => { e.target.style.borderColor = '#fb7185'; e.target.style.boxShadow = '0 0 0 3px rgba(251,113,133,0.1)'; }}
+                                        onBlur={e => { e.target.style.borderColor = '#fee2e2'; e.target.style.boxShadow = 'none'; }}
+                                    />
+                                </div>
+                                <select value={status} onChange={e => setStatus(e.target.value)}
+                                    style={{ padding: '0.55rem 1rem', background: '#f9f7ff', border: '1.5px solid #ede9fe', borderRadius: '10px', fontSize: '0.82rem', color: '#4338ca', fontWeight: 600, cursor: 'pointer', outline: 'none', appearance: 'none', minWidth: '150px' }}>
+                                    <option value="">Any Status</option>
+                                    <option value="pending">Awaiting Audit</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="paid">Funded / Paid</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                                {(search || status || categoryId) && (
+                                    <button onClick={() => { setSearch(''); setStatus(''); setCategoryId(''); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.55rem 0.875rem', background: '#fff1f2', border: '1.5px solid #fecaca', borderRadius: '10px', color: '#ef4444', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
+                                        <X size={13} /> Reset
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Rows List */}
+                        {expenses.data.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {expenses.data.map(expense => {
+                                    const cfg = getStatusConfig(expense.status);
+                                    return (
+                                        <div key={expense.id} style={{
+                                            ...card, padding: '1rem 1.5rem',
+                                            display: 'flex', alignItems: 'center',
+                                            gap: '1.5rem', flexWrap: 'wrap',
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        }}
+                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#fb7185'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(251,113,133,0.06)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                        >
+                                            {/* Icon */}
+                                            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid #fee2e2' }}>
+                                                <Receipt size={22} color="#e11d48" />
+                                            </div>
+
+                                            {/* Info */}
+                                            <div style={{ width: '220px' }}>
+                                                <p style={{ fontSize: '0.92rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>{expense.title}</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>{expense.expense_number}</span>
+                                                    <span style={{ color: '#cbd5e1' }}>•</span>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(expense.expense_date).toLocaleDateString('en-GB')}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Tier & Attachment */}
+                                            <div style={{ flex: 2, minWidth: '180px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: expense.category?.color || '#cbd5e1' }} />
+                                                    <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#4b5563', margin: 0 }}>{expense.category?.name || 'Administrative Tier'}</p>
+                                                </div>
+                                                {expense.project?.title && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                                        <Briefcase size={12} color="#a78bfa" />
+                                                        <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#a78bfa', margin: 0, textTransform: 'uppercase' }}>{expense.project.title}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Amount */}
+                                            <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                                                <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>Outbound Cost</p>
+                                                <p style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>
+                                                    ৳{new Intl.NumberFormat().format(expense.amount)}
+                                                </p>
+                                            </div>
+
+                                            {/* Status Badge */}
+                                            <div style={{ minWidth: '110px', textAlign: 'center' }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.68rem', fontWeight: 850, color: cfg.color, background: cfg.bg, padding: '4px 12px', borderRadius: '20px', border: `1.5px solid ${cfg.color}15`, textTransform: 'uppercase' }}>
+                                                    <cfg.icon size={11} />
+                                                    {cfg.label}
+                                                </span>
+                                            </div>
+
+                                            {/* Actions Suite */}
+                                            <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+                                                <Link href={route('expenses.show', expense.id)} title="Audit Details">
+                                                    <button style={iconBtn('#f5f3ff', '#6366f1')}><Eye size={16} /></button>
+                                                </Link>
+                                                <Link href={route('expenses.edit', expense.id)} title="Edit Entry">
+                                                    <button style={iconBtn('#fffbeb', '#d97706')}><Edit size={16} /></button>
+                                                </Link>
+                                                <button style={iconBtn('#fff1f2', '#ef4444')} title="Purge Log" onClick={() => confirm('Withdraw this expenditure record?') && router.delete(route('expenses.destroy', expense.id))}>
+                                                    <Trash2 size={16} />
+                                                </button>
+                                                <div style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', color: '#cbd5e1' }}>
+                                                    <ChevronRight size={18} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '6rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px', background: '#faf9ff' }}>
+                                <Inbox size={48} color="#e0d9ff" style={{ margin: '0 auto 1.5rem' }} />
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 0.5rem' }}>No Expenditure Logs</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: '0 0 2rem' }}>
+                                    Your business spending ledger is empty. Start tracking your outflows.
+                                </p>
+                                <button onClick={() => setShowCreateModal(true)} style={{ 
+                                    display: 'inline-flex', alignItems: 'center', gap: '8px', 
+                                    padding: '0.75rem 1.75rem', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', 
+                                    border: 'none', borderRadius: '14px', color: '#fff', 
+                                    fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
+                                    boxShadow: '0 6px 16px rgba(225,29,72,0.25)'
+                                }}>
+                                    <Plus size={18} /> Log First Expenditure
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Pagination */}
+                        {expenses.links && expenses.links.length > 3 && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', ...card, padding: '0.875rem 1.25rem' }}>
+                                <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, fontWeight: 600 }}>
+                                    Page <strong style={{ color: '#1e1b4b' }}>{expenses.current_page}</strong> of <strong style={{ color: '#1e1b4b' }}>{expenses.last_page}</strong>
+                                </p>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                    {expenses.links.map((link, i) => link.url ? (
+                                        <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', background: link.active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#f5f3ff', color: link.active ? '#fff' : '#6366f1', transition: 'all 0.2s' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                    ) : (
+                                        <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, background: '#f8fafc', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
                                     ))}
                                 </div>
-                            )}
-                        </Card>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* CREATE EXPENSE MODAL - SYNTHESIS ENGINE */}
+            {/* CREATE EXPENSE MODAL */}
             <Modal show={showCreateModal} onClose={() => setShowCreateModal(false)} maxWidth="2xl">
-                <div className="p-10 bg-white dark:bg-slate-900 rounded-[44px] shadow-2xl overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
-                        <Plus size={160} className="text-indigo-600" />
+                <div style={{ padding: '2rem', background: '#fff', borderRadius: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Register Expenditure</h2>
+                            <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, margin: '2px 0 0' }}>Manually document a verified outflow</p>
+                        </div>
+                        <button onClick={() => setShowCreateModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', padding: '8px', borderRadius: '50%' }}>
+                            <X size={20} />
+                        </button>
                     </div>
 
-                    <div className="flex items-center justify-between mb-12 relative z-10">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
-                                <DollarSign size={24} />
+                    <form onSubmit={handleCreateExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                            <div>
+                                <label style={labelStyle}>Expenditure Title</label>
+                                <input type="text" value={expenseForm.data.title} onChange={e => expenseForm.setData('title', e.target.value)} placeholder="e.g. Hosting Renewal" style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
                             </div>
                             <div>
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Entry Protocol</h3>
-                                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic leading-none">Log Capital Outflow</h2>
+                                <label style={labelStyle}>Amount (৳)</label>
+                                <input type="number" step="0.01" value={expenseForm.data.amount} onChange={e => expenseForm.setData('amount', e.target.value)} placeholder="0.00" style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
                             </div>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowCreateModal(false)} className="w-12 h-12 rounded-2xl hover:bg-slate-50 text-slate-300 transition-all hover:rotate-90">
-                            <X size={24} />
-                        </Button>
-                    </div>
-
-                    <form onSubmit={handleCreateExpense} className="space-y-10 relative z-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div className="space-y-4">
-                                <InputLabel value="Operational Object" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                <TextInput
-                                    className="w-full h-16 pl-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-600 shadow-inner"
-                                    value={expenseData.title}
-                                    onChange={(e) => setExpenseData('title', e.target.value)}
-                                    placeholder="e.g. AWS Infrastructure Deployment"
-                                    required
-                                />
-                                <InputError message={expenseErrors.title} />
-                            </div>
-                            <div className="space-y-4">
-                                <InputLabel value="Yield Amount (৳)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                <TextInput
-                                    type="number"
-                                    step="0.01"
-                                    className="w-full h-16 pl-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-black text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-600 shadow-inner"
-                                    value={expenseData.amount}
-                                    onChange={(e) => setExpenseData('amount', e.target.value)}
-                                    placeholder="0.00"
-                                    required
-                                />
-                                <InputError message={expenseErrors.amount} />
-                            </div>
-                            <div className="space-y-4">
-                                <InputLabel value="Expenditure Node" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                <select
-                                    className="w-full h-16 pl-6 pr-12 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-slate-900 dark:text-white appearance-none transition-all focus:ring-2 focus:ring-indigo-600 shadow-inner"
-                                    value={expenseData.expense_category_id}
-                                    onChange={(e) => setExpenseData('expense_category_id', e.target.value)}
-                                    required
-                                >
-                                    <option value="">Select Category</option>
-                                    {categories.map((cat) => (
-                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                    ))}
+                            <div>
+                                <label style={labelStyle}>Spending Tier</label>
+                                <select value={expenseForm.data.expense_category_id} onChange={e => expenseForm.setData('expense_category_id', e.target.value)} style={inputStyle} required onFocus={onFocus} onBlur={onBlur}>
+                                    <option value="">Select Tier</option>
+                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                                 </select>
-                                <InputError message={expenseErrors.expense_category_id} />
                             </div>
-                            <div className="space-y-4">
-                                <InputLabel value="Settlement Vector" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                <select
-                                    className="w-full h-16 pl-6 pr-12 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-slate-900 dark:text-white appearance-none transition-all focus:ring-2 focus:ring-indigo-600 shadow-inner"
-                                    value={expenseData.payment_method}
-                                    onChange={(e) => setExpenseData('payment_method', e.target.value)}
-                                    required
-                                >
+                            <div>
+                                <label style={labelStyle}>Movement Method</label>
+                                <select value={expenseForm.data.payment_method} onChange={e => expenseForm.setData('payment_method', e.target.value)} style={inputStyle} required onFocus={onFocus} onBlur={onBlur}>
                                     <option value="">Select Method</option>
-                                    <option value="cash">Petty Cash</option>
-                                    <option value="bank_transfer">Corporate Transfer</option>
-                                    <option value="cheque">Cheque Protocol</option>
-                                    <option value="credit_card">Corporate Card</option>
+                                    <option value="cash">Cash Fund</option>
+                                    <option value="bank_transfer">Bank Settlement</option>
+                                    <option value="credit_card">Card Transaction</option>
                                 </select>
                             </div>
-                            <div className="space-y-4">
-                                <InputLabel value="Occurrence Date" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                <TextInput
-                                    type="date"
-                                    className="w-full h-16 pl-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 shadow-inner"
-                                    value={expenseData.expense_date}
-                                    onChange={(e) => setExpenseData('expense_date', e.target.value)}
-                                    required
-                                />
+                            <div>
+                                <label style={labelStyle}>Settlement Date</label>
+                                <input type="date" value={expenseForm.data.expense_date} onChange={e => expenseForm.setData('expense_date', e.target.value)} style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
                             </div>
-                            <div className="space-y-4">
-                                <InputLabel value="Vendor Intel" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                <TextInput
-                                    className="w-full h-16 pl-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-slate-900 dark:text-white placeholder:text-slate-300 focus:ring-2 focus:ring-indigo-600 shadow-inner"
-                                    value={expenseData.vendor_name}
-                                    onChange={(e) => setExpenseData('vendor_name', e.target.value)}
-                                    placeholder="Target Entity/Merchant"
-                                />
+                            <div>
+                                <label style={labelStyle}>Linked Project</label>
+                                <select value={expenseForm.data.project_id} onChange={e => expenseForm.setData('project_id', e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
+                                    <option value="">Operational (No Project)</option>
+                                    {projects.map(proj => <option key={proj.id} value={proj.id}>{proj.title}</option>)}
+                                </select>
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <InputLabel value="Linked Project Manifest" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                            <select
-                                className="w-full h-16 pl-6 pr-12 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-slate-900 dark:text-white appearance-none transition-all focus:ring-2 focus:ring-indigo-600 shadow-inner"
-                                value={expenseData.project_id}
-                                onChange={(e) => setExpenseData('project_id', e.target.value)}
-                            >
-                                <option value="">No Active Project Link</option>
-                                {projects.map((proj) => (
-                                    <option key={proj.id} value={proj.id}>{proj.title}</option>
-                                ))}
-                            </select>
+                        <div>
+                            <label style={labelStyle}>Expenditure Context</label>
+                            <textarea value={expenseForm.data.description} onChange={e => expenseForm.setData('description', e.target.value)} placeholder="Provide internal notes for auditing..."
+                                style={{ ...inputStyle, height: '80px', padding: '0.75rem', resize: 'none' }} onFocus={onFocus} onBlur={onBlur} />
                         </div>
 
-                        <div className="space-y-4">
-                            <InputLabel value="Tactical Intelligence / Briefing" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                            <textarea
-                                className="w-full p-8 bg-slate-50 dark:bg-slate-800 border-none rounded-[2rem] font-bold text-sm resize-none h-32 shadow-inner placeholder:text-slate-300"
-                                value={expenseData.description}
-                                onChange={(e) => setExpenseData('description', e.target.value)}
-                                placeholder="Outline the strategic necessity of this outflow..."
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-4 pt-6">
-                            <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)} className="h-16 px-10 rounded-3xl font-black text-[10px] uppercase tracking-widest border-none bg-slate-50 hover:bg-slate-100 transition-all">
-                                Abort
-                            </Button>
-                            <Button type="submit" disabled={processingExpense} className="h-16 px-12 rounded-3xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 dark:shadow-none gap-3">
-                                {processingExpense ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                                Synchronize Flow
-                            </Button>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                            <button type="button" onClick={() => setShowCreateModal(false)} style={{ flex: 1, height: '48px', borderRadius: '12px', border: '1.5px solid #ede9fe', background: '#fff', color: '#64748b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
+                            <button type="submit" disabled={expenseForm.processing} style={{ flex: 1, height: '48px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', color: '#fff', fontSize: '0.9rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(225,29,72,0.2)' }}>
+                                {expenseForm.processing ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                Commit Record
+                            </button>
                         </div>
                     </form>
                 </div>
             </Modal>
 
-            {/* CATEGORY MODAL - NODE DEFINITION ENGINE */}
+            {/* CATEGORY SETTINGS MODAL */}
             <Modal show={showCategoryModal} onClose={() => setShowCategoryModal(false)} maxWidth="md">
-                <div className="p-10 bg-white dark:bg-slate-900 rounded-[44px] shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                        <Tag size={120} className="text-indigo-600" />
-                    </div>
-
-                    <div className="flex items-center justify-between mb-10 relative z-10">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                <Tag size={20} />
-                            </div>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic">
-                                {editingCategory ? 'Modify Node' : 'Initialize Node'}
-                            </h2>
+                <div style={{ padding: '2rem', background: '#fff', borderRadius: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Expenditure Tier</h2>
+                            <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, margin: '2px 0 0' }}>Classify outflows for better auditing</p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowCategoryModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 text-slate-300">
+                        <button onClick={() => setShowCategoryModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                             <X size={20} />
-                        </Button>
+                        </button>
                     </div>
 
-                    <form onSubmit={handleCategorySubmit} className="space-y-8 relative z-10">
-                        <div className="space-y-4">
-                            <InputLabel value="Node Identity" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                            <TextInput
-                                className="w-full h-16 pl-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-slate-900 dark:text-white shadow-inner"
-                                value={categoryData.name}
-                                onChange={(e) => setCategoryData('name', e.target.value)}
-                                placeholder="e.g. INFRASTRUCTURE"
-                                required
-                            />
-                            <InputError message={categoryErrors.name} />
+                    <form onSubmit={handleCategorySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div>
+                            <label style={labelStyle}>Tier Label</label>
+                            <input type="text" value={categoryForm.data.name} onChange={e => categoryForm.setData('name', e.target.value)} placeholder="e.g. INFRASTRUCTURE" style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
                         </div>
-
-                        <div className="space-y-4">
-                            <InputLabel value="Node Pulse (Color Code)" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                            <div className="flex gap-4 items-center">
-                                <div className="relative group">
-                                    <input
-                                        type="color"
-                                        className="h-16 w-32 p-2 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl cursor-pointer shadow-inner appearance-none"
-                                        value={categoryData.color}
-                                        onChange={(e) => setCategoryData('color', e.target.value)}
-                                    />
-                                    <div className="absolute inset-0 pointer-events-none border-4 border-transparent group-hover:border-indigo-600/20 rounded-3xl transition-all" />
-                                </div>
-                                <TextInput
-                                    className="flex-1 h-16 pl-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-black text-slate-900 dark:text-white shadow-inner uppercase"
-                                    value={categoryData.color}
-                                    onChange={(e) => setCategoryData('color', e.target.value)}
-                                />
+                        <div>
+                            <label style={labelStyle}>Tier Identification Color</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input type="color" value={categoryForm.data.color} onChange={e => categoryForm.setData('color', e.target.value)}
+                                    style={{ width: '46px', height: '46px', padding: '4px', border: '1.5px solid #ede9fe', borderRadius: '10px', background: '#f9f7ff', cursor: 'pointer' }} />
+                                <input type="text" value={categoryForm.data.color} onChange={e => categoryForm.setData('color', e.target.value)} style={{ ...inputStyle, flex: 1, textTransform: 'uppercase' }} onFocus={onFocus} onBlur={onBlur} />
                             </div>
                         </div>
-
-                        <div className="flex justify-end gap-3 pt-6">
-                            <Button type="button" variant="ghost" onClick={() => setShowCategoryModal(false)} className="h-14 px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400">
-                                Abort
-                            </Button>
-                            <Button type="submit" disabled={processingCategory} className="h-14 px-10 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg">
-                                {editingCategory ? 'Update Node' : 'Secure Node'}
-                            </Button>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                            <button type="button" onClick={() => setShowCategoryModal(false)} style={{ flex: 1, height: '48px', borderRadius: 'px', border: '1.5px solid #ede9fe', background: '#fff', color: '#64748b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
+                            <button type="submit" disabled={categoryForm.processing} style={{ flex: 1, height: '48px', borderRadius: '12px', border: 'none', background: '#1e1b4b', color: '#fff', fontSize: '0.9rem', fontWeight: 900, cursor: 'pointer' }}>
+                                {editingCategory ? 'Commit Tier' : 'Spawn Tier'}
+                            </button>
                         </div>
                     </form>
                 </div>
             </Modal>
+
+            <style>{`
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr !important; } }
+            `}</style>
         </FigmaLayout>
     );
 }

@@ -3,41 +3,63 @@ import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    Save,
     Plus,
     Trash2,
-    FileText,
-    Upload,
     Calendar,
     Users,
     CreditCard,
-    Info,
     CheckCircle2,
     DollarSign,
-    Calculator,
-    AlertCircle,
-    X,
-    ChevronDown,
     Loader2,
-    Layout,
     Receipt,
     History,
     FileCheck,
-    Coins,
-    Sparkles,
-    CalendarClock,
-    FileWarning,
-    Package,
-    Minus,
-    Pencil
+    Briefcase,
+    FileText,
+    Percent,
+    ArrowRight,
+    Plane,
+    Target,
+    Settings,
+    Edit3,
+    Upload,
+    Save
 } from 'lucide-react';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { Button } from '@/Components/ui/Button';
-import { Badge } from '@/Components/ui/Badge';
-import { cn } from '@/lib/utils';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import InputError from '@/Components/InputError';
+
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '24px',
+    border: '1.5px solid #f0eeff',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+    padding: '2rem',
+    position: 'relative',
+    overflow: 'hidden'
+};
+
+const inputStyle = {
+    width: '100%',
+    height: '52px',
+    padding: '0 1.25rem',
+    borderRadius: '12px',
+    border: '1.5px solid #f0eeff',
+    background: '#f8fafc',
+    fontSize: '0.95rem',
+    fontWeight: 700,
+    outline: 'none',
+    transition: 'all 0.2s',
+    color: '#1e1b4b'
+};
+
+const labelStyle = {
+    fontSize: '0.75rem',
+    fontWeight: 800,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    display: 'block',
+    marginBottom: '8px',
+    paddingLeft: '4px'
+};
 
 export default function Edit({ auth, invoice, clients }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -88,384 +110,217 @@ export default function Edit({ auth, invoice, clients }) {
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Refining ${invoice.invoice_number}`} />
+            <Head title={`Edit Invoice - ${invoice.invoice_number}`} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
-                        <Link href={route('invoices.show', invoice.id)}>
-                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:scale-105 transition-all">
+            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+                
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <Link href={route('invoices.show', invoice.id)} style={{ textDecoration: 'none' }}>
+                            <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1.5px solid #f0eeff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }} className="back-btn">
                                 <ArrowLeft size={20} />
-                            </Button>
+                            </button>
                         </Link>
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic">
-                                    Refinement
-                                </h1>
-                                <Badge variant="outline" className="font-mono text-xs bg-slate-100 dark:bg-slate-800 border-none px-3 py-1">
-                                    {invoice.invoice_number}
-                                </Badge>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Edit Invoice</h1>
+                                <span style={{ background: '#f1f5f9', padding: '4px 12px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 900, color: '#6366f1' }}>{invoice.invoice_number}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Pencil size={14} className="text-amber-500" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">Modifying Active Fiscal Record</p>
-                            </div>
+                            <p style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Modify the details of your existing invoice</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            className="h-14 px-8 rounded-2xl bg-white dark:bg-slate-900 border-none shadow-sm font-bold tracking-tight hover:scale-[1.02] transition-all"
-                            onClick={() => window.history.back()}
-                        >
-                            Abort Refinement
-                        </Button>
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={processing}
-                            className="h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-100 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98] gap-3"
-                        >
-                            {processing ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} strokeWidth={2.5} />}
-                            <span>Update Realization</span>
-                        </Button>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={() => window.history.back()} style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#64748b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer' }}>
+                            Cancel
+                        </button>
+                        <button onClick={handleSubmit} disabled={processing}
+                            style={{ height: '48px', padding: '0 2rem', background: '#6366f1', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 12px rgba(99,102,241,0.2)' }}>
+                            {processing ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            Update Invoice
+                        </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                    {/* Engineering Bay: Left Column */}
-                    <div className="lg:col-span-8 space-y-10">
-                        {/* Partner Linkage */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden p-10">
-                            <div className="flex items-center gap-4 mb-10">
-                                <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                                    <Users size={24} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '2rem' }} className="form-grid">
+                    {/* Left Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        
+                        {/* Client & Status Section */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <Users size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Client Information</h3>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Select Client</label>
+                                    <select value={data.client_id} onChange={(e) => setData('client_id', e.target.value)} style={inputStyle}>
+                                        <option value="">Choose a Client</option>
+                                        {clients.map((client) => <option key={client.id} value={client.id}>{client.company_name || client.name}</option>)}
+                                    </select>
+                                    {errors.client_id && <p style={{ color: '#e11d48', fontSize: '0.75rem', fontWeight: 800, margin: '8px 4px 0' }}>{errors.client_id}</p>}
                                 </div>
                                 <div>
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Target Intelligence</h3>
-                                    <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic">Partner Linkage</h2>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="space-y-4">
-                                    <InputLabel value="Operational Partner" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                    <div className="relative group">
-                                        <select
-                                            value={data.client_id}
-                                            onChange={(e) => setData('client_id', e.target.value)}
-                                            className={cn(
-                                                "w-full h-16 pl-6 pr-12 bg-slate-50 dark:bg-slate-800/80 border-none rounded-3xl font-bold text-slate-900 dark:text-white appearance-none transition-all focus:ring-2 focus:ring-amber-500 shadow-inner",
-                                                errors.client_id && "ring-2 ring-red-500/50"
-                                            )}
-                                            required
-                                        >
-                                            <option value="">Select Target Entity</option>
-                                            {clients.map((client) => (
-                                                <option key={client.id} value={client.id}>
-                                                    {client.company_name || client.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                            <ChevronDown size={20} />
-                                        </div>
-                                    </div>
-                                    <InputError message={errors.client_id} />
-                                </div>
-
-                                <div className="space-y-4">
-                                    <InputLabel value="Operational Status" className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-2" />
-                                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-[2rem] gap-1.5 shadow-inner h-16 items-center flex-wrap">
+                                    <label style={labelStyle}>Invoice Status</label>
+                                    <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px', gap: '4px', flexWrap: 'wrap' }}>
                                         {['draft', 'sent', 'paid', 'overdue', 'cancelled'].map((s) => (
-                                            <button
-                                                key={s}
-                                                type="button"
-                                                onClick={() => setData('status', s)}
-                                                className={cn(
-                                                    "px-4 h-10 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all",
-                                                    data.status === s
-                                                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-lg"
-                                                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                                )}
-                                            >
-                                                {s}
+                                            <button key={s} type="button" onClick={() => setData('status', s)}
+                                                style={{ flex: 1, minWidth: '70px', height: '44px', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', background: data.status === s ? '#fff' : 'transparent', color: data.status === s ? '#6366f1' : '#64748b', boxShadow: data.status === s ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>
+                                                {s.toUpperCase()}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             </div>
-                        </Card>
+                        </div>
 
-                        {/* Billable Manifold */}
-                        <Card className="rounded-[44px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                            <div className="p-10 pb-0 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                                        <Receipt size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-1">Resource Allocation</h3>
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic">Billable Manifold</h2>
-                                    </div>
+                        {/* Items Section */}
+                        <div style={{ ...cardStyle, padding: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <Receipt size={18} color="#6366f1" />
+                                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Invoice Items</h3>
                                 </div>
-                                <Button
-                                    type="button"
-                                    onClick={addItem}
-                                    className="h-12 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-amber-100 dark:shadow-none"
-                                >
-                                    <Plus size={16} strokeWidth={3} /> Add Line Entry
-                                </Button>
+                                <button type="button" onClick={addItem} style={{ padding: '0.6rem 1rem', background: '#f5f3ff', border: 'none', borderRadius: '10px', color: '#6366f1', fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Plus size={16} /> Add Item
+                                </button>
                             </div>
 
-                            <CardContent className="p-10 space-y-8">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {data.items.map((item, index) => (
-                                    <div key={index} className="group relative bg-slate-50/50 dark:bg-slate-800/50 rounded-[32px] p-8 border-2 border-transparent hover:border-amber-500/20 transition-all shadow-inner">
-                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-                                            <div className="lg:col-span-6 space-y-3">
-                                                <InputLabel value="Resource Description" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2" />
-                                                <TextInput
-                                                    className="w-full h-14 bg-white dark:bg-slate-900 border-none rounded-2xl font-bold shadow-sm"
-                                                    value={item.description}
-                                                    onChange={(e) => updateItem(index, 'description', e.target.value)}
-                                                    placeholder="Enter operational service..."
-                                                    required
-                                                />
+                                    <div key={index} style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '16px', border: '1.5px solid #f1f5f9' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 140px 40px', gap: '1rem', alignItems: 'flex-end' }}>
+                                            <div>
+                                                <label style={labelStyle}>Description</label>
+                                                <input type="text" value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Service or product name..." style={inputStyle} />
                                             </div>
-                                            <div className="lg:col-span-2 space-y-3">
-                                                <InputLabel value="Quantity" className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center block" />
-                                                <TextInput
-                                                    type="number"
-                                                    className="w-full h-14 bg-white dark:bg-slate-900 border-none rounded-2xl font-black text-center shadow-sm"
-                                                    value={item.quantity}
-                                                    onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                                    min="1"
-                                                    required
-                                                />
+                                            <div>
+                                                <label style={{ ...labelStyle, textAlign: 'center' }}>Qty</label>
+                                                <input type="number" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} min="1" style={{ ...inputStyle, textAlign: 'center', padding: '0' }} />
                                             </div>
-                                            <div className="lg:col-span-3 space-y-3">
-                                                <InputLabel value="Unit Cost (৳)" className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right block" />
-                                                <div className="relative">
-                                                    <TextInput
-                                                        type="number"
-                                                        step="0.01"
-                                                        className="w-full h-14 pl-10 pr-6 bg-white dark:bg-slate-900 border-none rounded-2xl font-black text-right shadow-sm"
-                                                        value={item.unit_price}
-                                                        onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
-                                                        placeholder="0.00"
-                                                        required
-                                                    />
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-amber-600/40">৳</span>
-                                                </div>
+                                            <div>
+                                                <label style={{ ...labelStyle, textAlign: 'right' }}>Unit Price (৳)</label>
+                                                <input type="number" step="0.01" value={item.unit_price} onChange={(e) => updateItem(index, 'unit_price', e.target.value)} placeholder="0.00" style={{ ...inputStyle, textAlign: 'right' }} />
                                             </div>
-                                            <div className="lg:col-span-1 flex justify-center pb-1">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    disabled={data.items.length === 1}
-                                                    onClick={() => removeItem(index)}
-                                                    className="w-12 h-12 rounded-2xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-0"
-                                                >
-                                                    <Minus size={20} strokeWidth={3} />
-                                                </Button>
+                                            <div style={{ height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <button type="button" onClick={() => removeItem(index)} disabled={data.items.length === 1}
+                                                    style={{ width: '36px', height: '36px', borderRadius: '8px', border: 'none', background: '#fef2f2', color: '#ef4444', cursor: 'pointer', display: data.items.length === 1 ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Yield Prediction</span>
-                                            <span className="font-black text-indigo-600 text-xl tracking-tighter">৳{(parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0)).toLocaleString()}</span>
+                                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Line Total</span>
+                                            <span style={{ fontSize: '1rem', fontWeight: 900, color: '#6366f1' }}>৳{(parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0)).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 ))}
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
 
-                        {/* Strategic Briefing */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm p-10 space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <FileText size={18} />
-                                    </div>
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Internal Briefing</h4>
-                                </div>
-                                <textarea
-                                    className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-sm resize-none h-40 shadow-inner"
-                                    value={data.notes}
-                                    onChange={(e) => setData('notes', e.target.value)}
-                                    placeholder="Add tactical notes or instructions..."
-                                />
-                            </Card>
-
-                            <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm p-10 space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <FileWarning size={18} />
-                                    </div>
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Terms of Engagement</h4>
-                                </div>
-                                <textarea
-                                    className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-none rounded-3xl font-bold text-sm resize-none h-40 shadow-inner"
-                                    value={data.terms}
-                                    onChange={(e) => setData('terms', e.target.value)}
-                                    placeholder="Outline fiscal protocols..."
-                                />
-                            </Card>
+                        {/* Notes Section */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div style={cardStyle}>
+                                <label style={labelStyle}>Internal Notes</label>
+                                <textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="Add private notes for internal reference..."
+                                    style={{ ...inputStyle, height: '120px', padding: '1rem', resize: 'none' }} />
+                            </div>
+                            <div style={cardStyle}>
+                                <label style={labelStyle}>Terms & Conditions</label>
+                                <textarea value={data.terms} onChange={(e) => setData('terms', e.target.value)} placeholder="Add payment terms or instructions for the client..."
+                                    style={{ ...inputStyle, height: '120px', padding: '1rem', resize: 'none' }} />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Fiscal Analysis: Right Column */}
-                    <div className="lg:col-span-4 space-y-10 lg:sticky lg:top-8">
-                        {/* Monetary Core */}
-                        <Card className="rounded-[44px] border-none bg-slate-950 dark:bg-slate-900 shadow-2xl shadow-indigo-500/10 overflow-hidden relative group">
-                            <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardContent className="p-10 relative z-10">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-500 italic mb-10">Fiscal Summary</h3>
-
-                                <div className="space-y-8">
-                                    <div className="flex justify-between items-center px-2">
-                                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Gross Yield</span>
-                                        <span className="font-black text-xl text-white tracking-tighter">৳{subtotal.toLocaleString()}</span>
-                                    </div>
-
-                                    <div className="space-y-4 bg-white/5 p-6 rounded-[32px] border border-white/5">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Taxation (+)</span>
-                                            <span className="text-emerald-400 font-bold">৳{parseFloat(data.tax_amount || 0).toLocaleString()}</span>
-                                        </div>
-                                        <TextInput
-                                            type="number"
-                                            step="0.01"
-                                            className="w-full h-14 bg-white/5 border-none rounded-2xl px-6 font-black text-white text-lg"
-                                            value={data.tax_amount}
-                                            onChange={(e) => setData('tax_amount', e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-4 bg-white/5 p-6 rounded-[32px] border border-white/5">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-rose-400 text-[10px] font-black uppercase tracking-widest">Adjustment (-)</span>
-                                            <span className="text-rose-400 font-bold">৳{parseFloat(data.discount_amount || 0).toLocaleString()}</span>
-                                        </div>
-                                        <TextInput
-                                            type="number"
-                                            step="0.01"
-                                            className="w-full h-14 bg-white/5 border-none rounded-2xl px-6 font-black text-white text-lg"
-                                            value={data.discount_amount}
-                                            onChange={(e) => setData('discount_amount', e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="pt-8 border-t border-white/5">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600 mb-4 px-2 italic">Net Realization</p>
-                                        <div className="relative group/total">
-                                            <div className="absolute inset-0 bg-indigo-600/20 blur-2xl group-hover/total:bg-indigo-600/40 transition-all opacity-50" />
-                                            <p className="relative text-5xl font-black text-white tracking-tighter leading-none py-2 px-2 drop-shadow-xl text-center md:text-left">
-                                                ৳{total.toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Timeline Protocols & Attachment */}
-                        <Card className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm p-10 space-y-10">
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <CalendarClock size={18} />
-                                    </div>
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Execution Dates</h4>
+                    {/* Right Column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        
+                        {/* Summary Section */}
+                        <div style={{ ...cardStyle, background: '#1e1b4b', color: '#fff', border: 'none' }}>
+                            <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2rem' }}>Invoice Summary</h3>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Subtotal</span>
+                                    <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>৳{subtotal.toLocaleString()}</span>
                                 </div>
 
-                                <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <InputLabel value="Cycle Initiation" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2" />
-                                        <TextInput
-                                            type="date"
-                                            className="w-full h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold shadow-inner"
-                                            value={data.invoice_date}
-                                            onChange={(e) => setData('invoice_date', e.target.value)}
-                                        />
+                                <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '1.25rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>Tax (+)</span>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>৳{parseFloat(data.tax_amount || 0).toLocaleString()}</span>
                                     </div>
-                                    <div className="space-y-3">
-                                        <InputLabel value="Realization Deadline" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2" />
-                                        <TextInput
-                                            type="date"
-                                            className={cn(
-                                                "w-full h-14 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold shadow-inner",
-                                                errors.due_date && "ring-2 ring-red-500/50"
-                                            )}
-                                            value={data.due_date}
-                                            onChange={(e) => setData('due_date', e.target.value)}
-                                        />
-                                        <InputError message={errors.due_date} />
+                                    <input type="number" value={data.tax_amount} onChange={(e) => setData('tax_amount', e.target.value)} 
+                                        style={{ width: '100%', height: '44px', background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', fontSize: '1rem', fontWeight: 800, outline: 'none', padding: '0 1rem', textAlign: 'right' }} />
+                                </div>
+
+                                <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '1.25rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f43f5e', textTransform: 'uppercase' }}>Discount (-)</span>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f43f5e' }}>৳{parseFloat(data.discount_amount || 0).toLocaleString()}</span>
                                     </div>
+                                    <input type="number" value={data.discount_amount} onChange={(e) => setData('discount_amount', e.target.value)} 
+                                        style={{ width: '100%', height: '44px', background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', fontSize: '1rem', fontWeight: 800, outline: 'none', padding: '0 1rem', textAlign: 'right' }} />
+                                </div>
+
+                                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1.5px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Total Amount</span>
+                                    <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>৳{total.toLocaleString()}</h2>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Dates & Attachment Section */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <Calendar size={18} color="#6366f1" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Important Dates</h3>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Invoice Date</label>
+                                    <input type="date" value={data.invoice_date} onChange={(e) => setData('invoice_date', e.target.value)} style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Due Date</label>
+                                    <input type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} 
+                                        style={{ ...inputStyle, border: errors.due_date ? '1.5px solid #e11d48' : inputStyle.border }} />
+                                    {errors.due_date && <p style={{ color: '#e11d48', fontSize: '0.75rem', fontWeight: 800, margin: '8px 4px 0' }}>{errors.due_date}</p>}
                                 </div>
                             </div>
 
-                            <div className="h-px bg-slate-100 dark:bg-slate-800" />
-
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <Upload size={18} />
-                                    </div>
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Asset Synchronization</h4>
+                            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1.5px solid #f0eeff' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                                    <Upload size={18} color="#6366f1" />
+                                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Update Attachment</h3>
                                 </div>
-
                                 {invoice.attachment && (
-                                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800 flex items-center gap-3">
-                                        <FileText size={16} className="text-indigo-600" />
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[10px] font-black uppercase text-indigo-600 tracking-tighter">Current Attachment</p>
-                                            <a href={`/storage/${invoice.attachment}`} target="_blank" className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate block">View Existing Asset</a>
-                                        </div>
+                                    <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <FileText size={16} color="#6366f1" />
+                                        <a href={`/storage/${invoice.attachment}`} target="_blank" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6366f1', textDecoration: 'none' }}>View Current Attachment</a>
                                     </div>
                                 )}
-
-                                <div
-                                    onClick={() => document.getElementById('attachment-refinement').click()}
-                                    className="w-full h-32 rounded-[32px] border-4 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-indigo-600/30 transition-all group/upload shadow-inner overflow-hidden"
-                                >
-                                    {data.attachment ? (
-                                        <div className="text-center p-4">
-                                            <CheckCircle2 size={24} className="mx-auto text-emerald-500 mb-1" />
-                                            <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase truncate max-w-[150px]">{data.attachment.name}</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <Upload className="text-slate-300 mb-2 group-hover/upload:scale-110 transition-transform" size={24} />
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Update Asset</p>
-                                        </>
-                                    )}
-                                </div>
-                                <input
-                                    id="attachment-refinement"
-                                    type="file"
-                                    className="hidden"
-                                    onChange={(e) => setData('attachment', e.target.files[0])}
-                                />
+                                <input type="file" onChange={(e) => setData('attachment', e.target.files[0])} 
+                                    style={{ width: '100%', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }} />
                             </div>
-                        </Card>
+                        </div>
+
                     </div>
                 </div>
             </div>
 
-            {/* Mobile Adaptive Navbar */}
-            <div className="fixed bottom-0 left-0 w-full p-6 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-t border-slate-200 dark:border-slate-800 md:hidden z-50">
-                <Button
-                    onClick={handleSubmit}
-                    disabled={processing}
-                    className="w-full h-16 bg-indigo-600 text-white rounded-[2rem] font-black tracking-widest uppercase shadow-2xl shadow-indigo-500/30 flex items-center justify-center gap-4 text-sm"
-                >
-                    {processing ? 'Synchronizing...' : 'Update Record'}
-                    <span className="w-1 h-1 rounded-full bg-white" />
-                    ৳{total.toLocaleString()}
-                </Button>
-            </div>
+            <style>{`
+                .back-btn:hover { background: #f8fafc !important; transform: translateX(-4px); }
+                .form-grid { grid-template-columns: 1.6fr 1fr; }
+                @media (max-width: 1000px) {
+                    .form-grid { grid-template-columns: 1fr !important; }
+                }
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `}</style>
         </FigmaLayout>
     );
 }

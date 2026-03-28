@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Payroll;
 use App\Models\Employee;
+use App\Models\Attendance;
+use App\Models\Setting;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class PayrollController extends Controller
 {
@@ -26,9 +29,9 @@ class PayrollController extends Controller
             ->withQueryString();
 
         $stats = [
-            'total_salary' => Payroll::where('month', $month)->where('year', $year)->sum('total'),
-            'paid_salary' => Payroll::where('month', $month)->where('year', $year)->where('status', 'paid')->sum('total'),
-            'pending_salary' => Payroll::where('month', $month)->where('year', $year)->where('status', 'pending')->sum('total'),
+            'total_salary' => (float) Payroll::where('month', $month)->where('year', $year)->sum('total'),
+            'paid_salary' => (float) Payroll::where('month', $month)->where('year', $year)->where('status', 'paid')->sum('total'),
+            'pending_salary' => (float) Payroll::where('month', $month)->where('year', $year)->where('status', 'pending')->sum('total'),
         ];
 
         return Inertia::render('Employees/Payroll/Index', [
@@ -49,11 +52,19 @@ class PayrollController extends Controller
             'year' => 'required|integer|min:2000|max:2050',
         ]);
 
-        $month = $request->month;
-        $year = $request->year;
+        $month = (int) $request->month;
+        $year = (int) $request->year;
 
+        // Deduction Settings (Fallback to defaults if not in DB)
+        $lateDeductionPerDay = 100; // Fixed amount or logic
+        $absentDeductionType = 'per_day'; // 'per_day' or 'percentage'
+        
         $employees = Employee::where('status', 'active')->get();
         $generatedCount = 0;
+
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+        $totalDaysInMonth = $startDate->daysInMonth;
 
         foreach ($employees as $employee) {
             // Check if payroll already exists
@@ -63,19 +74,50 @@ class PayrollController extends Controller
                 ->exists();
 
             if (!$exists) {
+                // Fetch Attendance Stats
+                $attendanceStats = Attendance::where('employee_id', $employee->id)
+                    ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->selectRaw("
+                        COUNT(CASE WHEN status = 'present' THEN 1 END) as present_count,
+                        COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
+                        COUNT(CASE WHEN status = 'late' THEN 1 END) as late_count
+                    ")
+                    ->first();
+
+                $presentDays = $attendanceStats->present_count + $attendanceStats->late_count;
+                $absentDays = $attendanceStats->absent_count;
+                $lateDays = $attendanceStats->late_count;
+
+                // Simple Calculation Logic:
+                // 1. Absent Deduction: (Salary / DaysInMonth) * AbsentDays
+                $dailyRate = $employee->salary / $totalDaysInMonth;
+                $absentDeductionAmount = $absentDays * $dailyRate;
+
+                // 2. Late Deduction: (Example: 3 lates = 1 day salary deduction OR fixed amount)
+                // Let's go with a fixed amount per late for now as per user request "deduct amount based on late"
+                $lateDeductionAmount = $lateDays * $lateDeductionPerDay;
+
+                $totalSalary = $employee->salary - $absentDeductionAmount - $lateDeductionAmount;
+
                 Payroll::create([
                     'employee_id' => $employee->id,
                     'month' => $month,
                     'year' => $year,
+                    'total_days' => $totalDaysInMonth,
+                    'present_days' => $presentDays,
+                    'absent_days' => $absentDays,
+                    'late_days' => $lateDays,
                     'base_salary' => $employee->salary,
-                    'total' => $employee->salary, // Could add logic for attendance-based deductions here later
+                    'absent_deduction' => $absentDeductionAmount,
+                    'late_deduction' => $lateDeductionAmount,
+                    'total' => max(0, $totalSalary),
                     'status' => 'pending',
                 ]);
                 $generatedCount++;
             }
         }
 
-        return redirect()->back()->with('success', "Payroll generated for {$generatedCount} employees.");
+        return redirect()->back()->with('success', "Payroll generated for {$generatedCount} employees with attendance deductions.");
     }
 
     public function update(Request $request, Payroll $payroll)
@@ -84,22 +126,28 @@ class PayrollController extends Controller
             'status' => 'required|in:pending,paid,cancelled',
             'bonus' => 'nullable|numeric|min:0',
             'deductions' => 'nullable|numeric|min:0',
+            'late_deduction' => 'nullable|numeric|min:0',
+            'absent_deduction' => 'nullable|numeric|min:0',
             'payment_date' => 'nullable|date',
             'payment_method' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
 
-        // Recalculate total if bonus/deductions changed
-        if (isset($validated['bonus']) || isset($validated['deductions'])) {
-            $bonus = $validated['bonus'] ?? $payroll->bonus;
-            $deductions = $validated['deductions'] ?? $payroll->deductions;
-            $payroll->total = $payroll->base_salary + $bonus - $deductions;
-            $payroll->bonus = $bonus;
-            $payroll->deductions = $deductions;
-        }
+        // Recalculate total
+        $bonus = $validated['bonus'] ?? $payroll->bonus;
+        $manualDeductions = $validated['deductions'] ?? $payroll->deductions;
+        $lateDeduction = $validated['late_deduction'] ?? $payroll->late_deduction;
+        $absentDeduction = $validated['absent_deduction'] ?? $payroll->absent_deduction;
 
-        // Update other fields
+        $payroll->base_salary = $payroll->base_salary; // Keep original
+        $payroll->bonus = $bonus;
+        $payroll->deductions = $manualDeductions;
+        $payroll->late_deduction = $lateDeduction;
+        $payroll->absent_deduction = $absentDeduction;
+        
+        $payroll->total = $payroll->base_salary + $bonus - $manualDeductions - $lateDeduction - $absentDeduction;
         $payroll->status = $validated['status'];
+
         if ($request->has('payment_date'))
             $payroll->payment_date = $validated['payment_date'];
         if ($request->has('payment_method'))
@@ -110,8 +158,8 @@ class PayrollController extends Controller
         // Create Payment record if status changed to paid
         if ($payroll->isDirty('status') && $payroll->status === 'paid') {
             $payroll->load('employee');
-            $employeeName = trim($payroll->employee->first_name . ' ' . $payroll->employee->last_name);
-            $monthName = date('F', mktime(0, 0, 0, $payroll->month, 1));
+            $employeeName = $payroll->employee->full_name;
+            $monthName = Carbon::create($payroll->year, $payroll->month, 1)->format('F');
 
             \App\Models\Payment::create([
                 'payment_type' => 'outgoing',
