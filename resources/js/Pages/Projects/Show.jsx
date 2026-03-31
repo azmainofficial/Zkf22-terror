@@ -666,25 +666,26 @@ export default function Show({ auth, project, connectedInventory, designs, stats
 
             {/* ── DESIGN PREVIEW MODAL ── */}
             <Modal show={!!previewDesign} onClose={() => setPreviewDesign(null)} maxWidth="5xl">
-                <div style={{ background: '#0f172a', padding: '1rem', display: 'flex', flexDirection: 'column', height: '85vh' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0 10px' }}>
-                        <div>
-                            <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 800 }}>{previewDesign?.file_name}</h3>
-                            <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '0.75rem' }}>{previewDesign?.file_type} • File Preview</p>
+                <div style={{ background: '#0f172a', display: 'flex', flexDirection: 'column', height: '85vh', position: 'relative', borderRadius: '12px', overflow: 'hidden' }}>
+
+                    {/* Floating close button — sits over everything */}
+                    <button
+                        onClick={() => setPreviewDesign(null)}
+                        style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 20, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50%', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', backdropFilter: 'blur(6px)' }}
+                    >
+                        <CloseIcon size={16} />
+                    </button>
+
+                    {/* Slim header — only for non-CAD files */}
+                    {!(['dwg','dxf','cad','step','obj','stl'].includes((previewDesign?.file_name||'').split('.').pop().toLowerCase())) && (
+                        <div style={{ padding: '14px 54px 10px 20px', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                            <h3 style={{ margin: 0, color: '#fff', fontSize: '0.95rem', fontWeight: 800 }}>{previewDesign?.file_name}</h3>
+                            <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.72rem' }}>{previewDesign?.file_type}</p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            {['dwg','dxf','cad','step','stl'].includes((previewDesign?.file_name||'').split('.').pop().toLowerCase()) && (
-                                <a href={`/storage/${previewDesign?.file_path}`} download style={{ padding: '6px 14px', background: '#4f46e5', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Download size={13} /> Download
-                                </a>
-                            )}
-                            <button onClick={() => setPreviewDesign(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
-                                <CloseIcon size={18} />
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div style={{ flex: 1, background: '#1e293b', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                    )}
+
+                    {/* Content */}
+                    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                         {previewDesign?.file_type?.startsWith('image/') ? (
                             <img src={`/storage/${previewDesign.file_path}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Design Preview" />
                         ) : previewDesign?.file_type === 'application/pdf' ? (
@@ -693,11 +694,11 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                             <iframe
                                 key={previewDesign?.id}
                                 src={`/cad-viewer.html?url=${encodeURIComponent(window.location.origin + '/storage/' + (previewDesign?.file_path || ''))}&name=${encodeURIComponent(previewDesign?.file_name || '')}`}
-                                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px', background: '#0f172a' }}
+                                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
                                 title="CAD Viewer"
                             />
                         ) : (
-                            <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem' }}>
                                 <FileSearch size={64} style={{ marginBottom: '1rem', opacity: 0.3 }} />
                                 <p>No direct preview available for this file type ({previewDesign?.file_type})</p>
                                 <a href={`/storage/${previewDesign?.file_path}`} download style={{ color: '#6366f1', textDecoration: 'none', fontWeight: 800 }}>Download to view locally</a>
