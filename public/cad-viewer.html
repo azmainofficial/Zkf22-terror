@@ -35,6 +35,14 @@
             cursor: pointer; text-decoration: none; white-space: nowrap; border: none;
             transition: all 0.15s;
         }
+        @media (max-width: 600px) {
+            #toolbar { padding: 0 10px; gap: 8px; }
+            .tb-logo { font-size: 0; }
+            .tb-logo svg { margin-right: 4px; }
+            .tb-name { max-width: 150px; font-size: 0.75rem; }
+            .tb-btn span { display: none; }
+            .tb-btn { padding: 7px; }
+        }
         .tb-btn-ghost {
             background: rgba(255,255,255,0.06); color: #94a3b8;
             border: 1px solid rgba(255,255,255,0.1);
@@ -132,6 +140,9 @@
             padding: 1px 5px; border-radius: 3px; font-family: monospace; color: #94a3b8;
         }
         #hint.hidden { display: none; }
+        @media (max-width: 600px) {
+            #hint { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -148,12 +159,12 @@
     <div class="tb-sep"></div>
     <span class="tb-name" id="tb-name">—</span>
     <div class="tb-spacer"></div>
-    <a id="dl-btn" href="#" download class="tb-btn tb-btn-primary" style="display:none">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <a id="dl-btn" href="#" download class="tb-btn tb-btn-primary" style="display:none" title="Download">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Download
+        <span>Download</span>
     </a>
 </div>
 

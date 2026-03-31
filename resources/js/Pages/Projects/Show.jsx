@@ -841,7 +841,13 @@ function DesignCard({ design, canEdit, onDelete, onReplace, onReview, onPreview 
         <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '24px', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '1.5rem', display: 'flex', gap: '1.5rem' }}>
                 {/* Thumbnail / Icon Section */}
-                <div onClick={onPreview} style={{ 
+                <div onClick={() => {
+                    if (['dwg', 'dxf', 'cad', 'step', 'obj', 'stl'].includes(ext.toLowerCase())) {
+                        window.open(`/cad-viewer.html?url=${encodeURIComponent(window.location.origin + '/storage/' + design.file_path)}&name=${encodeURIComponent(design.file_name || '')}`, '_blank');
+                    } else {
+                        onPreview();
+                    }
+                }} style={{ 
                     width: '100px', height: '100px', flexShrink: 0, borderRadius: '16px', 
                     background: ['dwg', 'dxf', 'cad'].includes(ext.toLowerCase()) ? '#f0f7ff' : '#f8fafc', 
                     border: ['dwg', 'dxf', 'cad'].includes(ext.toLowerCase()) ? '2px solid #bfdbfe' : '1px solid #f1f5f9', 
@@ -903,7 +909,13 @@ function DesignCard({ design, canEdit, onDelete, onReplace, onReview, onPreview 
             {/* Always Visible Actions Footer */}
             <div style={{ padding: '1rem 1.5rem', background: '#fcfdfe', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={onPreview} style={{ padding: '10px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
+                    <button onClick={() => {
+                        if (['dwg', 'dxf', 'cad', 'step', 'obj', 'stl'].includes(ext.toLowerCase())) {
+                            window.open(`/cad-viewer.html?url=${encodeURIComponent(window.location.origin + '/storage/' + design.file_path)}&name=${encodeURIComponent(design.file_name || '')}`, '_blank');
+                        } else {
+                            onPreview();
+                        }
+                    }} style={{ padding: '10px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
                         <Maximize2 size={14} /> View
                     </button>
                     <a href={`/storage/${design.file_path}`} download style={{ padding: '10px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', fontSize: '0.85rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
