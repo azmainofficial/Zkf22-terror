@@ -12,36 +12,59 @@ class ProjectService
     /**
      * Store a newly created project.
      */
-    public function createProject(array $data, $files = [])
+    public function createProject(array $data, $designFiles = [], $docFiles = [])
     {
-        return DB::transaction(function () use ($data, $files) {
-            // Handle contract_details by appending to description
+        return DB::transaction(function () use ($data, $designFiles, $docFiles) {
+            // Handle field mappings
+            if (isset($data['deadline']) && !isset($data['end_date'])) {
+                $data['end_date'] = $data['deadline'];
+            }
+            unset($data['deadline']);
+
+            if (isset($data['contract_amount']) && !isset($data['budget'])) {
+                $data['budget'] = $data['contract_amount'];
+            }
+            unset($data['contract_amount']);
+
+            // Handle contract_details
             if (isset($data['contract_details'])) {
-                $details = json_decode($data['contract_details'], true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    $data['contract_details'] = $details;
-                } else {
-                    unset($data['contract_details']); // Invalid JSON
+                if (is_string($data['contract_details'])) {
+                    $details = json_decode($data['contract_details'], true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $data['contract_details'] = $details;
+                    } else {
+                        unset($data['contract_details']); // Invalid JSON
+                    }
                 }
+                // If it's already an array, leave it as is
             }
 
-            // Remove designs from data if present
-            if (isset($data['designs'])) {
-                unset($data['designs']); // designs are handled via $files
-            }
-
-            // Remove image from data if present (old code artifact)
-            if (isset($data['image'])) {
-                unset($data['image']);
-            }
+            // Remove non-fillable fields
+            unset($data['designs'], $data['documents'], $data['image'], $data['_method']);
 
             $project = Project::create($data);
 
-            if ($files && is_array($files)) {
-                foreach ($files as $file) {
+            // Handle Designs
+            if ($designFiles && is_array($designFiles)) {
+                foreach ($designFiles as $file) {
                     if ($file instanceof UploadedFile) {
                         $path = $file->store('project-designs', 'public');
                         $project->designs()->create([
+                            'file_path' => $path,
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_size' => $file->getSize(),
+                            'file_type' => $file->getClientMimeType(),
+                        ]);
+                    }
+                }
+            }
+
+            // Handle Documents
+            if ($docFiles && is_array($docFiles)) {
+                foreach ($docFiles as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $path = $file->store('project-documents', 'public');
+                        $project->documents()->create([
                             'file_path' => $path,
                             'file_name' => $file->getClientOriginalName(),
                             'file_size' => $file->getSize(),
@@ -57,14 +80,27 @@ class ProjectService
     /**
      * Update the specified project.
      */
-    public function updateProject(Project $project, array $data, $image = null)
+    public function updateProject(Project $project, array $data, $image = null, $designFiles = [], $docFiles = [])
     {
-        return DB::transaction(function () use ($project, $data, $image) {
+        return DB::transaction(function () use ($project, $data, $image, $designFiles, $docFiles) {
+            // Map form field names to DB column names
+            if (isset($data['deadline']) && !isset($data['end_date'])) {
+                $data['end_date'] = $data['deadline'];
+            }
+            unset($data['deadline']);
+
+            if (isset($data['contract_amount']) && !isset($data['budget'])) {
+                $data['budget'] = $data['contract_amount'];
+            }
+            unset($data['contract_amount']);
+
+            // Remove non-fillable / file fields
+            unset($data['_method'], $data['designs'], $data['documents']);
+
             if ($image) {
                 if ($project->image) {
                     Storage::disk('public')->delete($project->image);
                 }
-                // Handle image update correctly if needed, but for now we focus on create
                 if ($image instanceof UploadedFile) {
                     $path = $image->store('projects', 'public');
                     $data['image'] = $path;
@@ -83,6 +119,37 @@ class ProjectService
             }
 
             $project->update($data);
+
+            // Handle Designs
+            if ($designFiles && is_array($designFiles)) {
+                foreach ($designFiles as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $path = $file->store('project-designs', 'public');
+                        $project->designs()->create([
+                            'file_path' => $path,
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_size' => $file->getSize(),
+                            'file_type' => $file->getClientMimeType(),
+                        ]);
+                    }
+                }
+            }
+
+            // Handle Documents
+            if ($docFiles && is_array($docFiles)) {
+                foreach ($docFiles as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $path = $file->store('project-documents', 'public');
+                        $project->documents()->create([
+                            'file_path' => $path,
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_size' => $file->getSize(),
+                            'file_type' => $file->getClientMimeType(),
+                        ]);
+                    }
+                }
+            }
+
             return $project;
         });
     }
@@ -93,9 +160,18 @@ class ProjectService
     public function deleteProject(Project $project)
     {
         return DB::transaction(function () use ($project) {
+            // Cascade delete related entities
+            \App\Models\InventoryItem::where('project_id', $project->id)->delete();
+            \App\Models\Payment::where('project_id', $project->id)->delete();
+            \App\Models\ProjectMaterial::where('project_id', $project->id)->delete();
+            \App\Models\Expense::where('project_id', $project->id)->delete();
+            \App\Models\ProjectDesign::where('project_id', $project->id)->delete();
+            \App\Models\Design::where('project_id', $project->id)->delete();
+
             if ($project->image) {
                 Storage::disk('public')->delete($project->image);
             }
+            
             return $project->delete();
         });
     }

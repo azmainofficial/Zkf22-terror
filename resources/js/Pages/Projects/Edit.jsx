@@ -1,99 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
+import Modal from '@/Components/Modal';
+import { t } from '../../Lang/translation';
 import {
-    ArrowLeft,
-    Save,
-    X,
-    Plus,
-    Trash2,
-    Upload,
-    Pencil,
-    FileText,
-    Calendar,
-    DollarSign,
-    Clock,
-    Layers,
-    PlusCircle,
-    Check,
-    Loader2,
-    Image as ImageIcon,
-    AlertCircle,
-    Building2,
-    Target
+    ArrowLeft, Save, X, Plus, Upload, FileText,
+    Calendar, Clock, ChevronDown, CheckCircle2
 } from 'lucide-react';
+import ProjectCalculationTable from '@/Components/ProjectCalculationTable';
 
-const fieldStyle = {
+// ─── Design Tokens ──────────────────────────────────────────────
+const labelStyle = {
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    color: '#0f172a',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    display: 'block',
+    marginBottom: '8px'
+};
+
+const inputStyle = {
     width: '100%',
-    boxSizing: 'border-box',
-    padding: '0.65rem 1rem 0.65rem 2.4rem',
-    background: '#f9f7ff',
-    border: '1.5px solid #ede9fe',
-    borderRadius: '12px',
-    fontSize: '0.88rem',
-    color: '#1e1b4b',
+    height: '48px',
+    padding: '0 1rem',
+    borderRadius: '10px',
+    border: '1.5px solid #f1f5f9',
+    background: '#fff',
+    fontSize: '0.9rem',
+    fontWeight: 500,
     outline: 'none',
     transition: 'all 0.2s',
-    fontFamily: 'inherit'
+    color: '#1e293b'
 };
 
-const textAreaStyle = {
-    ...fieldStyle,
-    padding: '1rem',
-    minHeight: '120px',
-    resize: 'vertical'
+const sectionStyle = {
+    background: '#fff',
+    borderRadius: '16px',
+    border: '1px solid #f1f5f9',
+    padding: '2rem',
+    marginBottom: '1.5rem'
 };
 
-const onFocus = e => {
-    e.target.style.borderColor = '#8b5cf6';
-    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
+const sectionTitleStyle = {
+    fontSize: '0.8rem',
+    fontWeight: 800,
+    color: '#0f172a',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: '1.5rem'
 };
-
-const onBlur = e => {
-    e.target.style.borderColor = '#ede9fe';
-    e.target.style.boxShadow = 'none';
-};
-
-const labelStyle = {
-    fontSize: '0.78rem',
-    fontWeight: 700,
-    color: '#4b5563',
-    display: 'block',
-    marginBottom: '5px'
-};
-
-function Field({ icon: Icon, error, children }) {
-    return (
-        <div style={{ position: 'relative', width: '100%' }}>
-            {Icon && <Icon size={14} color="#a78bfa" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 10 }} />}
-            {children}
-            {error && <p style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}><AlertCircle size={11} /> {error}</p>}
-        </div>
-    );
-}
-
-function SectionCard({ title, subtitle, icon: Icon, children, accent = '#6366f1' }) {
-    return (
-        <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #f0eeff', boxShadow: '0 2px 12px rgba(99,102,241,0.05)', overflow: 'hidden', marginBottom: '1.25rem' }}>
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #f5f3ff', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: `${accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon size={17} color={accent} />
-                </div>
-                <div>
-                    <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{title}</p>
-                    {subtitle && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>}
-                </div>
-            </div>
-            <div style={{ padding: '1.25rem 1.5rem' }}>{children}</div>
-        </div>
-    );
-}
 
 export default function Edit({ auth, project, clients }) {
-    const [preview, setPreview] = useState(project.image ? `/storage/${project.image}` : null);
-    const [milestones, setMilestones] = useState(project.contract_details || []);
-    const [editingMilestone, setEditingMilestone] = useState(null);
-    const [milestoneForm, setMilestoneForm] = useState({ description: '', amount: '' });
+    const [showClientModal, setShowClientModal] = useState(false);
+
+    const clientForm = useForm({
+        name: '',
+        company_name: '',
+        email: '',
+        phone: '',
+        status: 'active',
+        stay_on_page: true
+    });
 
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
@@ -101,305 +69,370 @@ export default function Edit({ auth, project, clients }) {
         client_id: project.client_id,
         start_date: project.start_date,
         deadline: project.deadline || '',
-        budget: project.budget,
-        actual_cost: project.actual_cost || 0,
         status: project.status,
         priority: project.priority,
-        progress: project.progress || 0,
         description: project.description || '',
-        image: null,
-        contract_details: JSON.stringify(project.contract_details || []),
-        contract_amount: project.contract_amount || 0,
+        designs: [],
+        documents: [],
+        contract_details: project.contract_details || {},
+        budget: project.budget || 0,
     });
 
-    useEffect(() => {
-        const total = milestones.reduce((sum, m) => sum + parseFloat(m.amount || 0), 0);
+    const handleCalcChange = (calcData) => {
         setData(prev => ({
             ...prev,
-            contract_details: JSON.stringify(milestones),
-            contract_amount: total
+            contract_details: calcData,
+            budget: calcData.grand_total || 0
         }));
-    }, [milestones]);
-
-    const handleAddMilestone = () => {
-        if (milestoneForm.description && milestoneForm.amount) {
-            if (editingMilestone !== null) {
-                const updated = [...milestones];
-                updated[editingMilestone] = milestoneForm;
-                setMilestones(updated);
-                setEditingMilestone(null);
-            } else {
-                setMilestones([...milestones, milestoneForm]);
-            }
-            setMilestoneForm({ description: '', amount: '' });
-        }
     };
 
-    const handleEditMilestone = (index) => {
-        setMilestoneForm(milestones[index]);
-        setEditingMilestone(index);
+    const handleDesignUpload = e => {
+        setData('designs', [...data.designs, ...Array.from(e.target.files)]);
     };
 
-    const handleDeleteMilestone = (index) => {
-        setMilestones(milestones.filter((_, i) => i !== index));
+    const handleDocumentUpload = e => {
+        setData('documents', [...data.documents, ...Array.from(e.target.files)]);
     };
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setData('image', file);
-            setPreview(URL.createObjectURL(file));
-        }
-    };
-
-    const submit = (e) => {
+    const submit = e => {
         e.preventDefault();
-        post(route('projects.update', project.id), {
-            forceFormData: true,
+        post(route('projects.update', project.id), { forceFormData: true });
+    };
+
+    const handleQuickClientSubmit = e => {
+        e.preventDefault();
+        clientForm.post(route('clients.store'), {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowClientModal(false);
+                clientForm.reset();
+                router.reload({ only: ['clients'] });
+            }
         });
     };
 
-    const STATUS_OPTIONS = [
-        { value: 'pending', label: 'Pending', color: '#f59e0b', bg: '#fffbeb' },
-        { value: 'ongoing', label: 'In Progress', color: '#6366f1', bg: '#f5f3ff' },
-        { value: 'on_hold', label: 'On Hold', color: '#6b7280', bg: '#f3f4f6' },
-        { value: 'completed', label: 'Completed', color: '#10b981', bg: '#ecfdf5' },
-        { value: 'cancelled', label: 'Cancelled', color: '#ef4444', bg: '#fef2f2' },
-    ];
-
-    const PRIORITY_OPTIONS = [
-        { value: 'low', label: 'Low' },
-        { value: 'medium', label: 'Medium' },
-        { value: 'high', label: 'High' },
-        { value: 'critical', label: 'Critical' },
-    ];
-
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Edit Project - ${project.title}`} />
+            <Head title={`${t('edit_project')} - ${project.title}`} />
 
-            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '6rem' }}>
                 
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <Link href={route('projects.show', project.id)}>
-                            <button style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', border: '1.5px solid #ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6366f1', transition: 'all 0.2s' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                                <ArrowLeft size={18} />
-                            </button>
-                        </Link>
-                        <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '2px' }}>
-                                <Target size={14} color="#a78bfa" />
-                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Projects</span>
-                            </div>
-                            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Edit Project</h1>
-                        </div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <button onClick={submit} disabled={processing} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.7rem 1.5rem', background: processing ? '#a78bfa' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: processing ? 'not-allowed' : 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3) transition: all 0.2s' }}>
-                            {processing ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                            {processing ? 'Saving...' : 'Save Changes'}
-                        </button>
+                {/* ── Header ── */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+                    <Link href={route('projects.show', project.id)} style={{
+                        width: '40px', height: '40px', borderRadius: '50%',
+                        background: '#fff', border: '1px solid #f1f5f9',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#64748b', cursor: 'pointer', textDecoration: 'none'
+                    }}>
+                        <ArrowLeft size={20} />
+                    </Link>
+                    <div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{t('edit_project')}</h1>
+                        <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0', fontWeight: 500 }}>{t('update_details')}</p>
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }} className="project-grid">
-                    
-                    {/* Left Column */}
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        
-                        <SectionCard title="Basic Information" subtitle="Project name, client and description" icon={FileText}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                <div>
-                                    <label style={labelStyle}>Project Name</label>
-                                    <Field icon={Target} error={errors.title}>
-                                        <input type="text" value={data.title} onChange={e => setData('title', e.target.value)}
-                                            placeholder="Enter project title" style={fieldStyle} onFocus={onFocus} onBlur={onBlur} required />
-                                    </Field>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div>
-                                        <label style={labelStyle}>Client</label>
-                                        <Field icon={Building2} error={errors.client_id}>
-                                            <select value={data.client_id} onChange={e => setData('client_id', e.target.value)}
-                                                style={{ ...fieldStyle, appearance: 'none', cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur} required>
-                                                <option value="">Select a client</option>
-                                                {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.name}</option>)}
-                                            </select>
-                                        </Field>
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>Priority</label>
-                                        <Field>
-                                            <select value={data.priority} onChange={e => setData('priority', e.target.value)}
-                                                style={{ ...fieldStyle, paddingLeft: '1rem', appearance: 'none', cursor: 'pointer' }} onFocus={onFocus} onBlur={onBlur}>
-                                                {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                                            </select>
-                                        </Field>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label style={labelStyle}>Description</label>
-                                    <Field error={errors.description}>
-                                        <textarea value={data.description} onChange={e => setData('description', e.target.value)}
-                                            placeholder="Describe what this project is about..." style={textAreaStyle} onFocus={onFocus} onBlur={onBlur} />
-                                    </Field>
-                                </div>
+                <form onSubmit={submit}>
+                    {/* ── Basic Information ── */}
+                    <div style={sectionStyle}>
+                        <h3 style={sectionTitleStyle}>{t('basic_information')}</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div>
+                                <label style={labelStyle}>{t('project_title')} <span style={{ color: '#ef4444' }}>*</span></label>
+                                <input 
+                                    type="text" 
+                                    placeholder={t('enter_project_title')} 
+                                    style={inputStyle}
+                                    value={data.title}
+                                    onChange={e => setData('title', e.target.value)}
+                                    required
+                                />
+                                {errors.title && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '6px', fontWeight: 600 }}>{errors.title}</p>}
                             </div>
-                        </SectionCard>
 
-                        <SectionCard title="Timeline & Dates" subtitle="Set start and end dates" icon={Calendar} accent="#10b981">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div>
-                                    <label style={labelStyle}>Start Date</label>
-                                    <Field icon={Calendar} error={errors.start_date}>
-                                        <input type="date" value={data.start_date} onChange={e => setData('start_date', e.target.value)}
-                                            style={fieldStyle} onFocus={onFocus} onBlur={onBlur} required />
-                                    </Field>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label style={{ ...labelStyle, marginBottom: 0 }}>{t('client')} <span style={{ color: '#ef4444' }}>*</span></label>
+                                        <button type="button" onClick={() => setShowClientModal(true)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}>+ {t('add_new_client')}</button>
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                        <select 
+                                            style={{ ...inputStyle, appearance: 'none' }}
+                                            value={data.client_id}
+                                            onChange={e => setData('client_id', e.target.value)}
+                                            required
+                                        >
+                                            <option value="">{t('select_client')}</option>
+                                            {clients.map(c => (
+                                                <option key={c.id} value={c.id}>{c.company_name || c.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8' }} />
+                                    </div>
+                                    {errors.client_id && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '6px', fontWeight: 600 }}>{errors.client_id}</p>}
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Deadline</label>
-                                    <Field icon={Clock} error={errors.deadline}>
-                                        <input type="date" value={data.deadline} onChange={e => setData('deadline', e.target.value)}
-                                            style={fieldStyle} onFocus={onFocus} onBlur={onBlur} required />
-                                    </Field>
-                                </div>
-                            </div>
-                        </SectionCard>
-
-                        <SectionCard title="Payment Milestones" subtitle="Break down the project into payments" icon={Layers} accent="#8b5cf6">
-                            <div style={{ background: '#f9f7ff', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem', border: '1.5px dashed #dcd7ff' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 50px', gap: '1rem', alignItems: 'flex-end' }}>
-                                    <div>
-                                        <label style={{ ...labelStyle, color: '#6366f1' }}>Milestone Description</label>
-                                        <input type="text" value={milestoneForm.description} onChange={e => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
-                                            placeholder="e.g. Initial Deposit, Final Delivery" style={{ ...fieldStyle, paddingLeft: '1rem', background: '#fff' }} onFocus={onFocus} onBlur={onBlur} />
+                                    <label style={labelStyle}>{t('priority')}</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <select 
+                                            style={{ ...inputStyle, appearance: 'none' }}
+                                            value={data.priority}
+                                            onChange={e => setData('priority', e.target.value)}
+                                        >
+                                            <option value="low">{t('low')}</option>
+                                            <option value="medium">{t('medium')}</option>
+                                            <option value="high">{t('high')}</option>
+                                            <option value="critical">{t('critical')}</option>
+                                        </select>
+                                        <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8' }} />
                                     </div>
-                                    <div>
-                                        <label style={{ ...labelStyle, color: '#6366f1' }}>Amount (৳)</label>
-                                        <input type="number" value={milestoneForm.amount} onChange={e => setMilestoneForm({ ...milestoneForm, amount: e.target.value })}
-                                            placeholder="0.00" style={{ ...fieldStyle, paddingLeft: '1rem', background: '#fff', textAlign: 'right' }} onFocus={onFocus} onBlur={onBlur} />
-                                    </div>
-                                    <button type="button" onClick={handleAddMilestone} disabled={!milestoneForm.description || !milestoneForm.amount}
-                                        style={{ height: '42px', width: '42px', borderRadius: '10px', background: '#6366f1', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', opacity: (!milestoneForm.description || !milestoneForm.amount) ? 0.5 : 1 }}>
-                                        {editingMilestone !== null ? <Check size={20} /> : <Plus size={20} />}
-                                    </button>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {milestones.map((m, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', background: '#fff', borderRadius: '12px', border: '1.5px solid #f0eeff' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#f5f3ff', color: '#6366f1', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>{m.description}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6366f1' }}>৳{new Intl.NumberFormat().format(m.amount)}</span>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button type="button" onClick={() => handleEditMilestone(i)} style={{ color: '#9ca3af', background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}><Pencil size={14} /></button>
-                                                <button type="button" onClick={() => handleDeleteMilestone(i)} style={{ color: '#ef4444', background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                
-                                {milestones.length > 0 && (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: '#1e1b4b', borderRadius: '12px', marginTop: '0.5rem' }}>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#a5b4fc' }}>Total Project Value</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>৳{new Intl.NumberFormat().format(data.contract_amount)}</span>
-                                    </div>
-                                )}
-                                
-                                {milestones.length === 0 && (
-                                    <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af', fontSize: '0.85rem', background: '#f9f9fb', borderRadius: '12px' }}>
-                                        No milestones added yet.
-                                    </div>
-                                )}
+                            <div>
+                                <label style={labelStyle}>{t('status')}</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select 
+                                        style={{ ...inputStyle, appearance: 'none' }}
+                                        value={data.status}
+                                        onChange={e => setData('status', e.target.value)}
+                                    >
+                                        <option value="pending">{t('pending')}</option>
+                                        <option value="ongoing">{t('ongoing')}</option>
+                                        <option value="on_hold">{t('on_hold')}</option>
+                                        <option value="completed">{t('completed')}</option>
+                                        <option value="cancelled">{t('cancelled')}</option>
+                                    </select>
+                                    <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8' }} />
+                                </div>
                             </div>
-                        </SectionCard>
+
+                            <div>
+                                <label style={labelStyle}>{t('description')}</label>
+                                <textarea 
+                                    placeholder={t('brief_description')} 
+                                    style={{ ...inputStyle, height: '100px', padding: '12px', resize: 'none' }}
+                                    value={data.description}
+                                    onChange={e => setData('description', e.target.value)}
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Right Column */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        
-                        <SectionCard title="Status & Progress" subtitle="Set current project state" icon={Loader2}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <label style={labelStyle}>Project Status</label>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {STATUS_OPTIONS.map(s => (
-                                            <button key={s.value} type="button" onClick={() => setData('status', s.value)}
-                                                style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '10px', border: '1.5px solid', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', background: data.status === s.value ? s.bg : '#fff', borderColor: data.status === s.value ? s.color : '#f0eeff', color: data.status === s.value ? s.color : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                {s.label}
-                                                {data.status === s.value && <Check size={14} />}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <label style={labelStyle}>Progress</label>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#6366f1' }}>{data.progress}%</span>
-                                    </div>
-                                    <input type="range" min="0" max="100" value={data.progress} onChange={e => setData('progress', e.target.value)}
-                                        style={{ width: '100%', height: '6px', background: '#ede9fe', borderRadius: '10px', appearance: 'none', cursor: 'pointer', outline: 'none' }} />
+                    {/* ── Timeline ── */}
+                    <div style={sectionStyle}>
+                        <h3 style={sectionTitleStyle}>{t('timeline')}</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div>
+                                <label style={labelStyle}>{t('start_date')}</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type="date" 
+                                        style={inputStyle}
+                                        value={data.start_date || ''}
+                                        onChange={e => setData('start_date', e.target.value)}
+                                    />
                                 </div>
                             </div>
-                        </SectionCard>
+                            <div>
+                                <label style={labelStyle}>{t('deadline')} <span style={{ color: '#ef4444' }}>*</span></label>
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type="date" 
+                                        style={inputStyle}
+                                        value={data.deadline || ''}
+                                        onChange={e => setData('deadline', e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                {errors.deadline && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '6px', fontWeight: 600 }}>{errors.deadline}</p>}
+                            </div>
+                        </div>
+                    </div>
 
-                        <SectionCard title="Project Image" subtitle="Display thumbnail" icon={ImageIcon} accent="#f43f5e">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-                                {preview ? (
-                                    <div style={{ width: '100%', height: '180px', borderRadius: '14px', overflow: 'hidden', position: 'relative', border: '2px solid #f0eeff' }}>
-                                        <img src={preview} style={{ width: '100%', height: '100%', objectCover: 'cover' }} alt="Preview" />
-                                        <button onClick={() => { setData('image', null); setPreview(null); }}
-                                            style={{ position: 'absolute', top: '8px', right: '8px', padding: '6px', background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                                            <Trash2 size={14} />
+                    {/* ── Financial Details ── */}
+                    <div style={sectionStyle}>
+                        <h3 style={sectionTitleStyle}>Project Financials & Calculations</h3>
+                        <ProjectCalculationTable project={project} canEdit={true} onChange={handleCalcChange} />
+                    </div>
+
+                    {/* ── Upload Designs ── */}
+                    <div style={sectionStyle}>
+                        <h3 style={sectionTitleStyle}>Production / CAD Designs</h3>
+                        <label style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            padding: '3rem 2rem', border: '2px dashed #e2e8f0', borderRadius: '16px',
+                            cursor: 'pointer', background: '#fff', transition: 'all 0.2s'
+                        }} onMouseEnter={e => e.currentTarget.style.borderColor = '#4f46e5'} onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}>
+                            <Upload size={32} color="#94a3b8" style={{ marginBottom: '1rem' }} />
+                            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569', margin: 0 }}>Add new design files</p>
+                            <input type="file" multiple style={{ display: 'none' }} onChange={handleDesignUpload} />
+                        </label>
+
+                        {data.designs.length > 0 && (
+                            <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+                                {data.designs.map((file, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                        <FileText size={16} color="#4f46e5" style={{ flexShrink: 0 }} />
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
+                                        <button type="button" onClick={() => setData('designs', data.designs.filter((_, idx) => idx !== i))} style={{ color: '#ef4444', padding: '2px', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                            <X size={14} />
                                         </button>
                                     </div>
-                                ) : (
-                                    <label style={{ width: '100%', height: '180px', borderRadius: '14px', border: '2px dashed #ede9fe', background: '#f9f7ff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: '10px', transition: 'all 0.2s' }}
-                                        onMouseEnter={e => e.currentTarget.style.borderColor = '#c4b5fd'}
-                                        onMouseLeave={e => e.currentTarget.style.borderColor = '#ede9fe'}>
-                                        <Upload size={24} color="#a78bfa" />
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#a78bfa' }}>Upload Main Image</span>
-                                        <input type="file" onChange={handleImageChange} style={{ display: 'none' }} accept="image/*" />
-                                    </label>
-                                )}
+                                ))}
                             </div>
-                        </SectionCard>
+                        )}
+                    </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-                            <button onClick={submit} disabled={processing} style={{ width: '100%', padding: '0.9rem', background: processing ? '#a78bfa' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '1rem', fontWeight: 800, cursor: processing ? 'not-allowed' : 'pointer', boxShadow: '0 6px 20px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                {processing ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                                {processing ? 'Saving...' : 'Save All Changes'}
+                    {/* ── Upload Documents ── */}
+                    <div style={sectionStyle}>
+                        <h3 style={sectionTitleStyle}>Project Documents / Contracts</h3>
+                        <label style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            padding: '3rem 2rem', border: '2px dashed #e2e8f0', borderRadius: '16px',
+                            cursor: 'pointer', background: '#fff', transition: 'all 0.2s'
+                        }} onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'} onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}>
+                            <Upload size={32} color="#94a3b8" style={{ marginBottom: '1rem' }} />
+                            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569', margin: 0 }}>Add formal documents & agreements</p>
+                            <input type="file" multiple style={{ display: 'none' }} onChange={handleDocumentUpload} />
+                        </label>
+
+                        {data.documents.length > 0 && (
+                            <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+                                {data.documents.map((file, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                        <FileText size={16} color="#10b981" style={{ flexShrink: 0 }} />
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
+                                        <button type="button" onClick={() => setData('documents', data.documents.filter((_, idx) => idx !== i))} style={{ color: '#ef4444', padding: '2px', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── Footer Actions ── */}
+                    <div style={{ 
+                        display: 'flex', justifyContent: 'flex-end', 
+                        gap: '1rem', marginTop: '2.5rem'
+                    }}>
+                        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                            <button 
+                                type="submit" 
+                                disabled={processing}
+                                style={{
+                                    flex: 1, height: '42px', background: '#3b82f6', color: '#fff',
+                                    border: 'none', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 800,
+                                    cursor: processing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                                    boxShadow: '0 4px 10px rgba(59,130,246,0.15)'
+                                }}
+                            >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <CheckCircle2 size={16} /> {processing ? t('updating') : t('save_changes')}
+                                </span>
                             </button>
-                            <Link href={route('projects.show', project.id)} style={{ textDecoration: 'none' }}>
-                                <button style={{ width: '100%', padding: '0.8rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '14px', color: '#9ca3af', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
-                                    onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#fecaca'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.borderColor = '#ede9fe'; }}>
-                                    Cancel & Return
-                                </button>
+                            <Link href={route('projects.show', project.id)} style={{
+                                height: '42px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #f1f5f9',
+                                borderRadius: '10px', color: '#1e293b', fontSize: '0.85rem', fontWeight: 700,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                textDecoration: 'none'
+                            }}>
+                                <X size={16} /> {t('cancel')}
                             </Link>
                         </div>
                     </div>
-                </div>
+                </form>
+
+                {/* ── Quick Client Modal ── */}
+                <Modal show={showClientModal} onClose={() => setShowClientModal(false)} maxWidth="md">
+                    <form onSubmit={handleQuickClientSubmit} style={{ padding: '2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{t('add_new_client')}</h3>
+                            <button type="button" onClick={() => setShowClientModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={labelStyle}>{t('company_name')}</label>
+                                <input 
+                                    type="text" 
+                                    style={inputStyle} 
+                                    value={clientForm.data.company_name} 
+                                    onChange={e => clientForm.setData('company_name', e.target.value)} 
+                                    required
+                                />
+                                {clientForm.errors.company_name && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px' }}>{clientForm.errors.company_name}</p>}
+                            </div>
+                            <div>
+                                <label style={labelStyle}>{t('contact_person')}</label>
+                                <input 
+                                    type="text" 
+                                    style={inputStyle} 
+                                    value={clientForm.data.name} 
+                                    onChange={e => clientForm.setData('name', e.target.value)} 
+                                    required
+                                />
+                                {clientForm.errors.name && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px' }}>{clientForm.errors.name}</p>}
+                            </div>
+                            <div>
+                                <label style={labelStyle}>{t('email_address')}</label>
+                                <input 
+                                    type="email" 
+                                    style={inputStyle} 
+                                    value={clientForm.data.email} 
+                                    onChange={e => clientForm.setData('email', e.target.value)} 
+                                    required
+                                />
+                                {clientForm.errors.email && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px' }}>{clientForm.errors.email}</p>}
+                            </div>
+                            <div>
+                                <label style={labelStyle}>{t('phone_number')}</label>
+                                <input 
+                                    type="text" 
+                                    style={inputStyle} 
+                                    value={clientForm.data.phone} 
+                                    onChange={e => clientForm.setData('phone', e.target.value)} 
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                            <button 
+                                type="submit" 
+                                disabled={clientForm.processing}
+                                style={{
+                                    flex: 1, height: '48px', background: '#3b82f6', color: '#fff',
+                                    border: 'none', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 800,
+                                    cursor: clientForm.processing ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}
+                            >
+                                {clientForm.processing ? t('saving') : t('add_client')}
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setShowClientModal(false)}
+                                style={{
+                                    height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #f1f5f9',
+                                    borderRadius: '10px', color: '#1e293b', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer'
+                                }}
+                            >
+                                {t('cancel')}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
             </div>
 
             <style>{`
-                @media (max-width: 992px) {
-                    .project-grid { grid-template-columns: 1fr !important; }
-                }
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                aside { z-index: 110 !important; }
+                header { z-index: 105 !important; }
             `}</style>
         </FigmaLayout>
     );

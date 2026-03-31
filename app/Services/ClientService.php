@@ -56,12 +56,24 @@ class ClientService
     public function deleteClient(Client $client)
     {
         return DB::transaction(function () use ($client) {
+            // Cascade delete projects (which trigger their own cascade via ProjectService)
+            $projectService = app(\App\Services\ProjectService::class);
+            foreach ($client->projects as $project) {
+                $projectService->deleteProject($project);
+            }
+
+            // Client-direct relations cascade
+            \App\Models\InventoryItem::where('client_id', $client->id)->delete();
+            \App\Models\Payment::where('client_id', $client->id)->delete();
+            \App\Models\Design::where('client_id', $client->id)->delete();
+
             if ($client->avatar) {
                 Storage::disk('public')->delete($client->avatar);
             }
             if ($client->logo) {
                 Storage::disk('public')->delete($client->logo);
             }
+            
             return $client->delete();
         });
     }

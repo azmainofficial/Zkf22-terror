@@ -68,10 +68,16 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
 
     // Project Management
     Route::resource('projects', ProjectController::class);
+    Route::patch('projects/{project}/status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
     Route::post('projects/{project}/materials', [ProjectController::class, 'addMaterial'])->name('projects.materials.add');
     Route::patch('projects/materials/{projectMaterial}', [ProjectController::class, 'updateMaterial'])->name('projects.materials.update');
     Route::delete('projects/materials/{projectMaterial}', [ProjectController::class, 'removeMaterial'])->name('projects.materials.destroy');
     Route::post('projects/{project}/designs', [ProjectController::class, 'uploadDesign'])->name('projects.designs.upload');
+    Route::delete('projects/{project}/designs/{design}', [ProjectController::class, 'destroyDesign'])->name('projects.designs.destroy');
+    Route::post('projects/{project}/designs/{design}/replace', [ProjectController::class, 'replaceDesign'])->name('projects.designs.replace');
+    Route::patch('projects/{project}/designs/{design}/status', [ProjectController::class, 'updateReviewStatus'])->name('projects.designs.updateReview');
+    Route::delete('projects/{project}/documents/{document}', [ProjectController::class, 'destroyDocument'])->name('projects.documents.destroy');
+    Route::patch('projects/{project}/documents/{document}/rename', [ProjectController::class, 'renameDocument'])->name('projects.documents.rename');
 
     Route::resource('employees', EmployeeController::class);
     Route::resource('shifts', ShiftController::class);
@@ -99,6 +105,7 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
 
     // Payroll
     Route::get('payroll/sheet', [PayrollController::class, 'salarySheet'])->name('payroll.sheet');
+    Route::get('payroll/export/excel', [PayrollController::class, 'export'])->name('payroll.export');
     Route::post('payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
     Route::resource('payroll', PayrollController::class);
 
@@ -107,7 +114,10 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::resource('clients', ClientController::class);
     Route::post('clients/{client}/brands', [ClientController::class, 'addBrand'])->name('clients.brands.add');
     Route::delete('clients/{client}/brands/{brand}', [ClientController::class, 'removeBrand'])->name('clients.brands.remove');
+    Route::post('clients/{client}/designs/bulk', [ClientController::class, 'bulkUploadDesign'])->name('clients.designs.bulk');
     Route::post('clients/{client}/designs', [ClientController::class, 'uploadDesign'])->name('clients.designs.upload');
+    Route::delete('clients/designs/{design}', [ClientController::class, 'destroyDesign'])->name('clients.designs.destroy');
+    Route::post('clients/designs/{design}/replace', [ClientController::class, 'replaceDesign'])->name('clients.designs.replace');
     Route::resource('brands', BrandController::class);
     Route::resource('suppliers', SupplierController::class);
     Route::resource('purchase-orders', PurchaseOrderController::class);
@@ -146,6 +156,8 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::resource('slip-designs', SlipDesignController::class);
     Route::post('slip-designs/{slipDesign}/toggle', [SlipDesignController::class, 'toggleStatus'])->name('slip-designs.toggle');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export/daily', [ReportController::class, 'exportDaily'])->name('reports.export.daily');
+    Route::get('/reports/export/monthly', [ReportController::class, 'exportMonthly'])->name('reports.export.monthly');
 
     // Devices (existing)
     Route::resource('devices', DeviceController::class)->only(['index', 'update']);

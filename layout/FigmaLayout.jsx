@@ -28,11 +28,7 @@ import {
     CircleStackIcon,
     CreditCardIcon as PaymentIcon,
     IdentificationIcon,
-    ChartBarIcon,
-    BanknotesIcon,
-    TagIcon,
-    AdjustmentsHorizontalIcon,
-    TableCellsIcon
+    ChartBarIcon
 } from '@heroicons/react/24/outline';
 
 const EXPANDED_W = 260;
@@ -44,15 +40,15 @@ const styles = {
         backdropFilter: 'blur(12px)',
         borderBottom: '1px solid #f1f5f9'
     },
-    navItemBase: (active, collapsed) => ({
+    navItem: (active, collapsed) => ({
         display: 'flex',
         alignItems: 'center',
-        padding: collapsed ? '12px 0' : '10px 16px',
+        padding: collapsed ? '12px 0' : '12px 16px',
         justifyContent: collapsed ? 'center' : 'flex-start',
         borderRadius: '12px',
         textDecoration: 'none',
         transition: 'all 0.2s ease',
-        marginBottom: '2px',
+        marginBottom: '4px',
         background: active ? '#4f46e5' : 'transparent',
         color: active ? '#fff' : '#64748b',
         border: 'none',
@@ -64,44 +60,19 @@ const styles = {
 
 function NavItem({ item, collapsed, onClose }) {
     const active = item.active;
-    const [isOpen, setIsOpen] = useState(item.expanded || (item.children && item.children.some(c => c.active)));
-
-    if (item.children) {
-        return (
-            <div style={{ marginBottom: '4px' }}>
-                <button 
-                    onClick={() => setIsOpen(!isOpen)}
-                    style={styles.navItemBase(active && !isOpen, collapsed)}
-                    className={`sidebar-link ${active ? 'active' : ''}`}
-                >
-                    <item.icon style={{ width: 22, height: 22, flexShrink: 0, marginRight: collapsed ? 0 : '12px' }} />
-                    {!collapsed && (
-                        <>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, flex: 1, textAlign: 'left' }}>{item.name}</span>
-                            {isOpen ? <ChevronUpIcon style={{ width: 14, height: 14 }} /> : <ChevronDownIcon style={{ width: 14, height: 14 }} />}
-                        </>
-                    )}
-                </button>
-                {isOpen && !collapsed && (
-                    <div style={{ marginLeft: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px', borderLeft: '1.5px solid #f1f5f9', paddingLeft: '8px' }}>
-                        {item.children.map((sub, i) => (
-                            <Link key={i} href={sub.href} onClick={onClose} style={{
-                                padding: '8px 12px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: sub.active ? 700 : 500,
-                                color: sub.active ? '#4f46e5' : '#94a3b8', textDecoration: 'none', background: sub.active ? '#f5f3ff' : 'transparent'
-                            }}>
-                                {sub.name}
-                            </Link>
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
-    }
-
     return (
-        <Link href={item.href} onClick={onClose} style={styles.navItemBase(active, collapsed)} className={`sidebar-link ${active ? 'active' : ''}`}>
+        <Link 
+            href={item.href} 
+            onClick={onClose}
+            style={styles.navItem(active, collapsed)}
+            className={`sidebar-link ${active ? 'active' : ''}`}
+        >
             <item.icon style={{ width: 22, height: 22, flexShrink: 0, marginRight: collapsed ? 0 : '12px' }} />
-            {!collapsed && <span style={{ fontSize: '0.9rem', fontWeight: active ? 700 : 600 }}>{item.name}</span>}
+            {!collapsed && (
+                <span style={{ fontSize: '0.9rem', fontWeight: active ? 700 : 600, whiteSpace: 'nowrap' }}>
+                    {item.name}
+                </span>
+            )}
         </Link>
     );
 }
@@ -112,6 +83,7 @@ export default function FigmaLayout({ children }) {
     const { url } = usePage();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false);
     const [showFlash, setShowFlash] = useState(false);
 
     useEffect(() => {
@@ -123,72 +95,43 @@ export default function FigmaLayout({ children }) {
     }, [flash]);
 
     const isActive = (path) => url === path || url.startsWith(path + '/');
-    const sidebarWidth = (collapsed && !mobileOpen) ? COLLAPSED_W : EXPANDED_W;
-
-    const permissions = auth?.permissions || [];
-    const isAdmin = auth?.is_admin || false;
-
-    const can = (permission) => isAdmin || permissions.includes(permission);
+    const sidebarWidth = collapsed ? COLLAPSED_W : EXPANDED_W;
 
     const navigation = [
         { title: 'Intelligence', items: [
-            { name: t('dashboard'), icon: HomeIcon, href: route('dashboard'), active: isActive('/dashboard'), show: can('view_dashboard') },
-            { name: t('reports_section'), icon: ChartBarIcon, href: route('reports.index'), active: isActive('/reports'), show: can('view_audit_logs') },
-        ].filter(i => i.show) },
-        { title: 'Portfolio', items: [
-            { name: t('projects'), icon: FolderIcon, href: route('projects.index'), active: isActive('/projects'), show: can('view_projects') },
-            { name: t('clients'), icon: UserCircleIcon, href: route('clients.index'), active: isActive('/clients'), show: can('view_clients') },
-            { name: t('inventory'), icon: CubeIcon, href: route('inventory.index'), active: isActive('/inventory'), show: can('view_inventory') },
-        ].filter(i => i.show) },
-        { title: 'Finance', items: [
-            { name: t('payments'), icon: PaymentIcon, href: route('payments.index'), active: isActive('/payments'), show: can('view_payments') },
-            { name: t('money'), icon: CurrencyDollarIcon, href: route('expenses.index'), active: isActive('/expenses'), show: can('view_payroll') },
-            { name: t('suppliers'), icon: TruckIcon, href: route('suppliers.index'), active: isActive('/suppliers'), show: can('view_suppliers') },
-        ].filter(i => i.show) },
+            { name: 'Dashboard', icon: HomeIcon, href: route('dashboard'), active: isActive('/dashboard') },
+            { name: 'Sales Performance', icon: ChartBarIcon, href: route('reports.index'), active: isActive('/reports') },
+        ]},
+        { title: 'Core Business', items: [
+            { name: 'Active Projects', icon: FolderIcon, href: route('projects.index'), active: isActive('/projects') },
+            { name: 'Client Network', icon: UserCircleIcon, href: route('clients.index'), active: isActive('/clients') },
+            { name: 'Material Stock', icon: CubeIcon, href: route('inventory.index'), active: isActive('/inventory') },
+        ]},
         { title: 'Operations', items: [
-            { 
-                name: t('hr_team'), icon: UsersIcon, href: '#', 
-                active: isActive('/employees') || isActive('/attendance') || isActive('/payroll') || isActive('/shifts') || isActive('/leaves'),
-                show: can('view_employees') || can('view_attendance') || can('view_payroll'),
-                children: [
-                    { name: t('my_team'), href: route('employees.index'), active: isActive('/employees'), show: can('view_employees') },
-                    { name: t('attendance'), href: route('attendance.index'), active: isActive('/attendance'), show: can('view_attendance') },
-                    { name: t('payroll'), href: route('payroll.index'), active: isActive('/payroll'), show: can('view_payroll') },
-                    { name: t('schedule'), href: route('shifts.index'), active: isActive('/shifts'), show: can('view_attendance') },
-                    { name: t('leaves_holidays'), href: route('leaves.index'), active: isActive('/leaves'), show: can('view_attendance') },
-                ].filter(c => c.show)
-            },
-            { 
-                name: t('admin'), icon: Cog6ToothIcon, href: '#', 
-                active: isActive('/settings') || isActive('/brands') || isActive('/units') || isActive('/roles') || isActive('/users'),
-                show: can('view_settings') || can('view_roles') || can('view_users'),
-                children: [
-                    { name: t('users'), href: route('users.index'), active: isActive('/users'), show: can('view_users') },
-                    { name: t('roles'), href: route('roles.index'), active: isActive('/roles'), show: can('view_roles') },
-                    { name: t('settings'), href: route('settings.index'), active: isActive('/settings'), show: can('view_settings') },
-                    { name: t('brands'), href: route('brands.index'), active: isActive('/brands'), show: can('view_settings') },
-                    { name: t('units'), href: route('units.index'), active: isActive('/units'), show: can('view_settings') },
-                ].filter(c => c.show)
-            },
-        ].filter(i => i.show) }
-    ].filter(s => s.items.length > 0);
+            { name: 'Payments', icon: PaymentIcon, href: route('payments.index'), active: isActive('/payments') },
+            { name: 'Expense Log', icon: CurrencyDollarIcon, href: route('expenses.index'), active: isActive('/expenses') },
+            { name: 'Supply Chain', icon: TruckIcon, href: route('suppliers.index'), active: isActive('/suppliers') },
+        ]},
+        { title: 'Human Resource', items: [
+            { name: 'Staff Management', icon: UsersIcon, href: route('employees.index'), active: isActive('/employees') },
+            { name: 'Attendance Hub', icon: IdentificationIcon, href: route('attendance.index'), active: isActive('/attendance') },
+        ]}
+    ];
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontFamily: "'Outfit', 'Inter', sans-serif" }}>
             
+            {/* Sidebar Desktop */}
             <aside className="desktop-sidebar" style={{
                 width: `${sidebarWidth}px`, position: 'fixed', top: 0, left: 0, bottom: 0,
                 background: '#fff', borderRight: '1px solid #f1f5f9', zIndex: 50,
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', overflow: 'hidden'
             }}>
-                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1.5rem 0.8rem' }}>
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1.5rem 1rem' }}>
+                    {/* Logo Section */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2.5rem', padding: '0 8px' }}>
-                        <div style={{ width: '42px', height: '42px', background: settings?.app_logo ? 'transparent' : '#4f46e5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                            {settings?.app_logo ? (
-                                <img src={`/storage/${settings.app_logo}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                            ) : (
-                                <SparklesIcon style={{ width: 22, height: 22, color: '#fff' }} />
-                            )}
+                        <div style={{ width: '40px', height: '40px', background: '#4f46e5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <SparklesIcon style={{ width: 22, height: 22, color: '#fff' }} />
                         </div>
                         {!collapsed && (
                             <div style={{ overflow: 'hidden' }}>
@@ -200,6 +143,7 @@ export default function FigmaLayout({ children }) {
                         )}
                     </div>
 
+                    {/* Nav Items */}
                     <nav style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                         {navigation.map((section, idx) => (
                             <div key={idx} style={{ marginBottom: '1.5rem' }}>
@@ -211,12 +155,13 @@ export default function FigmaLayout({ children }) {
                         ))}
                     </nav>
 
+                    {/* Footer Actions */}
                     <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
-                        <button onClick={() => setCollapsed(!collapsed)} style={styles.navItemBase(false, collapsed)}>
+                        <button onClick={() => setCollapsed(!collapsed)} style={styles.navItem(false, collapsed)}>
                             <Bars3Icon style={{ width: 22, height: 22, marginRight: collapsed ? 0 : '12px' }} />
                             {!collapsed && <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Collapse View</span>}
                         </button>
-                        <Link href={route('logout')} method="post" as="button" style={{ ...styles.navItemBase(false, collapsed), color: '#ef4444' }}>
+                        <Link href={route('logout')} method="post" as="button" style={{ ...styles.navItem(false, collapsed), color: '#ef4444' }}>
                             <ArrowRightOnRectangleIcon style={{ width: 22, height: 22, marginRight: collapsed ? 0 : '12px' }} />
                             {!collapsed && <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>End Session</span>}
                         </Link>
@@ -224,17 +169,19 @@ export default function FigmaLayout({ children }) {
                 </div>
             </aside>
 
+            {/* Mobile Drawer Overlay */}
             {mobileOpen && (
                 <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }} />
             )}
             
+            {/* Mobile Sidebar */}
             <aside style={{ 
                 position: 'fixed', top: 0, left: mobileOpen ? 0 : '-300px', bottom: 0, 
                 width: '280px', background: '#fff', zIndex: 110, transition: 'all 0.3s ease',
                 padding: '1.5rem', display: 'flex', flexDirection: 'column'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <p style={{ fontWeight: 800, fontSize: '1.2rem', color: '#0f172a' }}>Business Hub</p>
+                    <p style={{ fontWeight: 800, fontSize: '1.2rem', color: '#0f172a' }}>Menu</p>
                     <button onClick={() => setMobileOpen(false)} style={{ background: '#f8fafc', border: 'none', padding: '8px', borderRadius: '10px' }}>
                         <XMarkIcon style={{ width: 20, height: 20, color: '#64748b' }} />
                     </button>
@@ -251,32 +198,36 @@ export default function FigmaLayout({ children }) {
                 </nav>
             </aside>
 
+            {/* Main Content Area */}
             <div style={{ 
                 flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, 
-                marginLeft: (collapsed ? COLLAPSED_W : EXPANDED_W), 
+                marginLeft: mobileOpen ? 0 : `${sidebarWidth}px`, 
                 transition: 'margin-left 0.3s ease'
-            }} className="main-viewport">
+            }} className="main-wrapper">
                 
+                {/* Header */}
                 <header style={{ 
                     position: 'sticky', top: 0, zIndex: 40, height: '72px', 
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
                     padding: '0 2rem', ...styles.glass 
                 }} className="top-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                         <button onClick={() => setMobileOpen(true)} className="mobile-menu-btn" style={{ background: '#fff', border: '1px solid #f1f5f9', padding: '8px', borderRadius: '10px', color: '#4f46e5', cursor: 'pointer' }}>
                             <Bars3Icon style={{ width: 22, height: 22 }} />
                         </button>
-                        <div style={{ position: 'relative', maxWidth: '380px', flex: 1 }} className="header-search">
+                        <div style={{ position: 'relative', maxWidth: '400px', flex: 1 }} className="header-search">
                             <MagnifyingGlassIcon style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, color: '#94a3b8' }} />
-                            <input type="text" placeholder="Global search node..." style={{ width: '100%', padding: '10px 16px 10px 48px', background: '#f1f5f9', border: 'none', borderRadius: '12px', fontSize: '0.9rem', outline: 'none', fontWeight: 500 }} />
+                            <input type="text" placeholder="Global search..." style={{ width: '100%', padding: '10px 16px 10px 48px', background: '#f1f5f9', border: 'none', borderRadius: '12px', fontSize: '0.9rem', outline: 'none', fontWeight: 500 }} />
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                        <button onClick={() => setLanguage(getLanguage() === 'en' ? 'bn' : 'en')} style={{ background: '#fff', border: '1px solid #f1f5f9', padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, color: '#4f46e5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                        {/* Language Toggle */}
+                        <button onClick={() => setLanguage(getLanguage() === 'en' ? 'bn' : 'en')} style={{ background: '#fff', border: '1px solid #f1f5f9', padding: '8px 16px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 800, color: '#4f46e5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {getLanguage() === 'en' ? 'BN' : 'EN'}
                         </button>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '1.25rem', borderLeft: '1px solid #f1f5f9' }}>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '1.5rem', borderLeft: '1px solid #f1f5f9' }}>
                             <div className="user-info-text" style={{ textAlign: 'right' }}>
                                 <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{user?.name}</p>
                                 <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#4f46e5', margin: 0, textTransform: 'uppercase' }}>Administrator</p>
@@ -292,6 +243,7 @@ export default function FigmaLayout({ children }) {
                     {children}
                 </main>
 
+                {/* Flash Messages */}
                 {showFlash && (flash?.success || flash?.error) && (
                     <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 200, padding: '1rem 1.5rem', borderRadius: '16px', background: '#fff', borderLeft: `4px solid ${flash.success ? '#10b981' : '#ef4444'}`, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {flash.success ? <CheckCircleIcon style={{ width: 24, height: 24, color: '#10b981' }} /> : <XCircleIcon style={{ width: 24, height: 24, color: '#ef4444' }} />}
@@ -304,9 +256,17 @@ export default function FigmaLayout({ children }) {
             </div>
 
             <style>{`
-                @media (max-width: 1024px) { .desktop-sidebar { display: none !important; } .main-viewport { margin-left: 0 !important; } .top-header { padding: 0 1rem !important; } .mobile-menu-btn { display: block !important; } }
-                @media (min-width: 1025px) { .mobile-menu-btn { display: none !important; } }
-                @media (max-width: 640px) { .header-search, .user-info-text { display: none !important; } }
+                @media (min-width: 1025px) { 
+                    .mobile-menu-btn { display: none !important; }
+                }
+                @media (max-width: 1024px) {
+                    .desktop-sidebar { display: none !important; }
+                    .main-wrapper { margin-left: 0 !important; }
+                    .top-header { padding: 0 1rem !important; }
+                }
+                @media (max-width: 640px) {
+                    .header-search, .user-info-text { display: none !important; }
+                }
                 .sidebar-link:hover { background: #f8fafc !important; color: #4f46e5 !important; }
                 .sidebar-link.active:hover { background: #4f46e5 !important; color: #fff !important; }
             `}</style>

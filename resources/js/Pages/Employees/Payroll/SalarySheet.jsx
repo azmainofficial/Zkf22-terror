@@ -1,126 +1,152 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
-import { Printer, ShieldCheck, Zap, Activity, Building2, User } from 'lucide-react';
 
 export default function SalarySheet({ payrolls, month, year }) {
     const handlePrint = () => { window.print(); };
 
     const monthName = new Date(0, month - 1).toLocaleString('en-US', { month: 'long' }).toUpperCase();
-    const totalBase = payrolls.reduce((sum, p) => sum + parseFloat(p.base_salary), 0);
-    const totalBonus = payrolls.reduce((sum, p) => sum + parseFloat(p.bonus), 0);
-    const totalDeductions = payrolls.reduce((sum, p) => {
-        return sum + (parseFloat(p.deductions) + parseFloat(p.late_deduction) + parseFloat(p.absent_deduction));
-    }, 0);
-    const totalNet = payrolls.reduce((sum, p) => sum + parseFloat(p.total), 0);
+    
+    // Totals
+    const totals = {
+        base: payrolls.reduce((s, p) => s + (parseFloat(p.base_salary) || 0), 0),
+        gross: payrolls.reduce((s, p) => s + (parseFloat(p.gross_pay) || 0), 0),
+        net: payrolls.reduce((s, p) => s + (parseFloat(p.total) || 0), 0),
+    };
 
     return (
-        <div style={{ background: '#f8fafc', minHeight: '100vh', color: '#1e293b', padding: '40px', fontFamily: 'sans-serif' }} className="manifest-container">
-            <Head title={`Salary Manifest - ${monthName} ${year}`} />
+        <div style={{ background: '#f1f5f9', minHeight: '100vh', padding: '20px' }}>
+            <Head title={`Skytouch Salary Sheet - ${monthName} ${year}`} />
 
-            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                {/* Print Control Surface */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', padding: '24px', background: '#fff', borderRadius: '24px', border: '1.5px solid #f1f5f9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }} className="print-hidden">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><Activity size={20} /></div>
-                        <div>
-                            <h3 style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Salary Manifest</h3>
-                            <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0, fontWeight: 700 }}>{monthName} {year} • BIOMETRIC SYNC ACTIVE</p>
-                        </div>
-                    </div>
-                    <button onClick={handlePrint} style={{ height: '44px', padding: '0 24px', borderRadius: '12px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Printer size={16} /> PRINT MANIFEST
-                    </button>
+            <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
+                {/* Print Control */}
+                <div className="print-hidden" style={{ background: '#fff', padding: '15px 30px', borderRadius: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Skytouch Salary Manifest</h2>
+                    <button onClick={handlePrint} style={{ padding: '8px 24px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>PRINT SHEET</button>
                 </div>
 
-                {/* Fiscal Manifest Surface */}
-                <div style={{ background: '#fff', padding: '60px', borderRadius: '32px', border: '1.5px solid #f1f5f9', position: 'relative', overflow: 'hidden' }}>
-                    {/* Header Entity */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '60px' }}>
-                        <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                <div style={{ width: '4px', height: '32px', background: '#4f46e5', borderRadius: '2px' }} />
-                                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>Salary Manifest</h1>
-                            </div>
-                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.3em', paddingLeft: '16px', textTransform: 'uppercase' }}>Period: {monthName} {year}</p>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <p style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Release Synchronization</p>
-                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}</p>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', color: '#10b981', marginTop: '6px' }}>
-                                <ShieldCheck size={14} />
-                                <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase' }}>Verified System Sync</span>
-                            </div>
-                        </div>
+                {/* Sheet Surface */}
+                <div style={{ background: '#fff', padding: '40px', borderRadius: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflowX: 'auto' }} className="sheet-surface">
+                    
+                    {/* Skytouch Branding */}
+                    <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                        <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#000', letterSpacing: '4px' }}>SKYTOUCH</h1>
+                        <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#4f46e5', fontWeight: 700 }}>Construction & Engineering</h2>
+                        <h3 style={{ margin: '15px 0 0', fontSize: '1rem', color: '#059669', borderBottom: '2px solid #059669', display: 'inline-block', padding: '0 20px', fontWeight: 800 }}>
+                            SALARY SHEET FOR THE MONTH OF {monthName} {year}
+                        </h3>
                     </div>
 
-                    {/* Table Ledger */}
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    {/* Highly Dense Spreadsheet Table */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.65rem', color: '#000' }}>
                         <thead>
-                            <tr style={{ background: '#0f172a', color: '#fff' }}>
-                                <th style={{ padding: '20px', textAlign: 'left', borderRadius: '12px 0 0 0', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Operative</th>
-                                <th style={{ padding: '20px', textAlign: 'center', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Trace (P/A/L)</th>
-                                <th style={{ padding: '20px', textAlign: 'right', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Base Pay</th>
-                                <th style={{ padding: '20px', textAlign: 'right', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Deductions</th>
-                                <th style={{ padding: '20px', textAlign: 'right', borderRadius: '0 12px 0 0', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Net Vector</th>
+                            <tr style={{ background: '#fbbf24', color: '#000' }}>
+                                {['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22'].map(num => (
+                                    <th key={num} style={thS}>{num}</th>
+                                ))}
+                            </tr>
+                            <tr style={{ background: '#f8fafc' }}>
+                                <th style={thL}>Name</th>
+                                <th style={thL}>Designation</th>
+                                <th style={thL}>Join Date</th>
+                                <th style={thL}>Total (Leave)</th>
+                                <th style={thL}>Leave (Current month)</th>
+                                <th style={thL}>Basic Pay</th>
+                                <th style={thL}>Conveyance TA DA</th>
+                                <th style={thL}>Home rent</th>
+                                <th style={thL}>Med</th>
+                                <th style={thL}>Supervision</th>
+                                <th style={thL}>Construction</th>
+                                <th style={thL}>Mobile Bill</th>
+                                <th style={thL}>Overtime</th>
+                                <th style={thL}>Snacks Bill</th>
+                                <th style={{...thL, background: '#fef3c7'}}>Gross Pay</th>
+                                <th style={thL}>Advance</th>
+                                <th style={thL}>Current Month installment</th>
+                                <th style={thL}>Punishment Late Absent</th>
+                                <th style={{...thL, background: '#fef3c7'}}>Net Pay</th>
+                                <th style={thL}>Holiday Leave This Year</th>
+                                <th style={thL}>Source of Fund</th>
+                                <th style={thL}>Signature</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {payrolls.map((payroll) => {
-                                const deductions = parseFloat(payroll.deductions) + parseFloat(payroll.late_deduction) + parseFloat(payroll.absent_deduction);
-                                return (
-                                    <tr key={payroll.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '20px' }}>
-                                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase' }}>{payroll.employee.first_name} {payroll.employee.last_name}</p>
-                                            <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: '2px 0 0', fontWeight: 700 }}>{payroll.employee.employee_id} • {payroll.employee.designation}</p>
-                                        </td>
-                                        <td style={{ padding: '20px', textAlign: 'center' }}>
-                                            <div style={{ display: 'inline-flex', gap: '8px', fontSize: '0.7rem', fontWeight: 900, color: '#64748b', background: '#f8fafc', padding: '6px 14px', borderRadius: '10px' }}>
-                                                <span style={{ color: '#10b981' }}>{payroll.present_days}P</span>
-                                                <span style={{ color: '#ef4444' }}>{payroll.absent_days}A</span>
-                                                <span style={{ color: '#f59e0b' }}>{payroll.late_days}L</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '20px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: '#64748b' }}>৳{parseFloat(payroll.base_salary).toLocaleString()}</td>
-                                        <td style={{ padding: '20px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 800, color: '#ef4444' }}>-৳{deductions.toLocaleString()}</td>
-                                        <td style={{ padding: '20px', textAlign: 'right', fontSize: '1rem', fontWeight: 900, color: '#4f46e5' }}>৳{parseFloat(payroll.total).toLocaleString()}</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                        <tfoot>
-                            <tr style={{ background: '#f8fafc', borderTop: '2.5px solid #0f172a' }}>
-                                <td colSpan="2" style={{ padding: '30px', fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total Matrix Magnitude</td>
-                                <td style={{ padding: '30px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>৳{totalBase.toLocaleString()}</td>
-                                <td style={{ padding: '30px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 900, color: '#ef4444' }}>-৳{totalDeductions.toLocaleString()}</td>
-                                <td style={{ padding: '30px', textAlign: 'right', fontSize: '1.25rem', fontWeight: 900, color: '#fff', background: '#0f172a', borderRadius: '0 0 12px 0' }}>৳{totalNet.toLocaleString()}</td>
+                            {payrolls.map((p, idx) => (
+                                <tr key={p.id}>
+                                    <td style={tdL}>{p.employee?.first_name} {p.employee?.last_name}</td>
+                                    <td style={tdL}>{p.employee?.designation}</td>
+                                    <td style={tdL}>{p.employee?.join_date}</td>
+                                    <td style={tdC}>{p.total_leave_taken}</td>
+                                    <td style={tdC}>{p.leave_current_month}</td>
+                                    <td style={tdR}>{p.base_salary}</td>
+                                    <td style={tdR}>{p.conveyance > 0 ? p.conveyance : ''}</td>
+                                    <td style={tdR}>{p.house_rent > 0 ? p.house_rent : ''}</td>
+                                    <td style={tdR}>{p.medical_allowance > 0 ? p.medical_allowance : ''}</td>
+                                    <td style={tdR}>{p.supervision_allowance > 0 ? p.supervision_allowance : ''}</td>
+                                    <td style={tdR}>{p.construction_allowance > 0 ? p.construction_allowance : ''}</td>
+                                    <td style={tdR}>{p.mobile_allowance > 0 ? p.mobile_allowance : ''}</td>
+                                    <td style={tdR}>{p.overtime_pay > 0 ? p.overtime_pay : ''}</td>
+                                    <td style={tdR}>{p.snacks_allowance > 0 ? p.snacks_allowance : ''}</td>
+                                    <td style={{...tdR, background: '#fffbeb', fontWeight: 800}}>{p.gross_pay}</td>
+                                    <td style={tdR}>{p.advance_salary > 0 ? p.advance_salary : ''}</td>
+                                    <td style={tdR}>{p.loan_installment > 0 ? p.loan_installment : ''}</td>
+                                    <td style={tdR}>{(parseFloat(p.late_deduction) + parseFloat(p.absent_deduction)) > 0 ? (parseFloat(p.late_deduction) + parseFloat(p.absent_deduction)) : ''}</td>
+                                    <td style={{...tdR, background: '#fffbeb', fontWeight: 800}}>{p.total}</td>
+                                    <td style={tdC}>{p.yearly_holidays}</td>
+                                    <td style={tdC}>{p.fund_source}</td>
+                                    <td style={tdL}></td>
+                                </tr>
+                            ))}
+                            {/* Totals Row */}
+                            <tr style={{ background: '#f1f5f9', fontWeight: 900 }}>
+                                <td colSpan="5" style={{...tdL, textAlign: 'right', fontSize: '0.8rem'}}>Total</td>
+                                <td style={tdR}>{totals.base.toFixed(2)}</td>
+                                <td colSpan="8" style={tdR}></td>
+                                <td style={tdR}>{totals.gross.toFixed(2)}</td>
+                                <td colSpan="2" style={tdR}></td>
+                                <td style={tdR}>Total</td>
+                                <td style={tdR}>{totals.net.toFixed(2)}</td>
+                                <td colSpan="3"></td>
                             </tr>
-                        </tfoot>
+                        </tbody>
                     </table>
 
                     {/* Authorization Footer */}
-                    <div style={{ marginTop: '100px', display: 'flex', justifyContent: 'space-between' }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ width: '220px', height: '1.5px', background: '#0f172a', marginBottom: '8px' }} />
-                            <p style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a' }}>Fiscal Initialization</p>
-                            <p style={{ fontSize: '0.55rem', fontWeight: 700, color: '#94a3b8' }}>PREPARED BY OPERATIVE</p>
+                    <div style={{ marginTop: '80px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 800 }}>
+                        <div style={{ textAlign: 'left' }}>
+                            <p style={{ margin: 0 }}>Made By________________</p>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ width: '220px', height: '1.5px', background: '#0f172a', marginBottom: '8px' }} />
-                            <p style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a' }}>Command Authorization</p>
-                            <p style={{ fontSize: '0.55rem', fontWeight: 700, color: '#94a3b8' }}>VERIFIED BY STARATEGIC CONTROL</p>
+                            <p style={{ margin: 0 }}>Check By________________</p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ margin: 0 }}>Approved By________________</p>
                         </div>
                     </div>
+
+                    {/* Footer Notes */}
+                    <div style={{ marginTop: '40px', fontSize: '0.7rem', fontWeight: 600 }}>
+                        <p style={{ margin: '2px 0' }}>Note- 1. Must Approved Salary sheet Before Pay.</p>
+                        <p style={{ margin: '2px 0' }}>2. Attest late, Absent, Leave Report.</p>
+                    </div>
+
                 </div>
             </div>
 
             <style>{`
+                @page { size: landscape; margin: 10mm; }
                 @media print {
-                    body { background: white !important; padding: 0 !important; }
-                    .manifest-container { background: white !important; padding: 0 !important; }
+                    body { background: white !important; }
                     .print-hidden { display: none !important; }
-                    .manifest-surface { border: none !important; box-shadow: none !important; padding: 0 !important; }
+                    .sheet-surface { border: none !important; box-shadow: none !important; padding: 0 !important; width: 100% !important; }
                 }
+                table, th, td { border: 1px solid #000; }
             `}</style>
         </div>
     );
 }
+
+const thS = { padding: '4px', fontSize: '0.6rem', border: '1px solid #000' };
+const thL = { padding: '8px 4px', border: '1px solid #000', textAlign: 'center', height: '60px', verticalAlign: 'middle' };
+const tdL = { padding: '8px 4px', border: '1px solid #000', textAlign: 'left' };
+const tdC = { padding: '8px 4px', border: '1px solid #000', textAlign: 'center' };
+const tdR = { padding: '8px 4px', border: '1px solid #000', textAlign: 'right' };

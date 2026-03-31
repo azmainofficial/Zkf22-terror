@@ -1,6 +1,7 @@
 import React from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { t } from '../../Lang/translation';
 import {
     ArrowLeft,
     Save,
@@ -15,10 +16,7 @@ import {
     MapPin,
     Hash,
     Camera,
-    Upload,
-    CheckCircle2,
-    ChevronDown,
-    Map
+    ChevronDown
 } from 'lucide-react';
 
 const cardStyle = {
@@ -75,7 +73,7 @@ export default function Create({ auth }) {
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Add Client" />
+            <Head title={t('add_client')} />
 
             <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
                 
@@ -87,8 +85,8 @@ export default function Create({ auth }) {
                         </button>
                     </Link>
                     <div>
-                        <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Add New Client</h1>
-                        <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Create a new business relationship and store their details</p>
+                        <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{t('new_client')}</h1>
+                        <p style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>{t('register_client_desc')}</p>
                     </div>
                 </div>
 
@@ -101,12 +99,12 @@ export default function Create({ auth }) {
                                 <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f5f3ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Building2 size={20} />
                                 </div>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Company Details</h3>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{t('company_details')}</h3>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>Company Name</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>{t('company_name')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <Building2 size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                                         <input type="text" value={data.company_name} onChange={e => setData('company_name', e.target.value)} placeholder="e.g. Acme Corp" style={inputStyle(errors.company_name)} />
@@ -115,16 +113,16 @@ export default function Create({ auth }) {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>Contact Person</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>{t('contact_person')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <User size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
-                                        <input type="text" value={data.name} onChange={e => setData('name', e.target.value)} placeholder="Full Name" style={inputStyle(errors.name)} />
+                                        <input type="text" value={data.name} onChange={e => setData('name', e.target.value)} placeholder={t('full_name')} style={inputStyle(errors.name)} />
                                     </div>
                                     {errors.name && <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, paddingLeft: '4px' }}>{errors.name}</span>}
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>Industry</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>{t('industry')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <Briefcase size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                                         <input type="text" value={data.industry} onChange={e => setData('industry', e.target.value)} placeholder="e.g. Technology" style={inputStyle(errors.industry)} />
@@ -132,10 +130,10 @@ export default function Create({ auth }) {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>VAT / Tax Number</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>{t('tax_number')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <Hash size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
-                                        <input type="text" value={data.vat_number} onChange={e => setData('vat_number', e.target.value)} placeholder="Optional" style={inputStyle()} />
+                                        <input type="text" value={data.vat_number} onChange={e => setData('vat_number', e.target.value)} placeholder="..." style={inputStyle()} />
                                     </div>
                                 </div>
                             </div>
@@ -146,12 +144,12 @@ export default function Create({ auth }) {
                                 <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Globe size={20} />
                                 </div>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Contact Details</h3>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{t('contact_details')}</h3>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>Email Address</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>{t('email_address')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <Mail size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                                         <input type="email" value={data.email} onChange={e => setData('email', e.target.value)} placeholder="client@email.com" style={inputStyle(errors.email)} />
@@ -160,7 +158,7 @@ export default function Create({ auth }) {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>Phone Number</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>{t('phone_number')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <Phone size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                                         <input type="text" value={data.phone} onChange={e => setData('phone', e.target.value)} placeholder="+880..." style={inputStyle(errors.phone)} />
@@ -169,10 +167,10 @@ export default function Create({ auth }) {
                                 </div>
 
                                 <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>Office Address</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', paddingLeft: '4px' }}>{t('office_address')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <MapPin size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '16px' }} />
-                                        <textarea value={data.address} onChange={e => setData('address', e.target.value)} placeholder="Full office address..." style={{ ...inputStyle(), height: '100px', padding: '16px 1rem 16px 3.5rem', resize: 'none' }} />
+                                        <textarea value={data.address} onChange={e => setData('address', e.target.value)} placeholder={t('address_placeholder')} style={{ ...inputStyle(), height: '100px', padding: '16px 1rem 16px 3.5rem', resize: 'none' }} />
                                     </div>
                                 </div>
                             </div>
@@ -186,24 +184,24 @@ export default function Create({ auth }) {
                                 <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Shield size={20} />
                                 </div>
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Logos & Status</h3>
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{t('logos_status')}</h3>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Relationship Status</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>{t('relationship_status')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <select value={data.status} onChange={e => setData('status', e.target.value)} style={{ ...inputStyle(), paddingLeft: '1rem', appearance: 'none', cursor: 'pointer' }}>
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                            <option value="prospective">Lead / Potential</option>
+                                            <option value="active">{t('active')}</option>
+                                            <option value="inactive">{t('inactive')}</option>
+                                            <option value="prospective">{t('lead_potential')}</option>
                                         </select>
                                         <ChevronDown size={18} color="#94a3b8" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                                     </div>
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Company Logo</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>{t('company_logo')}</label>
                                     <div style={{ position: 'relative', width: '100%', height: '120px', borderRadius: '16px', border: '2px dashed #ede9fe', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}>
                                         {data.logo ? (
                                             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -215,7 +213,7 @@ export default function Create({ auth }) {
                                         ) : (
                                             <div style={{ textAlign: 'center' }}>
                                                 <Camera size={24} color="#6366f1" style={{ marginBottom: '8px' }} />
-                                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Upload Logo</p>
+                                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>{t('upload_logo')}</p>
                                             </div>
                                         )}
                                         <input type="file" onChange={e => setData('logo', e.target.files[0])} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} accept="image/*" />
@@ -223,7 +221,7 @@ export default function Create({ auth }) {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Contact Photo</label>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>{t('contact_photo')}</label>
                                     <div style={{ position: 'relative', width: '100%', height: '80px', borderRadius: '16px', border: '2px dashed #ede9fe', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}>
                                         {data.avatar ? (
                                             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -235,7 +233,7 @@ export default function Create({ auth }) {
                                         ) : (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <User size={18} color="#94a3b8" />
-                                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Photo</p>
+                                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>{t('photo')}</p>
                                             </div>
                                         )}
                                         <input type="file" onChange={e => setData('avatar', e.target.files[0])} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} accept="image/*" />
@@ -245,11 +243,11 @@ export default function Create({ auth }) {
 
                             <div style={{ marginTop: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <button type="submit" disabled={processing} style={{ width: '100%', height: '56px', borderRadius: '16px', background: '#6366f1', color: '#fff', border: 'none', fontSize: '1rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 8px 25px rgba(99,102,241,0.2)' }}>
-                                    {processing ? 'Saving...' : <><Save size={20} /> Add Client</>}
+                                    {processing ? t('saving') : <><Save size={20} /> {t('add_client')}</>}
                                 </button>
                                 <Link href={route('clients.index')} style={{ textDecoration: 'none' }}>
                                     <button type="button" style={{ width: '100%', height: '52px', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '14px', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer' }}>
-                                        Cancel
+                                        {t('cancel')}
                                     </button>
                                 </Link>
                             </div>

@@ -31,9 +31,35 @@ class ZktecoADMSController extends Controller
             });
         }
 
+        $startOfMonth = \Carbon\Carbon::parse($date)->startOfMonth();
+        $endOfMonth = \Carbon\Carbon::parse($date)->endOfMonth();
+        $today = now()->startOfDay();
+        $calcEnd = $endOfMonth->gt($today) ? $today : $endOfMonth;
+
+        $holidays = \App\Models\Holiday::all();
         $paginator = $query->paginate(20)->withQueryString();
 
-        $employees = $paginator->getCollection()->map(function($employee) {
+        $employeeIds = $paginator->getCollection()->pluck('id');
+        $biometricIds = $paginator->getCollection()->pluck('employee_id');
+
+        $allMonthlyLogs = \App\Models\AttendanceLog::whereIn('user_id', $biometricIds)
+            ->whereBetween('timestamp', [$startOfMonth->format('Y-m-d 00:00:00'), $endOfMonth->format('Y-m-d 23:59:59')])
+            ->get()
+            ->groupBy(['user_id', function($log) {
+                return \Carbon\Carbon::parse($log->timestamp)->format('Y-m-d');
+            }]);
+
+        $allMonthlyLeaves = \App\Models\LeaveApplication::whereIn('employee_id', $employeeIds)
+            ->where('status', 'approved')
+            ->where(function($q) use ($startOfMonth, $endOfMonth) {
+                $q->where(function($sub) use ($startOfMonth, $endOfMonth) {
+                    $sub->whereBetween('start_date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
+                        ->orWhereBetween('end_date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')]);
+                });
+            })->get()
+            ->groupBy('employee_id');
+
+        $employees = $paginator->getCollection()->map(function($employee) use ($date, $allMonthlyLogs, $allMonthlyLeaves, $holidays, $startOfMonth, $calcEnd) {
             $logs = $employee->attendanceLogs;
             $firstPunch = $logs->first();
             $lastPunch = $logs->count() > 1 ? $logs->last() : null;
@@ -41,6 +67,44 @@ class ZktecoADMSController extends Controller
             $status = 'Out';
             if ($logs->count() % 2 !== 0) {
                 $status = 'In';
+            }
+
+            // Monthly Summary Calculation
+            $empLogs = $allMonthlyLogs[$employee->employee_id] ?? collect([]);
+            $empLeaves = $allMonthlyLeaves[$employee->id] ?? collect([]);
+            
+            $presentDays = 0;
+            $lateDays = 0;
+            $absentDays = 0;
+
+            for ($d = clone $startOfMonth; $d <= $calcEnd; $d->addDay()) {
+                $currDate = $d->format('Y-m-d');
+                $dow = $d->dayOfWeek;
+
+                $isHoliday = $holidays->contains(function($h) use ($currDate, $dow) {
+                    return ($h->is_recurring_weekly && $h->day_of_week == $dow) || (!$h->is_recurring_weekly && $h->date === $currDate);
+                });
+
+                $isOnLeave = $empLeaves->contains(function($l) use ($currDate) {
+                    return $l->start_date <= $currDate && $l->end_date >= $currDate;
+                });
+
+                if ($isHoliday || $isOnLeave) continue;
+
+                if (isset($empLogs[$currDate])) {
+                    $presentDays++;
+                    if ($employee->shift) {
+                        $dailyLogs = $empLogs[$currDate]->sortBy('timestamp');
+                        $dayFirstPunch = $dailyLogs->first();
+                        $shiftStart = \Carbon\Carbon::parse($currDate . ' ' . $employee->shift->start_time);
+                        $graceTime = (clone $shiftStart)->addMinutes($employee->shift->grace_period);
+                        if (\Carbon\Carbon::parse($dayFirstPunch->timestamp)->gt($graceTime)) {
+                            $lateDays++;
+                        }
+                    }
+                } else {
+                    $absentDays++;
+                }
             }
 
             return [
@@ -55,6 +119,12 @@ class ZktecoADMSController extends Controller
                 })->values()->toArray(),
                 'entry_time' => $firstPunch ? \Carbon\Carbon::parse($firstPunch->timestamp)->format('H:i') : null,
                 'exit_time' => $lastPunch ? \Carbon\Carbon::parse($lastPunch->timestamp)->format('H:i') : null,
+                'monthly_summary' => [
+                    'present' => $presentDays,
+                    'late' => $lateDays,
+                    'absent' => $absentDays,
+                    'month_name' => $startOfMonth->format('F')
+                ]
             ];
         });
         
@@ -111,59 +181,58 @@ class ZktecoADMSController extends Controller
                     return \Carbon\Carbon::parse($log->timestamp)->format('Y-m-d');
                 });
 
-            foreach ($logs as $date => $dailyLogs) {
-                $sorted = $dailyLogs->sortBy('timestamp')->values();
-                $firstIn = $sorted->first()->timestamp;
-                $lastOut = $sorted->count() > 1 ? $sorted->last()->timestamp : null;
+            $today = now()->startOfDay();
+            $calcEnd = $end->gt($today) ? $today : $end;
 
+            for ($d = clone $start; $d <= $calcEnd; $d->addDay()) {
+                $currDate = $d->format('Y-m-d');
+                $dow = $d->dayOfWeek;
+
+                $isHoliday = $holidays->contains(function($h) use ($currDate, $dow) {
+                    return ($h->is_recurring_weekly && $h->day_of_week == $dow) || (!$h->is_recurring_weekly && $h->date === $currDate);
+                });
+
+                $isOnLeave = $leaves->contains(function($l) use ($currDate) {
+                    return $l->start_date <= $currDate && $l->end_date >= $currDate;
+                });
+
+                if ($isHoliday || $isOnLeave) continue;
+
+                $dailyLogs = $logs[$currDate] ?? null;
+                $status = 'absent';
+                $firstIn = null;
+                $lastOut = null;
                 $lateMinutes = 0;
-                $overtimeMinutes = 0;
                 $totalWorked = 0;
-                $status = 'present';
 
-                if ($lastOut) {
-                    $totalWorked = \Carbon\Carbon::parse($lastOut)->diffInMinutes(\Carbon\Carbon::parse($firstIn));
-                }
+                if ($dailyLogs) {
+                    $sorted = $dailyLogs->sortBy('timestamp')->values();
+                    $firstIn = $sorted->first()->timestamp;
+                    $lastOut = $sorted->count() > 1 ? $sorted->last()->timestamp : null;
+                    $status = 'present';
 
-                $isHoliday = $holidays->contains(function($h) use ($date) {
-                    $dow = \Carbon\Carbon::parse($date)->dayOfWeek;
-                    return ($h->is_recurring_weekly && $h->day_of_week == $dow) || (!$h->is_recurring_weekly && $h->date === $date);
-                });
-                $isOnLeave = $leaves->contains(function($l) use ($date) {
-                    return $l->start_date <= $date && $l->end_date >= $date;
-                });
-                
-                $isOffDay = $isHoliday || $isOnLeave;
+                    if ($lastOut) {
+                        $totalWorked = \Carbon\Carbon::parse($lastOut)->diffInMinutes(\Carbon\Carbon::parse($firstIn));
+                    }
 
-                if ($empRecord->shift) {
-                    $shiftStart = \Carbon\Carbon::parse($date . ' ' . $empRecord->shift->start_time);
-                    $firstInParsed = \Carbon\Carbon::parse($firstIn);
-                    
-                    if (!$isOffDay) {
+                    if ($empRecord->shift) {
+                        $shiftStart = \Carbon\Carbon::parse($currDate . ' ' . $empRecord->shift->start_time);
+                        $firstInParsed = \Carbon\Carbon::parse($firstIn);
                         $graceTime = (clone $shiftStart)->addMinutes($empRecord->shift->grace_period);
                         if ($firstInParsed->gt($graceTime)) {
                             $lateMinutes = $firstInParsed->diffInMinutes($shiftStart);
                             $status = 'late';
                         }
                     }
-
-                    if ($lastOut) {
-                        $shiftEnd = \Carbon\Carbon::parse($date . ' ' . $empRecord->shift->end_time);
-                        $lastOutParsed = \Carbon\Carbon::parse($lastOut);
-                        if ($lastOutParsed->gt($shiftEnd)) {
-                            $overtimeMinutes = $lastOutParsed->diffInMinutes($shiftEnd);
-                        }
-                    }
                 }
 
                 \App\Models\Attendance::updateOrCreate(
-                    ['employee_id' => $empRecord->id, 'date' => $date],
+                    ['employee_id' => $empRecord->id, 'date' => $currDate],
                     [
-                        'clock_in' => \Carbon\Carbon::parse($firstIn)->format('H:i:s'),
+                        'clock_in' => $firstIn ? \Carbon\Carbon::parse($firstIn)->format('H:i:s') : null,
                         'clock_out' => $lastOut ? \Carbon\Carbon::parse($lastOut)->format('H:i:s') : null,
                         'status' => $status,
                         'late_minutes' => $lateMinutes,
-                        'overtime_minutes' => $overtimeMinutes,
                         'total_worked_minutes' => $totalWorked
                     ]
                 );

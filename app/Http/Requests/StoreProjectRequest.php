@@ -26,21 +26,25 @@ class StoreProjectRequest extends FormRequest
             'client_id' => 'required|exists:clients,id',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date',
+            'deadline' => 'nullable|date',
             'budget' => 'required|numeric|min:0',
+            'contract_amount' => 'nullable|numeric|min:0',
             'status' => 'required|string',
             'priority' => 'required|string',
             'description' => 'nullable|string',
-            'contract_details' => 'nullable|json',
+            'contract_details' => 'nullable|array',
             'designs' => 'nullable|array',
             'designs.*' => 'file|max:10240', // Max 10MB
+            'documents' => 'nullable|array',
+            'documents.*' => 'file|max:10240', // Max 10MB
         ];
     }
 
     protected function prepareForValidation()
     {
         $this->merge([
-            'end_date' => $this->deadline,
-            'budget' => $this->contract_amount,
+            'end_date' => $this->end_date ?? $this->deadline,
+            'budget' => $this->budget ?? $this->contract_amount ?? 0,
         ]);
     }
 }

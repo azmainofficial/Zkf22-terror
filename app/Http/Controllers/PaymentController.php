@@ -255,7 +255,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'invoice_id' => 'nullable|exists:invoices,id',
             'client_id' => 'required|exists:clients,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => 'required|exists:projects,id',
             'payment_type' => 'required|in:incoming,outgoing',
             'payment_date' => 'required|date',
             'amount' => 'required|numeric|min:0.01',
@@ -284,7 +284,7 @@ class PaymentController extends Controller
 
     public function show(Payment $payment)
     {
-        $payment->load(['invoice.client', 'client']);
+        $payment->load(['invoice.client', 'client', 'project']);
         $design = \App\Models\SlipDesign::where('type', 'payment')->where('is_active', true)->first();
 
         return Inertia::render('Finance/Payments/Show', [
@@ -332,7 +332,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'invoice_id' => 'nullable|exists:invoices,id',
             'client_id' => 'required|exists:clients,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => 'required|exists:projects,id',
             'payment_type' => 'required|in:incoming,outgoing',
             'payment_date' => 'required|date',
             'amount' => 'required|numeric|min:0.01',

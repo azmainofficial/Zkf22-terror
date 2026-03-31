@@ -12,20 +12,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Admin user
+        // Global Administrator Account
         \App\Models\User::updateOrCreate(
             ['email' => 'admin@admin.com'],
             [
-                'name' => 'Admin',
-                'password' => bcrypt('admin123'),
+                'name' => 'System Admin',
+                'password' => bcrypt('password'),
             ]
         );
 
-        // Regular users
-        \App\Models\User::factory(10)->create();
-
-        $this->call([
-            ZktecoSeeder::class,
-        ]);
+        // Required Role & Permission Initialization
+        $this->call(RoleSeeder::class);
     }
 }

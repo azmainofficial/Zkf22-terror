@@ -1,195 +1,257 @@
-import { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import React, { useState } from 'react';
+import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     Plus,
     Search,
-    Edit,
+    Edit3,
     Trash2,
     CheckCircle2,
     XCircle,
-    Layers
+    Layers,
+    FolderPlus,
+    Hash,
+    BarChart3,
+    MoreHorizontal,
+    Inbox
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import { t } from '@/lib/translations';
-import { cn } from '@/lib/utils';
-import { Button } from '@/Components/ui/Button';
 
 export default function Index({ auth, categories, filters }) {
     const { language } = useAppStore();
     const [search, setSearch] = useState(filters.search || '');
 
-    // Local translations helper to ensure all strings are covered immediately
     const tr = (en, bn) => language === 'bn' ? bn : en;
 
     const handleSearch = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         router.get(route('expense-categories.index'), { search }, { preserveState: true });
     };
 
     const handleDelete = (id) => {
-        if (confirm(tr('Are you sure you want to delete this category?', 'আপনি কি এই ক্যাটাগরিটি মুছে ফেলতে চান?'))) {
+        if (confirm(tr('Delete this category?', 'এই ক্যাটাগরিটি মুছে ফেলতে চান?'))) {
             router.delete(route('expense-categories.destroy', id), {
                 preserveScroll: true
             });
         }
     };
 
+    const cardStyle = {
+        background: '#fff',
+        borderRadius: '16px',
+        border: '1.5px solid #f0eeff',
+        padding: '1.25rem',
+        transition: 'all 0.2s',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        boxShadow: '0 2px 4px rgba(99,102,241,0.02)'
+    };
+
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-                            {tr('Expense Categories', 'ব্যয় ক্যাটাগরি')}
-                        </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            {tr('Manage your expense classifications', 'আপনার খরচের খাতগুলো পরিচালনা করুন')}
-                        </p>
-                    </div>
-                    <Link href={route('expense-categories.create')}>
-                        <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 flex items-center gap-2">
-                            <Plus size={18} />
-                            {tr('Add New', 'নতুন তৈরি করুন')}
-                        </Button>
-                    </Link>
-                </div>
-            }
-        >
+        <FigmaLayout user={auth.user}>
             <Head title={tr('Expense Categories', 'ব্যয় ক্যাটাগরি')} />
 
-            <div className="py-6 space-y-6">
-                {/* Search Filter */}
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                
+                {/* ── Header Section ── */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ padding: '8px', background: '#f5f3ff', borderRadius: '10px', color: '#6366f1' }}>
+                                <Layers size={22} />
+                            </div>
+                            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>
+                                {tr('Expense Categories', 'ব্যয় ক্যাটাগরি')}
+                            </h1>
+                        </div>
+                        <p style={{ fontSize: '0.88rem', color: '#6b7280', marginTop: '6px', fontWeight: 500 }}>
+                            {tr('Create groups to organize your business costs', 'খরচ গুছিয়ে রাখতে ক্যাটাগরি তৈরি করুন')}
+                        </p>
+                    </div>
+
+                    <Link href={route('expense-categories.create')}>
+                        <button style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '0.75rem 1.5rem', background: '#4f46e5',
+                            border: 'none', borderRadius: '12px', color: '#fff',
+                            fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(79,70,229,0.2)'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                            <Plus size={18} />
+                            {tr('New Category', 'নতুন ক্যাটাগরি')}
+                        </button>
+                    </Link>
+                </div>
+
+                {/* ── Search Bar ── */}
+                <div style={{ 
+                    background: '#fff', padding: '10px', borderRadius: '16px', 
+                    border: '1.5px solid #f0eeff', display: 'flex', gap: '10px' 
+                }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                        <Search size={18} color="#9ca3af" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                         <input
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder={tr('Search by name or code...', 'নাম বা কোড দিয়ে খুঁজুন...')}
-                            className="w-full pl-10 pr-4 h-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                            placeholder={tr('Find a category...', 'ক্যাটাগরি খুঁজুন...')}
+                            style={{
+                                width: '100%', padding: '12px 12px 12px 48px',
+                                border: 'none', borderRadius: '10px', outline: 'none',
+                                background: '#f9fafb', fontSize: '0.95rem', color: '#1e1b4b'
+                            }}
                         />
                     </div>
-                    <Button onClick={handleSearch} variant="secondary" className="h-10 px-6">
-                        {tr('Search', 'অনুসন্ধান')}
-                    </Button>
+                    <button 
+                        onClick={handleSearch}
+                        style={{
+                            padding: '0 1.5rem', background: '#fff', border: '1.5px solid #e5e7eb',
+                            borderRadius: '10px', fontWeight: 700, color: '#374151', cursor: 'pointer'
+                        }}
+                    >
+                        {tr('Search', 'খুঁজুন')}
+                    </button>
                 </div>
 
-                {/* Categories Table */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                                <tr>
-                                    <th className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                                        {tr('Name', 'নাম')}
-                                    </th>
-                                    <th className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                                        {tr('Code', 'কোড')}
-                                    </th>
-                                    <th className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                                        {tr('Description', 'বর্ণনা')}
-                                    </th>
-                                    <th className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-300 text-center">
-                                        {tr('Status', 'অবস্থা')}
-                                    </th>
-                                    <th className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-300 text-center">
-                                        {tr('Records', 'রেকর্ড')}
-                                    </th>
-                                    <th className="px-6 py-3 text-right"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {categories.data && categories.data.length > 0 ? (
-                                    categories.data.map((category) => (
-                                        <tr key={category.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div
-                                                        className="w-3 h-3 rounded-full"
-                                                        style={{ backgroundColor: category.color || '#cbd5e1' }}
-                                                    />
-                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                        {category.name}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-xs font-mono font-medium text-gray-700 dark:text-gray-300">
+                {/* ── Categories Grid ── */}
+                <div style={{ 
+                    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+                    gap: '1.5rem' 
+                }}>
+                    {categories.data && categories.data.length > 0 ? (
+                        categories.data.map((category) => (
+                            <div key={category.id} 
+                                style={cardStyle}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.borderColor = '#6366f1';
+                                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(99, 102, 241, 0.1)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.borderColor = '#f0eeff';
+                                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(99,102,241,0.02)';
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ 
+                                            width: '44px', height: '44px', borderRadius: '12px',
+                                            background: `${category.color}15` || '#f5f3ff',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: category.color || '#6366f1',
+                                            border: `1px solid ${category.color}30` || '1px solid #f0eeff'
+                                        }}>
+                                            <FolderPlus size={22} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>
+                                                {category.name}
+                                            </h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                                                <Hash size={12} color="#9ca3af" />
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>
                                                     {category.code}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 max-w-xs truncate text-sm text-gray-500">
-                                                {category.description || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                {category.is_active ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                                                        <CheckCircle2 size={12} /> {tr('Active', 'সক্রিয়')}
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                                                        <XCircle size={12} /> {tr('Inactive', 'নিষ্ক্রিয়')}
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-center text-sm text-gray-500">
-                                                {category.expenses_count || 0}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Link href={route('expense-categories.edit', category.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-md transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                                                        <Edit size={16} />
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => handleDelete(category.id)}
-                                                        className="p-2 text-gray-400 hover:text-red-600 rounded-md transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                                            <Layers className="mx-auto h-10 w-10 text-gray-300 mb-3" />
-                                            <p>{tr('No categories found', 'কোনো ক্যাটাগরি পাওয়া যায়নি')}</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <Link href={route('expense-categories.edit', category.id)}>
+                                            <button style={{ padding: '6px', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', borderRadius: '6px' }} title="Edit">
+                                                <Edit3 size={16} />
+                                            </button>
+                                        </Link>
+                                        <button 
+                                            onClick={() => handleDelete(category.id)}
+                                            style={{ padding: '6px', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', borderRadius: '6px' }} 
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
 
-                    {/* Pagination */}
-                    {categories.links && categories.links.length > 3 && (
-                        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-center">
-                            <div className="flex flex-wrap gap-1">
-                                {categories.links.map((link, i) => (
-                                    <Link
-                                        key={i}
-                                        href={link.url || '#'}
-                                        className={cn(
-                                            "px-3 py-1 rounded-md text-sm transition-colors",
-                                            link.active
-                                                ? "bg-blue-600 text-white"
-                                                : link.url
-                                                    ? "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
-                                                    : "text-gray-400 cursor-not-allowed"
-                                        )}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ))}
+                                <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0, lineHeight: '1.5', minHeight: '2.5rem' }}>
+                                    {category.description || tr('No description provided.', 'কোনো বর্ণনা দেওয়া হয়নি।')}
+                                </p>
+
+                                <div style={{ 
+                                    marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #f9fafb',
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ 
+                                            padding: '4px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 800,
+                                            background: category.is_active ? '#ecfdf5' : '#fef2f2',
+                                            color: category.is_active ? '#059669' : '#ef4444',
+                                            display: 'flex', alignItems: 'center', gap: '4px'
+                                        }}>
+                                            {category.is_active ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                                            {category.is_active ? tr('Active', 'সক্রিয়') : tr('Inactive', 'নিষ্ক্রিয়')}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6366f1' }}>
+                                        <BarChart3 size={14} />
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>
+                                            {category.expenses_count || 0} {tr('Expenses', 'খরচ')}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div style={{ 
+                            gridColumn: '1 / -1', padding: '5rem 2rem', textAlign: 'center',
+                            background: '#fff', borderRadius: '20px', border: '1.5px dashed #e5e7eb'
+                        }}>
+                            <Inbox size={48} color="#d1d5db" style={{ marginBottom: '1rem' }} />
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>
+                                {tr('No categories yet', 'এখনো কোনো ক্যাটাগরি নেই')}
+                            </h3>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '8px' }}>
+                                {tr('Start by creating your first expense category.', 'আপনার প্রথম খরচ ক্যাটাগরিটি তৈরি করে শুরু করুন।')}
+                            </p>
+                            <Link href={route('expense-categories.create')} style={{ textDecoration: 'none' }}>
+                                <button style={{
+                                    marginTop: '1.5rem', padding: '0.75rem 2rem', background: '#4f46e5',
+                                    border: 'none', borderRadius: '12px', color: '#fff',
+                                    fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer'
+                                }}>
+                                    {tr('Create Category', 'ক্যাটাগরি তৈরি করুন')}
+                                </button>
+                            </Link>
                         </div>
                     )}
                 </div>
+
+                {/* ── Pagination ── */}
+                {categories.links && categories.links.length > 3 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '1rem 0' }}>
+                        {categories.links.map((link, i) => (
+                            <Link
+                                key={i}
+                                href={link.url || '#'}
+                                style={{
+                                    padding: '8px 16px', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700,
+                                    textDecoration: 'none', transition: 'all 0.2s',
+                                    background: link.active ? '#4f46e5' : '#fff',
+                                    color: link.active ? '#fff' : (link.url ? '#374151' : '#9ca3af'),
+                                    border: '1.5px solid',
+                                    borderColor: link.active ? '#4f46e5' : '#f0eeff',
+                                    pointerEvents: link.url ? 'auto' : 'none'
+                                }}
+                                dangerouslySetInnerHTML={{ __html: link.label }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
-        </AuthenticatedLayout>
+        </FigmaLayout>
     );
 }
-

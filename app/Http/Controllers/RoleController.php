@@ -13,8 +13,12 @@ class RoleController extends Controller
     /**
      * Display roles
      */
-    public function index()
+    public function index(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_roles')) {
+            abort(403, 'Unauthorized access to role matrix.');
+        }
+
         $roles = Role::withCount(['users', 'permissions'])->get();
 
         return Inertia::render('Roles/Index', [
@@ -25,8 +29,12 @@ class RoleController extends Controller
     /**
      * Show role details and permissions
      */
-    public function show(Role $role)
+    public function show(Request $request, Role $role)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_roles')) {
+            abort(403, 'Unauthorized access to role detail.');
+        }
+
         $role->load(['permissions', 'users']);
         $allPermissions = Permission::all()->groupBy('group');
 
@@ -41,6 +49,10 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('create_roles')) {
+            abort(403, 'Unauthorized operation: Establish Access Role.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|unique:roles,name|max:255',
             'display_name' => 'required|string|max:255',
@@ -68,6 +80,10 @@ class RoleController extends Controller
      */
     public function update(Request $request, Role $role)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_roles')) {
+            abort(403, 'Unauthorized operation: Modify Role Permissions.');
+        }
+
         // Prevent editing system roles
         if ($role->is_system && !$request->user()->isAdmin()) {
             abort(403, 'Cannot modify system roles.');
@@ -95,8 +111,12 @@ class RoleController extends Controller
     /**
      * Delete role
      */
-    public function destroy(Role $role)
+    public function destroy(Request $request, Role $role)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('delete_roles')) {
+            abort(403, 'Unauthorized operation: Disestablish Role.');
+        }
+
         // Prevent deleting system roles
         if ($role->is_system) {
             abort(403, 'Cannot delete system roles.');
@@ -117,6 +137,9 @@ class RoleController extends Controller
      */
     public function assignToUser(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_users')) {
+            abort(403, 'Unauthorized operation: Modify User Access.');
+        }
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'role_id' => 'required|exists:roles,id',
@@ -133,6 +156,9 @@ class RoleController extends Controller
      */
     public function removeFromUser(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_users')) {
+            abort(403, 'Unauthorized operation: Revoke User Access.');
+        }
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'role_id' => 'required|exists:roles,id',

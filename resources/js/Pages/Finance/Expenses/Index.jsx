@@ -1,534 +1,408 @@
 import React, { useState, useEffect, useRef } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import { t } from '../../../Lang/translation';
 import {
-    Plus,
-    Search,
-    Filter,
-    Eye,
-    Edit,
-    Trash2,
-    Calendar,
-    CheckCircle2,
-    XCircle,
-    Clock,
-    Tag,
-    Save,
-    Receipt,
-    Target,
-    Zap,
-    FileText,
-    Download,
-    ChevronDown,
-    X,
-    Loader2,
-    Activity,
-    Grid,
-    CornerRightDown,
-    ArrowUpRight,
-    Briefcase,
-    Building,
-    LifeBuoy,
-    Inbox,
-    Settings,
-    ChevronRight,
-    ShieldAlert
+    Plus, Search, Eye, Trash2, CheckCircle2, XCircle, Clock,
+    Edit, Save, X, Loader2, Filter, RotateCcw, Receipt,
+    DollarSign, ChevronDown, Briefcase, Building2, CreditCard,
+    FileCheck, AlertCircle, Calendar
 } from 'lucide-react';
 import Modal from '@/Components/Modal';
 
-// ─── Shared styles from Inventory patterns ──────────────────────
-const card = {
-    background: '#fff', 
-    borderRadius: '16px',
-    border: '1.5px solid #f0eeff',
-    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
+/* ─── tiny helpers ─── */
+const fmt = (n) => '৳' + new Intl.NumberFormat('en-BD').format(Number(n) || 0);
+
+const STATUS = {
+    approved: { label: 'Approved', bg: '#f0fdf4', color: '#16a34a', icon: CheckCircle2 },
+    paid:     { label: 'Paid',     bg: '#eff6ff', color: '#2563eb', icon: CheckCircle2 },
+    pending:  { label: 'Pending',  bg: '#fffbeb', color: '#d97706', icon: Clock },
+    rejected: { label: 'Rejected', bg: '#fff1f2', color: '#dc2626', icon: XCircle },
+};
+const getStatus = (s) => STATUS[(s || 'pending').toLowerCase()] || STATUS.pending;
+
+const PAYMENT_LABELS = {
+    cash: 'Cash', bank_transfer: 'Bank Transfer',
+    cheque: 'Cheque', credit_card: 'Credit Card',
 };
 
-const onFocus = e => { 
-    e.target.style.borderColor = '#8b5cf6'; 
-    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; 
+const inputBase = {
+    width: '100%', height: '38px', padding: '0 0.75rem',
+    borderRadius: '8px', border: '1px solid #e2e8f0',
+    background: '#fff', fontSize: '0.875rem', outline: 'none',
+    color: '#1e293b', boxSizing: 'border-box',
 };
 
-const onBlur = e => { 
-    e.target.style.borderColor = '#ede9fe'; 
-    e.target.style.boxShadow = 'none'; 
-};
+const labelSm = { fontSize: '0.72rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '4px' };
 
-const iconBtn = (bg, color) => ({
-    width: '32px', height: '32px', borderRadius: '8px',
-    background: bg, border: 'none', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', color,
-    transition: 'all 0.2s'
-});
+/* ─── component ─── */
+export default function Index({ auth, expenses, filters = {}, categories = [], projects = [], paymentMethods = [] }) {
+    const isFirst = useRef(true);
 
-const getStatusConfig = (s) => {
-    const status = (s || 'pending').toLowerCase();
-    const config = {
-        approved: { label: 'Approved', bg: '#f0fdf4', color: '#16a34a', icon: CheckCircle2 },
-        paid:      { label: 'Paid',      bg: '#eff6ff', color: '#3b82f6', icon: Zap },
-        pending:   { label: 'Pending',   bg: '#fffbeb', color: '#d97706', icon: Clock },
-        rejected:  { label: 'Rejected',  bg: '#fff1f2', color: '#e11d48', icon: XCircle },
-    };
-    return config[status] || config.pending;
-};
-
-const inputStyle = {
-    width: '100%',
-    height: '46px',
-    padding: '0 1rem',
-    borderRadius: '10px',
-    border: '1.5px solid #ede9fe',
-    background: '#f9f7ff',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    outline: 'none',
-    transition: 'all 0.2s',
-    color: '#1e1b4b'
-};
-
-const labelStyle = {
-    fontSize: '0.68rem',
-    fontWeight: 800,
-    color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: '0.07em',
-    display: 'block',
-    marginBottom: '6px',
-    paddingLeft: '2px'
-};
-
-export default function Index({ auth, expenses, filters, categories = [], projects = [], paymentMethods = [] }) {
-    const [search, setSearch] = useState(filters.search || '');
-    const [status, setStatus] = useState(filters.status || '');
-    const [categoryId, setCategoryId] = useState(filters.category_id || '');
-    const isFirstRender = useRef(true);
-
-    // Modals State
+    const [f, setF] = useState({
+        search:         filters.search         || '',
+        status:         filters.status         || '',
+        category_id:    filters.category_id    || '',
+        project_id:     filters.project_id     || '',
+        payment_method: filters.payment_method || '',
+        from_date:      filters.from_date      || '',
+        to_date:        filters.to_date        || '',
+        project_type:   filters.project_type   || '',
+    });
+    const [showFilters, setShowFilters] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
 
-    const expenseForm = useForm({
-        expense_category_id: '',
-        project_id: '',
-        title: '',
-        description: '',
-        amount: '',
-        expense_date: new Date().toISOString().split('T')[0],
-        payment_method: '',
-        vendor_name: '',
-        receipt: null,
-        status: 'pending',
-        is_reimbursable: false,
-    });
+    /* active filter count (excluding search) */
+    const activeCount = ['status','category_id','project_id','payment_method',
+                         'from_date','to_date','project_type'].filter(k => f[k]).length;
 
-    const categoryForm = useForm({
-        name: '',
-        code: '',
-        description: '',
-        color: '#6366f1',
-        is_active: true,
-    });
-
+    /* debounced sync to URL */
     useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
-        const t = setTimeout(() => {
-            router.get(route('expenses.index'), { search, status, category_id: categoryId }, { preserveState: true, replace: true });
-        }, 500);
-        return () => clearTimeout(t);
-    }, [search, status, categoryId]);
+        if (isFirst.current) { isFirst.current = false; return; }
+        const timer = setTimeout(() => {
+            router.get(route('expenses.index'), f, { preserveState: true, replace: true });
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [f]);
+
+    const set = (key, val) => setF(prev => ({ ...prev, [key]: val }));
+    const resetFilters = () => setF({ search:'', status:'', category_id:'', project_id:'',
+        payment_method:'', from_date:'', to_date:'', project_type:'' });
+
+    /* forms */
+    const expForm = useForm({
+        expense_category_id:'', project_id:'', title:'', description:'',
+        amount:'', expense_date: new Date().toISOString().split('T')[0],
+        payment_method:'', vendor_name:'', receipt: null, status:'pending', is_reimbursable: false,
+    });
+    const catForm = useForm({ name:'', code:'', description:'', color:'#2563eb', is_active: true });
 
     const handleCreateExpense = (e) => {
         e.preventDefault();
-        expenseForm.post(route('expenses.store'), {
-            onSuccess: () => { setShowCreateModal(false); expenseForm.reset(); },
-            preserveScroll: true,
+        expForm.post(route('expenses.store'), {
             forceFormData: true,
+            onSuccess: () => { setShowCreateModal(false); expForm.reset(); },
+            preserveScroll: true,
         });
     };
 
     const handleCategorySubmit = (e) => {
         e.preventDefault();
-        if (editingCategory) {
-            categoryForm.put(route('expense-categories.update', editingCategory.id), {
-                onSuccess: () => { setShowCategoryModal(false); setEditingCategory(null); categoryForm.reset(); },
-                preserveScroll: true,
-            });
-        } else {
-            categoryForm.post(route('expense-categories.store'), {
-                onSuccess: () => { setShowCategoryModal(false); categoryForm.reset(); },
-                preserveScroll: true,
-            });
-        }
+        const opts = { preserveScroll: true, onSuccess: () => { setShowCategoryModal(false); setEditingCategory(null); catForm.reset(); } };
+        editingCategory
+            ? catForm.put(route('expense-categories.update', editingCategory.id), opts)
+            : catForm.post(route('expense-categories.store'), opts);
     };
 
-    const statCards = [
-        { label: 'Outbound Flow', value: `৳${expenses.data.reduce((s,e) => s + parseFloat(e.amount), 0).toLocaleString()}`, icon: ArrowUpRight, bg: '#fff1f2', color: '#e11d48' },
-        { label: 'Cleared Payments', value: `৳${expenses.data.filter(e => e.status === 'paid').reduce((s,e) => s + parseFloat(e.amount), 0).toLocaleString()}`, icon: CheckCircle2, bg: '#f0fdf4', color: '#16a34a' },
-        { label: 'Awaiting Audit', value: `${expenses.data.filter(e => e.status === 'pending').length} Records`, icon: Clock, bg: '#fffbeb', color: '#d97706' },
-        { label: 'Active Categories', value: `${categories.length} Tiers`, icon: Tag, bg: '#f5f3ff', color: '#6366f1' },
-    ];
+    /* summary stats from current page */
+    const total   = expenses.data.reduce((s, e) => s + Number(e.amount),  0);
+    const paid    = expenses.data.filter(e => e.status === 'paid').reduce((s, e) => s + Number(e.amount), 0);
+    const pending = expenses.data.filter(e => e.status === 'pending').length;
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Operational Expenditures" />
+            <Head title="Expenses" />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
 
-                {/* ── Header (Inventory Style) ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                {/* ── Header ── */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
-                            <Receipt size={16} color="#fb7185" />
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#fb7185', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Spending Audit</span>
-                        </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Business Expenditures</h1>
-                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Log vendor payments, operational costs, and project-linked expenses</p>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>Expense Ledger</h1>
+                        <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>
+                            All recorded financial outflows · {expenses.total} entries
+                        </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
-                        <button onClick={() => { setEditingCategory(null); categoryForm.reset(); setShowCategoryModal(true); }}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '0.6rem 1.125rem',
-                                background: '#fff', border: '1.5px solid #ede9fe',
-                                borderRadius: '12px', color: '#6366f1',
-                                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-                                boxShadow: '0 1px 6px rgba(99,102,241,0.07)',
-                            }}>
-                            <Settings size={15} /> Configure Tiers
-                        </button>
-                        <button onClick={() => setShowCreateModal(true)} style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: '0.6rem 1.25rem',
-                            background: 'linear-gradient(135deg,#f43f5e,#e11d48)',
-                            border: 'none', borderRadius: '12px', color: '#fff',
-                            fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
-                            boxShadow: '0 4px 14px rgba(225,29,72,0.3)',
-                        }}>
-                            <Plus size={16} /> Log Expenditure
-                        </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <Link href={route('expenses.create')}>
+                            <button style={{ height: '40px', padding: '0 1.25rem', background: '#0f172a', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Plus size={18} /> Record Expense
+                            </button>
+                        </Link>
                     </div>
                 </div>
 
-                {/* ── Stat cards (Inventory Style) ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '1rem' }}>
-                    {statCards.map((s, i) => (
-                        <div key={i} style={{ ...card, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <s.icon size={22} color={s.color} />
+                {/* ── Summary Strip ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1rem' }}>
+                    {[
+                        { label: 'Page Total', value: fmt(total),   color: '#0f172a', icon: DollarSign },
+                        { label: 'Paid',        value: fmt(paid),    color: '#16a34a', icon: CheckCircle2 },
+                        { label: 'Pending',     value: `${pending} records`, color: '#d97706', icon: Clock },
+                    ].map((s, i) => (
+                        <div key={i} style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '12px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color }}>
+                                <s.icon size={18} />
                             </div>
                             <div>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
-                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
+                                <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>{s.label}</p>
+                                <p style={{ fontSize: '1.15rem', fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.5rem' }} className="main-grid">
+                {/* ── Search + Filter Bar (Enhanced) ── */}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', background: '#f8fafc', padding: '1rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                     
-                    {/* Left: Enhanced Category Sidebar */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ ...card, padding: '1.25rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1.5px solid #f8fafc' }}>
-                                <Grid size={16} color="#6366f1" />
-                                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Spending Tiers</h3>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <button onClick={() => setCategoryId('')}
-                                    style={{
-                                        padding: '0.625rem 0.875rem', border: 'none', borderRadius: '10px',
-                                        textAlign: 'left', fontSize: '0.82rem', fontWeight: 700,
-                                        background: categoryId === '' ? '#f5f3ff' : 'transparent',
-                                        color: categoryId === '' ? '#6366f1' : '#64748b',
-                                        cursor: 'pointer', transition: 'all 0.2s',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                                    }}>
-                                    <span>All Expenditures</span>
-                                    {categoryId === '' && <ChevronRight size={14} />}
-                                </button>
-                                {categories.map(cat => (
-                                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <button onClick={() => setCategoryId(cat.id)}
-                                            style={{
-                                                flex: 1, padding: '0.625rem 0.875rem', border: 'none', borderRadius: '10px',
-                                                textAlign: 'left', fontSize: '0.82rem', fontWeight: 700,
-                                                background: categoryId == cat.id ? '#f5f3ff' : 'transparent',
-                                                color: categoryId == cat.id ? '#6366f1' : '#64748b',
-                                                cursor: 'pointer', transition: 'all 0.2s',
-                                                display: 'flex', alignItems: 'center', gap: '10px'
-                                            }}>
-                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color }} />
-                                            {cat.name}
-                                        </button>
-                                        <button onClick={() => { setEditingCategory(cat); categoryForm.setData({ name: cat.name, code: cat.code || '', description: cat.description || '', color: cat.color, is_active: !!cat.is_active }); setShowCategoryModal(true); }}
-                                            style={{ width: '28px', height: '28px', border: 'none', background: 'transparent', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Edit size={12} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div style={{ ...card, background: '#1e1b4b', color: '#fff', border: 'none', padding: '1.25rem' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                                <LifeBuoy size={18} color="#fff" />
-                            </div>
-                            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: '0 0 6px' }}>Auditing Intelligence</h4>
-                            <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, lineHeight: 1.5, margin: 0 }}>Every recorded expense requires a descriptive title and linked category for tax and internal audit compliance.</p>
-                        </div>
+                    {/* Universal Search */}
+                    <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                        <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        <input value={f.search} onChange={e => set('search', e.target.value)}
+                            placeholder="Find by Title, Vendor, or ID..."
+                            style={{ ...inputBase, paddingLeft: '2.25rem', height: '42px', border: '1px solid #e2e8f0' }} />
                     </div>
 
-                    {/* Right: Enhanced Transactions List */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        
-                        {/* Filters Row */}
-                        <div style={{ ...card, padding: '1rem 1.25rem' }}>
-                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-                                    <Search size={16} color="#fb7185" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                                    <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                                        placeholder="Scan by vendor, title, or reference..."
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '0.625rem 1rem 0.625rem 2.25rem', background: '#fff1f2', border: '1.5px solid #fee2e2', borderRadius: '10px', fontSize: '0.85rem', color: '#1e1b4b', outline: 'none', fontWeight: 600 }}
-                                        onFocus={e => { e.target.style.borderColor = '#fb7185'; e.target.style.boxShadow = '0 0 0 3px rgba(251,113,133,0.1)'; }}
-                                        onBlur={e => { e.target.style.borderColor = '#fee2e2'; e.target.style.boxShadow = 'none'; }}
-                                    />
-                                </div>
-                                <select value={status} onChange={e => setStatus(e.target.value)}
-                                    style={{ padding: '0.55rem 1rem', background: '#f9f7ff', border: '1.5px solid #ede9fe', borderRadius: '10px', fontSize: '0.82rem', color: '#4338ca', fontWeight: 600, cursor: 'pointer', outline: 'none', appearance: 'none', minWidth: '150px' }}>
-                                    <option value="">Any Status</option>
-                                    <option value="pending">Awaiting Audit</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="paid">Funded / Paid</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
-                                {(search || status || categoryId) && (
-                                    <button onClick={() => { setSearch(''); setStatus(''); setCategoryId(''); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.55rem 0.875rem', background: '#fff1f2', border: '1.5px solid #fecaca', borderRadius: '10px', color: '#ef4444', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
-                                        <X size={13} /> Reset
-                                    </button>
-                                )}
-                            </div>
+                    {/* PROJECT WISE FILTER */}
+                    <div style={{ position: 'relative', minWidth: '180px' }}>
+                        <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6366f1' }}>
+                            <Briefcase size={14} />
                         </div>
-
-                        {/* Rows List */}
-                        {expenses.data.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {expenses.data.map(expense => {
-                                    const cfg = getStatusConfig(expense.status);
-                                    return (
-                                        <div key={expense.id} style={{
-                                            ...card, padding: '1rem 1.5rem',
-                                            display: 'flex', alignItems: 'center',
-                                            gap: '1.5rem', flexWrap: 'wrap',
-                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        }}
-                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#fb7185'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(251,113,133,0.06)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0eeff'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                                        >
-                                            {/* Icon */}
-                                            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid #fee2e2' }}>
-                                                <Receipt size={22} color="#e11d48" />
-                                            </div>
-
-                                            {/* Info */}
-                                            <div style={{ width: '220px' }}>
-                                                <p style={{ fontSize: '0.92rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>{expense.title}</p>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>{expense.expense_number}</span>
-                                                    <span style={{ color: '#cbd5e1' }}>•</span>
-                                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(expense.expense_date).toLocaleDateString('en-GB')}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Tier & Attachment */}
-                                            <div style={{ flex: 2, minWidth: '180px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: expense.category?.color || '#cbd5e1' }} />
-                                                    <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#4b5563', margin: 0 }}>{expense.category?.name || 'Administrative Tier'}</p>
-                                                </div>
-                                                {expense.project?.title && (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                                                        <Briefcase size={12} color="#a78bfa" />
-                                                        <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#a78bfa', margin: 0, textTransform: 'uppercase' }}>{expense.project.title}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Amount */}
-                                            <div style={{ textAlign: 'right', minWidth: '120px' }}>
-                                                <p style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 800, textTransform: 'uppercase', margin: 0 }}>Outbound Cost</p>
-                                                <p style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>
-                                                    ৳{new Intl.NumberFormat().format(expense.amount)}
-                                                </p>
-                                            </div>
-
-                                            {/* Status Badge */}
-                                            <div style={{ minWidth: '110px', textAlign: 'center' }}>
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.68rem', fontWeight: 850, color: cfg.color, background: cfg.bg, padding: '4px 12px', borderRadius: '20px', border: `1.5px solid ${cfg.color}15`, textTransform: 'uppercase' }}>
-                                                    <cfg.icon size={11} />
-                                                    {cfg.label}
-                                                </span>
-                                            </div>
-
-                                            {/* Actions Suite */}
-                                            <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
-                                                <Link href={route('expenses.show', expense.id)} title="Audit Details">
-                                                    <button style={iconBtn('#f5f3ff', '#6366f1')}><Eye size={16} /></button>
-                                                </Link>
-                                                <Link href={route('expenses.edit', expense.id)} title="Edit Entry">
-                                                    <button style={iconBtn('#fffbeb', '#d97706')}><Edit size={16} /></button>
-                                                </Link>
-                                                <button style={iconBtn('#fff1f2', '#ef4444')} title="Purge Log" onClick={() => confirm('Withdraw this expenditure record?') && router.delete(route('expenses.destroy', expense.id))}>
-                                                    <Trash2 size={16} />
-                                                </button>
-                                                <div style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', color: '#cbd5e1' }}>
-                                                    <ChevronRight size={18} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div style={{ textAlign: 'center', padding: '6rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px', background: '#faf9ff' }}>
-                                <Inbox size={48} color="#e0d9ff" style={{ margin: '0 auto 1.5rem' }} />
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 0.5rem' }}>No Expenditure Logs</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: '0 0 2rem' }}>
-                                    Your business spending ledger is empty. Start tracking your outflows.
-                                </p>
-                                <button onClick={() => setShowCreateModal(true)} style={{ 
-                                    display: 'inline-flex', alignItems: 'center', gap: '8px', 
-                                    padding: '0.75rem 1.75rem', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', 
-                                    border: 'none', borderRadius: '14px', color: '#fff', 
-                                    fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
-                                    boxShadow: '0 6px 16px rgba(225,29,72,0.25)'
-                                }}>
-                                    <Plus size={18} /> Log First Expenditure
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Pagination */}
-                        {expenses.links && expenses.links.length > 3 && (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', ...card, padding: '0.875rem 1.25rem' }}>
-                                <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, fontWeight: 600 }}>
-                                    Page <strong style={{ color: '#1e1b4b' }}>{expenses.current_page}</strong> of <strong style={{ color: '#1e1b4b' }}>{expenses.last_page}</strong>
-                                </p>
-                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                    {expenses.links.map((link, i) => link.url ? (
-                                        <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', background: link.active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#f5f3ff', color: link.active ? '#fff' : '#6366f1', transition: 'all 0.2s' }} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    ) : (
-                                        <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '36px', height: '36px', padding: '0 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, background: '#f8fafc', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        <select value={f.project_id} onChange={e => set('project_id', e.target.value)} 
+                            style={{ ...inputBase, fontSize: '0.8rem', height: '42px', paddingLeft: '2.25rem', paddingRight: '2rem', appearance: 'none', fontWeight: 700, borderColor: f.project_id ? '#6366f1' : '#e2e8f0', background: f.project_id ? '#f5f3ff' : '#fff' }}>
+                            <option value="">All Projects</option>
+                            {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                        </select>
+                        <ChevronDown size={14} color="#94a3b8" style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                     </div>
+
+                    {/* DATE WISE FILTER (Promoted) */}
+                    <div style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0 8px', height: '42px' }}>
+                        <Calendar size={14} color="#64748b" style={{ marginRight: '8px' }} />
+                        <input type="date" value={f.from_date} onChange={e => set('from_date', e.target.value)} 
+                            style={{ border: 'none', fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, width: '115px', outline: 'none' }} 
+                            title="Start Date" />
+                        <span style={{ margin: '0 8px', color: '#cbd5e1' }}>→</span>
+                        <input type="date" value={f.to_date} onChange={e => set('to_date', e.target.value)} 
+                            style={{ border: 'none', fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, width: '115px', outline: 'none' }} 
+                            title="End Date" />
+                    </div>
+
+                    {/* PROJECT TYPE TOGGLE */}
+                    <div style={{ display: 'flex', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '2px' }}>
+                        <button onClick={() => set('project_type', '')} style={{ padding: '0 10px', height: '36px', borderRadius: '8px', border: 'none', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', background: f.project_type === '' ? '#0f172a' : 'transparent', color: f.project_type === '' ? '#fff' : '#64748b' }}>All</button>
+                        <button onClick={() => set('project_type', 'with_project')} title="Project Expenses" style={{ padding: '0 10px', height: '36px', borderRadius: '8px', border: 'none', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', background: f.project_type === 'with_project' ? '#6366f1' : 'transparent', color: f.project_type === 'with_project' ? '#fff' : '#64748b' }}>Projects</button>
+                        <button onClick={() => set('project_type', 'no_project')} title="General Overhead" style={{ padding: '0 10px', height: '36px', borderRadius: '8px', border: 'none', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', background: f.project_type === 'no_project' ? '#ef4444' : 'transparent', color: f.project_type === 'no_project' ? '#fff' : '#64748b' }}>Overhead</button>
+                    </div>
+
+                    {/* Filter Toggle */}
+                    <button onClick={() => setShowFilters(v => !v)} style={{ height: '42px', padding: '0 1rem', background: showFilters ? '#0f172a' : '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: showFilters ? '#fff' : '#475569', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Filter size={16} /> Advanced
+                        {activeCount > 0 && <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{activeCount}</span>}
+                    </button>
+
+                    {(activeCount > 0 || f.search) && (
+                        <button onClick={resetFilters} style={{ height: '42px', padding: '0 1rem', background: 'none', border: 'none', color: '#ef4444', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <RotateCcw size={14} /> Clear
+                        </button>
+                    )}
                 </div>
+
+                {/* ── Status Sub-Navigation ── */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['pending','approved','paid','rejected'].map(s => (
+                        <button key={s} onClick={() => set('status', f.status === s ? '' : s)}
+                            style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: f.status === s ? getStatus(s).bg : '#fff', color: f.status === s ? getStatus(s).color : '#64748b', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', height: '32px' }}>
+                            {s}
+                        </button>
+                    ))}
+                </div>
+
+                {/* ── Expanded Filter Panel ── */}
+                {showFilters && (
+                    <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '16px', padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                        <div>
+                            <label style={labelSm}>Category</label>
+                            <select value={f.category_id} onChange={e => set('category_id', e.target.value)} style={inputBase}>
+                                <option value="">All Categories</option>
+                                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={labelSm}>Payment Method</label>
+                            <select value={f.payment_method} onChange={e => set('payment_method', e.target.value)} style={inputBase}>
+                                <option value="">All Methods</option>
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="credit_card">Credit Card</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style={labelSm}>From Date</label>
+                            <input type="date" value={f.from_date} onChange={e => set('from_date', e.target.value)} style={inputBase} />
+                        </div>
+                        <div>
+                            <label style={labelSm}>To Date</label>
+                            <input type="date" value={f.to_date} onChange={e => set('to_date', e.target.value)} style={inputBase} />
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Contextual Summary (Project Wise) ── */}
+                {f.project_id && (
+                    <div style={{ background: '#6366f1', padding: '1rem 1.5rem', borderRadius: '14px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 10px 15px -3px rgba(99,102,241,0.3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Briefcase size={20} />
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase', margin: 0 }}>Showing Expenses For:</p>
+                                <p style={{ fontSize: '1rem', fontWeight: 950, margin: 0 }}>{projects.find(p => p.id == f.project_id)?.title || 'Selected Project'}</p>
+                            </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase', margin: 0 }}>Total Filtered Spending:</p>
+                            <p style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>{fmt(total)}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Table ── */}
+                <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '16px', overflow: 'hidden' }}>
+                    {/* Head */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1.8fr 1fr 1fr 110px 110px 100px 80px', padding: '10px 20px', background: '#f8fafc', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #f1f5f9' }}>
+                        <div>Exp #</div>
+                        <div>Title / Vendor</div>
+                        <div>Category</div>
+                        <div>Project</div>
+                        <div>Method</div>
+                        <div style={{ textAlign: 'right' }}>Amount</div>
+                        <div style={{ textAlign: 'center' }}>Status</div>
+                        <div style={{ textAlign: 'right' }}>Actions</div>
+                    </div>
+
+                    {/* Body */}
+                    {expenses.data.length === 0 ? (
+                        <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <AlertCircle size={32} style={{ marginBottom: '12px', opacity: 0.4 }} />
+                            <p style={{ fontWeight: 700 }}>No expenses found</p>
+                            <p style={{ fontSize: '0.85rem' }}>Try adjusting your filters or search query</p>
+                        </div>
+                    ) : expenses.data.map((exp, idx) => {
+                        const st = getStatus(exp.status);
+                        return (
+                            <div key={exp.id}
+                                style={{ display: 'grid', gridTemplateColumns: '120px 1.8fr 1fr 1fr 110px 110px 100px 80px', padding: '14px 20px', borderBottom: idx === expenses.data.length - 1 ? 'none' : '1px solid #f8fafc', alignItems: 'center', transition: 'background 0.15s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#fafbfc'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                {/* Expense # + date */}
+                                <div>
+                                    <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4f46e5', margin: 0 }}>{exp.expense_number}</p>
+                                    <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0, fontWeight: 600 }}>
+                                        {new Date(exp.expense_date).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}
+                                    </p>
+                                </div>
+
+                                {/* Title + vendor */}
+                                <div>
+                                    <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '280px' }}>{exp.title}</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                                        {exp.vendor_name && (
+                                            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                <Building2 size={11} /> {exp.vendor_name}
+                                            </span>
+                                        )}
+                                        {exp.is_reimbursable && (
+                                            <span style={{ fontSize: '0.62rem', background: '#fef3c7', color: '#d97706', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>REIMB</span>
+                                        )}
+                                        {exp.receipt && (
+                                            <span style={{ fontSize: '0.62rem', background: '#f0fdf4', color: '#16a34a', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                <FileCheck size={9} /> RECEIPT
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Category */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: exp.category?.color || '#cbd5e1', flexShrink: 0 }} />
+                                    <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600 }}>{exp.category?.name || '—'}</span>
+                                </div>
+
+                                {/* Project */}
+                                <div>
+                                    {exp.project ? (
+                                        <Link href={route('projects.show', exp.project.id)} style={{ textDecoration: 'none' }}>
+                                            <span style={{ fontSize: '0.82rem', color: '#4f46e5', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Briefcase size={12} />{exp.project.title}
+                                            </span>
+                                        </Link>
+                                    ) : (
+                                        <span style={{ fontSize: '0.78rem', color: '#cbd5e1', fontWeight: 600 }}>— Overhead</span>
+                                    )}
+                                </div>
+
+                                {/* Payment Method */}
+                                <div>
+                                    <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <CreditCard size={12} color="#94a3b8" />
+                                        {PAYMENT_LABELS[exp.payment_method] || exp.payment_method || '—'}
+                                    </span>
+                                </div>
+
+                                {/* Amount */}
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{fmt(exp.amount)}</p>
+                                </div>
+
+                                {/* Status Badge */}
+                                <div style={{ textAlign: 'center' }}>
+                                    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, background: st.bg, color: st.color }}>
+                                        {st.label}
+                                    </span>
+                                </div>
+
+                                {/* Actions */}
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                                    <Link href={route('expenses.show', exp.id)}>
+                                        <button style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: '#f8fafc', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="View">
+                                            <Eye size={15} />
+                                        </button>
+                                    </Link>
+                                    <button onClick={() => confirm('Delete this expense?') && router.delete(route('expenses.destroy', exp.id))}
+                                        style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: '#fff1f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete">
+                                        <Trash2 size={15} />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* ── Pagination ── */}
+                {expenses.last_page > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#fff', border: '1px solid #f1f5f9', borderRadius: '12px', padding: '12px 20px' }}>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                            Showing <strong>{expenses.from}–{expenses.to}</strong> of <strong>{expenses.total}</strong> records
+                        </p>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {expenses.links.map((link, i) => link.url ? (
+                                <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none', background: link.active ? '#0f172a' : '#f1f5f9', color: link.active ? '#fff' : '#64748b' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ) : (
+                                <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, background: '#f9fafb', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* CREATE EXPENSE MODAL */}
-            <Modal show={showCreateModal} onClose={() => setShowCreateModal(false)} maxWidth="2xl">
-                <div style={{ padding: '2rem', background: '#fff', borderRadius: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                        <div>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Register Expenditure</h2>
-                            <p style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, margin: '2px 0 0' }}>Manually document a verified outflow</p>
-                        </div>
-                        <button onClick={() => setShowCreateModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', padding: '8px', borderRadius: '50%' }}>
-                            <X size={20} />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleCreateExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                            <div>
-                                <label style={labelStyle}>Expenditure Title</label>
-                                <input type="text" value={expenseForm.data.title} onChange={e => expenseForm.setData('title', e.target.value)} placeholder="e.g. Hosting Renewal" style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Amount (৳)</label>
-                                <input type="number" step="0.01" value={expenseForm.data.amount} onChange={e => expenseForm.setData('amount', e.target.value)} placeholder="0.00" style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Spending Tier</label>
-                                <select value={expenseForm.data.expense_category_id} onChange={e => expenseForm.setData('expense_category_id', e.target.value)} style={inputStyle} required onFocus={onFocus} onBlur={onBlur}>
-                                    <option value="">Select Tier</option>
-                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Movement Method</label>
-                                <select value={expenseForm.data.payment_method} onChange={e => expenseForm.setData('payment_method', e.target.value)} style={inputStyle} required onFocus={onFocus} onBlur={onBlur}>
-                                    <option value="">Select Method</option>
-                                    <option value="cash">Cash Fund</option>
-                                    <option value="bank_transfer">Bank Settlement</option>
-                                    <option value="credit_card">Card Transaction</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Settlement Date</label>
-                                <input type="date" value={expenseForm.data.expense_date} onChange={e => expenseForm.setData('expense_date', e.target.value)} style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Linked Project</label>
-                                <select value={expenseForm.data.project_id} onChange={e => expenseForm.setData('project_id', e.target.value)} style={inputStyle} onFocus={onFocus} onBlur={onBlur}>
-                                    <option value="">Operational (No Project)</option>
-                                    {projects.map(proj => <option key={proj.id} value={proj.id}>{proj.title}</option>)}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style={labelStyle}>Expenditure Context</label>
-                            <textarea value={expenseForm.data.description} onChange={e => expenseForm.setData('description', e.target.value)} placeholder="Provide internal notes for auditing..."
-                                style={{ ...inputStyle, height: '80px', padding: '0.75rem', resize: 'none' }} onFocus={onFocus} onBlur={onBlur} />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                            <button type="button" onClick={() => setShowCreateModal(false)} style={{ flex: 1, height: '48px', borderRadius: '12px', border: '1.5px solid #ede9fe', background: '#fff', color: '#64748b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
-                            <button type="submit" disabled={expenseForm.processing} style={{ flex: 1, height: '48px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', color: '#fff', fontSize: '0.9rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(225,29,72,0.2)' }}>
-                                {expenseForm.processing ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                Commit Record
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </Modal>
-
-            {/* CATEGORY SETTINGS MODAL */}
+            {/* ── Category Modal ── */}
             <Modal show={showCategoryModal} onClose={() => setShowCategoryModal(false)} maxWidth="md">
-                <div style={{ padding: '2rem', background: '#fff', borderRadius: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                        <div>
-                            <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Expenditure Tier</h2>
-                            <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, margin: '2px 0 0' }}>Classify outflows for better auditing</p>
-                        </div>
-                        <button onClick={() => setShowCategoryModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}>
-                            <X size={20} />
-                        </button>
+                <div style={{ padding: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                        <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>{editingCategory ? 'Edit Category' : 'Add Category'}</h2>
+                        <button onClick={() => setShowCategoryModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
                     </div>
-
                     <form onSubmit={handleCategorySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div>
-                            <label style={labelStyle}>Tier Label</label>
-                            <input type="text" value={categoryForm.data.name} onChange={e => categoryForm.setData('name', e.target.value)} placeholder="e.g. INFRASTRUCTURE" style={inputStyle} required onFocus={onFocus} onBlur={onBlur} />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Tier Identification Color</label>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <input type="color" value={categoryForm.data.color} onChange={e => categoryForm.setData('color', e.target.value)}
-                                    style={{ width: '46px', height: '46px', padding: '4px', border: '1.5px solid #ede9fe', borderRadius: '10px', background: '#f9f7ff', cursor: 'pointer' }} />
-                                <input type="text" value={categoryForm.data.color} onChange={e => categoryForm.setData('color', e.target.value)} style={{ ...inputStyle, flex: 1, textTransform: 'uppercase' }} onFocus={onFocus} onBlur={onBlur} />
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-                            <button type="button" onClick={() => setShowCategoryModal(false)} style={{ flex: 1, height: '48px', borderRadius: 'px', border: '1.5px solid #ede9fe', background: '#fff', color: '#64748b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
-                            <button type="submit" disabled={categoryForm.processing} style={{ flex: 1, height: '48px', borderRadius: '12px', border: 'none', background: '#1e1b4b', color: '#fff', fontSize: '0.9rem', fontWeight: 900, cursor: 'pointer' }}>
-                                {editingCategory ? 'Commit Tier' : 'Spawn Tier'}
+                        <div><label style={labelSm}>Name</label><input type="text" value={catForm.data.name} onChange={e => catForm.setData('name', e.target.value)} style={{ ...inputBase, height: '42px' }} required /></div>
+                        <div><label style={labelSm}>Code</label><input type="text" value={catForm.data.code} onChange={e => catForm.setData('code', e.target.value)} style={{ ...inputBase, height: '42px' }} required /></div>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                            <button type="button" onClick={() => setShowCategoryModal(false)} style={{ flex: 1, height: '42px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 700 }}>Cancel</button>
+                            <button type="submit" disabled={catForm.processing} style={{ flex: 1, height: '42px', borderRadius: '8px', border: 'none', background: '#0f172a', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                                {editingCategory ? 'Update' : 'Create'}
                             </button>
                         </div>
                     </form>
@@ -538,7 +412,6 @@ export default function Index({ auth, expenses, filters, categories = [], projec
             <style>{`
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr !important; } }
             `}</style>
         </FigmaLayout>
     );

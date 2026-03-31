@@ -10,6 +10,10 @@ class AttendanceController extends Controller
 {
     public function store(Request $request, Employee $employee)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('create_attendance')) {
+            abort(403, 'Unauthorized operation: Log Attendance.');
+        }
+
         $validated = $request->validate([
             'date' => 'required|date',
             'check_in' => 'nullable|string',
@@ -26,14 +30,20 @@ class AttendanceController extends Controller
         return back()->with('success', 'Attendance record updated.');
     }
 
-    public function destroy(Attendance $attendance)
+    public function destroy(Request $request, Attendance $attendance)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('delete_attendance')) {
+            abort(403, 'Unauthorized operation: Remove Attendance Log.');
+        }
         $attendance->delete();
         return back()->with('success', 'Attendance record removed.');
     }
 
-    public function export()
+    public function export(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_attendance')) {
+            abort(403, 'Unauthorized operation: Export Attendance.');
+        }
         $headers = [
             "Content-type" => "text/csv",
             "Content-Disposition" => "attachment; filename=attendance_export_" . date('Y-m-d') . ".csv",

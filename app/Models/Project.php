@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Design;
+use App\Models\ProjectDesign;
 
 class Project extends Model
 {
@@ -49,5 +51,15 @@ class Project extends Model
     public function designs()
     {
         return $this->hasMany(ProjectDesign::class);
+    }
+
+    public function clientDesigns()
+    {
+        return $this->hasMany(Design::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(ProjectDocument::class);
     }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import { t } from '../../../Lang/translation';
 import {
     ArrowLeft,
     Edit,
@@ -24,8 +25,10 @@ import {
     Zap,
     History,
     FileCheck,
-    MoreVertical
+    MoreVertical,
+    CreditCard
 } from 'lucide-react';
+
 
 const cardStyle = {
     background: '#fff',
@@ -39,10 +42,10 @@ const cardStyle = {
 
 const badgeStyle = (status) => {
     const styles = {
-        approved: { bg: '#ecfdf5', color: '#059669', label: 'Approved', icon: CheckCircle2 },
-        paid: { bg: '#eff6ff', color: '#2563eb', label: 'Paid', icon: ShieldCheck },
-        pending: { bg: '#fffbeb', color: '#d97706', label: 'Pending Approval', icon: Clock },
-        rejected: { bg: '#fff1f2', color: '#e11d48', label: 'Rejected', icon: XCircle },
+        approved: { bg: '#ecfdf5', color: '#059669', label: t('approved'), icon: CheckCircle2 },
+        paid: { bg: '#eff6ff', color: '#2563eb', label: t('paid'), icon: ShieldCheck },
+        pending: { bg: '#fffbeb', color: '#d97706', label: t('pending'), icon: Clock },
+        rejected: { bg: '#fff1f2', color: '#e11d48', label: t('rejected'), icon: XCircle },
     };
     const s = styles[status] || styles.pending;
     return {
@@ -64,19 +67,19 @@ const badgeStyle = (status) => {
 
 export default function Show({ auth, expense }) {
     const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this expense record?')) {
+        if (confirm(t('delete_confirm'))) {
             router.delete(route('expenses.destroy', expense.id));
         }
     };
 
     const handleApprove = () => {
-        if (confirm('Authorize this expense and save to your history?')) {
+        if (confirm(t('authorize_expense_msg') || 'Authorize this expense?')) {
             router.post(route('expenses.approve', expense.id));
         }
     };
 
     const handleReject = () => {
-        const reason = prompt('Please provide a reason for rejecting this expense:');
+        const reason = prompt(t('rejection_reason_msg') || 'Please provide a reason for rejecting this expense:');
         if (reason) {
             router.post(route('expenses.reject', expense.id), { approval_notes: reason });
         }
@@ -94,7 +97,7 @@ export default function Show({ auth, expense }) {
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Expense Details - ${expense.expense_number}`} />
+            <Head title={`${t('expense_details')} - ${expense.expense_number}`} />
 
             <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '4rem' }}>
                 
@@ -107,22 +110,16 @@ export default function Show({ auth, expense }) {
                             </button>
                         </Link>
                         <div>
-                            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Expense Details</h1>
-                            <p style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>Expense ID: {expense.expense_number}</p>
+                            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{t('expense_details')}</h1>
+                            <p style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 600, margin: '4px 0 0' }}>{t('expense_id')}: {expense.expense_number}</p>
                         </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <button onClick={() => window.print()} style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#64748b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Printer size={18} />
-                            Print
+                            {t('print')}
                         </button>
-                        <Link href={route('expenses.edit', expense.id)}>
-                            <button style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#1e1b4b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Edit size={18} />
-                                Edit
-                            </button>
-                        </Link>
                     </div>
                 </div>
 
@@ -138,14 +135,14 @@ export default function Show({ auth, expense }) {
                                     <div>
                                         <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 4px' }}>{expense.title}</h2>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#6366f1' }}>{expense.category?.name || 'Uncategorized'}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#6366f1' }}>{expense.category?.name || t('uncategorized')}</span>
                                             <span style={{ color: '#cbd5e1' }}>•</span>
                                             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(expense.expense_date).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Amount</p>
+                                    <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{t('total_amount')}</p>
                                     <h3 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>{formatCurrency(expense.amount)}</h3>
                                 </div>
                             </div>
@@ -153,10 +150,10 @@ export default function Show({ auth, expense }) {
                             <div style={{ background: '#f8fafc', borderRadius: '20px', padding: '2rem', marginBottom: '2.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
                                     <FileText size={16} color="#94a3b8" />
-                                    <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Description</h4>
+                                    <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>{t('description')}</h4>
                                 </div>
                                 <p style={{ fontSize: '1rem', fontWeight: 600, color: '#4b5563', lineHeight: 1.6, margin: 0 }}>
-                                    {expense.description || 'No description provided for this expense.'}
+                                    {expense.description || t('no_description_provided')}
                                 </p>
                             </div>
 
@@ -166,8 +163,8 @@ export default function Show({ auth, expense }) {
                                         <Building2 size={20} />
                                     </div>
                                     <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Vendor</p>
-                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{expense.vendor_name || 'Not Specified'}</p>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>{t('vendor_name')}</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{expense.vendor_name || t('not_specified')}</p>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem' }}>
@@ -175,8 +172,8 @@ export default function Show({ auth, expense }) {
                                       <Briefcase size={20} />
                                     </div>
                                     <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Project</p>
-                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{expense.project?.title || 'General / Core'}</p>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>{t('linked_project')}</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{expense.project?.title || t('no_project')}</p>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem' }}>
@@ -184,8 +181,8 @@ export default function Show({ auth, expense }) {
                                       <CreditCard size={20} />
                                     </div>
                                     <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Payment Method</p>
-                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0, textTransform: 'capitalize' }}>{expense.payment_method?.replace('_', ' ') || 'Cash'}</p>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>{t('payment_method')}</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0, textTransform: 'capitalize' }}>{expense.payment_method?.replace('_', ' ') || t('cash')}</p>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem' }}>
@@ -193,8 +190,8 @@ export default function Show({ auth, expense }) {
                                       <Box size={20} />
                                     </div>
                                     <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>Expense Type</p>
-                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Operational Cost</p>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0 4px' }}>{t('expense_title')}</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{t('operational_cost') || 'Operational Cost'}</p>
                                     </div>
                                 </div>
                             </div>
@@ -207,7 +204,7 @@ export default function Show({ auth, expense }) {
                         <div style={{ ...cardStyle, background: expense.status === 'rejected' ? '#fff1f2' : '#fffbeb', border: 'none' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
                                 <currentBadge.icon size={24} color={currentBadge.color} />
-                                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: currentBadge.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Status</h3>
+                                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: currentBadge.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('status')}</h3>
                             </div>
 
                             <span style={{ fontSize: '1.5rem', fontWeight: 900, color: currentBadge.color, display: 'block', marginBottom: '1.5rem' }}>{currentBadge.label}</span>
@@ -215,23 +212,23 @@ export default function Show({ auth, expense }) {
                             {expense.status === 'pending' ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     <button onClick={handleApprove} style={{ width: '100%', height: '48px', borderRadius: '12px', background: '#059669', color: '#fff', border: 'none', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(5,150,105,0.2)' }}>
-                                        Approve
+                                        {t('approve')}
                                     </button>
                                     <button onClick={handleReject} style={{ width: '100%', height: '48px', borderRadius: '12px', background: '#fff', color: '#e11d48', border: '1.5px solid #fff1f2', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer' }}>
-                                        Reject
+                                        {t('rejected')}
                                     </button>
                                 </div>
                             ) : (
                                 <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.5)', borderRadius: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <ShieldCheck size={16} color={currentBadge.color} />
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: currentBadge.color }}>Verified Record</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: currentBadge.color }}>{t('verified_record')}</span>
                                 </div>
                             )}
 
                             {expense.is_reimbursable && (
                                 <div style={{ marginTop: '1.5rem', padding: '12px', background: 'rgba(255,255,255,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <Zap size={14} color="#d97706" />
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#d97706' }}>Reimbursable</span>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#d97706' }}>{t('is_reimbursable')}</span>
                                 </div>
                             )}
                         </div>
@@ -240,7 +237,7 @@ export default function Show({ auth, expense }) {
                         <div style={cardStyle}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                                 <Receipt size={18} color="#6366f1" />
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Receipt</h3>
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{t('receipt')}</h3>
                             </div>
 
                             {expense.receipt ? (
@@ -248,12 +245,12 @@ export default function Show({ auth, expense }) {
                                     <div style={{ width: '100%', height: '200px', borderRadius: '20px', background: '#f8fafc', border: '1.5px solid #f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', overflow: 'hidden' }} className="receipt-view">
                                         <FileCheck size={40} color="#10b981" />
                                         <div style={{ textAlign: 'center' }}>
-                                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e1b4b', margin: '0 0 4px' }}>Proof Verified</p>
+                                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e1b4b', margin: '0 0 4px' }}>{t('verified_record')}</p>
                                             <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>ID: {expense.receipt.split('/').pop().substring(0, 10)}...</p>
                                         </div>
                                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(30,27,75,0.6)', opacity: 0, transition: 'all 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="receipt-overlay">
                                             <a href={`/storage/${expense.receipt}`} target="_blank" style={{ padding: '10px 20px', background: '#fff', color: '#1e1b4b', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Download size={16} /> View Receipt
+                                                <Download size={16} /> {t('receipt')}
                                             </a>
                                         </div>
                                     </div>
@@ -261,17 +258,17 @@ export default function Show({ auth, expense }) {
                             ) : (
                                 <div style={{ width: '100%', padding: '2rem 0', borderRadius: '20px', border: '2px dashed #f1f5f9', textAlign: 'center', opacity: 0.5 }}>
                                     <XCircle size={32} color="#cbd5e1" style={{ marginBottom: '10px' }} />
-                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', margin: 0 }}>Receipt Missing</p>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', margin: 0 }}>{t('receipt')} {t('not_specified')}</p>
                                 </div>
                             )}
                         </div>
 
                         {/* Delete Action */}
                         <div style={{ ...cardStyle, background: '#1e1b4b', border: 'none', padding: '1.5rem' }}>
-                           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>Danger Zone</p>
+                           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem' }}>{t('danger_zone')}</p>
                            <button onClick={handleDelete} style={{ width: '100%', height: '48px', borderRadius: '12px', background: 'rgba(225,29,72,0.1)', color: '#fb7185', border: '1.5px solid rgba(225,29,72,0.2)', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                <Trash2 size={16} />
-                               Delete Record
+                               {t('delete')} {t('expenses')}
                            </button>
                         </div>
                     </div>

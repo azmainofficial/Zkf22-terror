@@ -1,48 +1,50 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm, router } from '@inertiajs/react';
-import {
-    Plus,
-    Search,
-    Tag,
-    X,
-    Edit2,
-    Trash2,
-    CloudUpload,
-    Loader2,
-    MoreVertical,
-    Building2,
-    ExternalLink,
-    Image as ImageIcon
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/Components/ui/Card';
-import { Button } from '@/Components/ui/Button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from '@/Components/ui/DropdownMenu';
-import { useAppStore } from '@/store/useAppStore';
-import { t } from '@/lib/translations';
-import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import FigmaLayout from '@/Layouts/FigmaLayout';
+import { Head, useForm, router } from '@inertiajs/react';
+import { t } from '../../Lang/translation';
+import {
+    Plus, Search, Edit2, Trash2, CloudUpload,
+    Loader2, Building2, X, Tag, Save
+} from 'lucide-react';
 import Modal from '@/Components/Modal';
 
+const cardStyle = {
+    background: '#fff',
+    borderRadius: '20px',
+    border: '1.5px solid #f1f5f9',
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01)',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+};
+
+const inputStyle = {
+    width: '100%', boxSizing: 'border-box',
+    padding: '0.85rem 1rem',
+    borderRadius: '12px', border: '1.5px solid #f1f5f9',
+    background: '#fff', fontSize: '0.9rem',
+    fontWeight: 500, outline: 'none', color: '#1e1b4b',
+    transition: 'all 0.2s',
+};
+
+const labelStyle = {
+    fontSize: '0.8rem', fontWeight: 700,
+    color: '#64748b', display: 'block', marginBottom: '8px',
+};
+
+const onFocus = e => { e.target.style.borderColor = '#1e1b4b'; e.target.style.boxShadow = '0 0 0 3px rgba(30,27,75,0.05)'; };
+const onBlur  = e => { e.target.style.borderColor = '#f1f5f9'; e.target.style.boxShadow = 'none'; };
+
 export default function Index({ auth, brands = [] }) {
-    const { language } = useAppStore();
-    const [showModal, setShowModal] = useState(false);
+    const [showModal, setShowModal]     = useState(false);
     const [editingBrand, setEditingBrand] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [logoPreview, setLogoPreview] = useState(null);
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
-        name: '',
-        description: '',
-        logo: null,
-        _method: 'POST'
+        name: '', description: '', logo: null, _method: 'POST',
     });
 
-    const filteredBrands = brands.filter(brand =>
-        brand.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredBrands = brands.filter(b =>
+        b.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const handleOpenCreate = () => {
@@ -50,274 +52,244 @@ export default function Index({ auth, brands = [] }) {
         reset();
         clearErrors();
         setData('_method', 'POST');
+        setLogoPreview(null);
         setShowModal(true);
     };
 
     const handleOpenEdit = (brand) => {
         setEditingBrand(brand);
-        setData({
-            name: brand.name,
-            description: brand.description || '',
-            logo: null,
-            _method: 'PATCH'
-        });
+        setData({ name: brand.name, description: brand.description || '', logo: null, _method: 'PATCH' });
         clearErrors();
+        setLogoPreview(null);
         setShowModal(true);
     };
 
     const handleDelete = (id) => {
-        if (confirm(t('confirm_delete', language))) {
+        if (confirm(t('delete_brand_confirm'))) {
             router.delete(route('brands.destroy', id));
         }
     };
 
     const submit = (e) => {
         e.preventDefault();
-        const action = editingBrand
-            ? route('brands.update', editingBrand.id)
-            : route('brands.store');
-
+        const action = editingBrand ? route('brands.update', editingBrand.id) : route('brands.store');
         post(action, {
-            onSuccess: () => {
-                setShowModal(false);
-                reset();
-            },
+            onSuccess: () => { setShowModal(false); reset(); setLogoPreview(null); },
             forceFormData: true,
         });
     };
 
-    const [logoPreview, setLogoPreview] = useState(null);
     useEffect(() => {
         if (data.logo instanceof File) {
-            const objectUrl = URL.createObjectURL(data.logo);
-            setLogoPreview(objectUrl);
-            return () => URL.revokeObjectURL(objectUrl);
-        } else {
-            setLogoPreview(null);
+            const url = URL.createObjectURL(data.logo);
+            setLogoPreview(url);
+            return () => URL.revokeObjectURL(url);
         }
     }, [data.logo]);
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200 dark:shadow-none shrink-0">
-                            <Tag size={24} />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">{t('brands', language)}</h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">
-                                {t('manage_brands_desc', language)}
-                            </p>
-                        </div>
-                    </div>
-                    <Button
-                        onClick={handleOpenCreate}
-                        className="h-11 md:h-12 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-3 transition-all shadow-md active:scale-95"
-                    >
-                        <Plus size={18} />
-                        {language === 'bn' ? 'ব্র্যান্ড যোগ করুন' : 'ADD BRAND'}
-                    </Button>
-                </div>
-            }
-        >
-            <Head title={t('brands', language)} />
+        <FigmaLayout user={auth.user}>
+            <Head title={t('brands')} />
 
-            <div className="space-y-8 animate-in fade-in duration-700 pb-10">
-                {/* Search & Filter Bar */}
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-1 group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-600" size={18} />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={t('search', language)}
-                            className="w-full pl-12 pr-4 h-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all shadow-sm"
-                        />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1400px', margin: '0 auto', paddingBottom: '4rem' }}>
+
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>{t('brands')}</h1>
+                        <p style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500, marginTop: '4px' }}>
+                            {t('manage_brands_desc')}
+                        </p>
                     </div>
+                    <button
+                        onClick={handleOpenCreate}
+                        style={{
+                            height: '48px', padding: '0 1.5rem', background: '#1e1b4b', 
+                            border: 'none', borderRadius: '14px', color: '#fff', 
+                            fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            boxShadow: '0 10px 20px rgba(30,27,75,0.15)'
+                        }}
+                    >
+                        <Plus size={18} /> {t('add_new_brand')}
+                    </button>
+                </div>
+
+                {/* Search */}
+                <div style={{ position: 'relative', maxWidth: '480px' }}>
+                    <Search size={18} color="#cbd5e1" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder={t('search_brands')}
+                        style={{ ...inputStyle, paddingLeft: '3rem', height: '54px', borderRadius: '16px' }}
+                        onFocus={onFocus} onBlur={onBlur}
+                    />
                 </div>
 
                 {/* Brands Grid */}
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    {filteredBrands.map((brand) => (
-                        <Card key={brand.id} className="group border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-[2rem] overflow-hidden bg-white dark:bg-slate-900">
-                            <CardContent className="p-6 flex flex-col items-center text-center relative">
-                                <div className="absolute top-4 right-4">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                                <MoreVertical size={16} className="text-slate-400" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="rounded-xl border-slate-100 dark:border-slate-800 shadow-xl">
-                                            <DropdownMenuItem onClick={() => handleOpenEdit(brand)} className="gap-2 cursor-pointer py-2.5 rounded-lg">
-                                                <Edit2 size={14} className="text-blue-600" />
-                                                <span className="font-semibold">{t('edit', language)}</span>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleDelete(brand.id)} className="gap-2 cursor-pointer py-2.5 rounded-lg text-rose-600">
-                                                <Trash2 size={14} />
-                                                <span className="font-semibold">{t('delete', language)}</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                {filteredBrands.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem' }}>
+                        {filteredBrands.map(brand => (
+                            <div key={brand.id} style={{ ...cardStyle, padding: '1.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', cursor: 'default' }}
+                                className="brand-card"
+                            >
+                                {/* Logo */}
+                                <div style={{ 
+                                    width: '88px', height: '88px', borderRadius: '20px', 
+                                    background: '#f8fafc', border: '1.5px solid #f1f5f9', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    overflow: 'hidden', marginBottom: '1.25rem' 
+                                }}>
+                                    {brand.logo ? (
+                                        <img src={`/storage/${brand.logo}`} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '10px' }} />
+                                    ) : (
+                                        <Building2 size={36} color="#cbd5e1" />
+                                    )}
                                 </div>
 
-                                <div className="w-24 h-24 rounded-3xl bg-slate-50 dark:bg-slate-800 p-1 mb-6 mt-2">
-                                    <div className="w-full h-full rounded-[1.35rem] overflow-hidden bg-white dark:bg-slate-950 flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                                        {brand.logo ? (
-                                            <img src={`/storage/${brand.logo}`} className="w-full h-full object-contain p-2" alt={brand.name} />
-                                        ) : (
-                                            <Building2 size={32} className="text-slate-200 dark:text-slate-700" />
-                                        )}
-                                    </div>
-                                </div>
-
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{brand.name}</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[2.5rem] leading-relaxed mb-6 font-medium">
-                                    {brand.description || (language === 'bn' ? 'এই ব্র্যান্ডের জন্য কোনো বিবরণ নেই।' : 'No description provided for this brand.')}
+                                {/* Name & Description */}
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: 850, color: '#1e1b4b', margin: '0 0 8px' }}>{brand.name}</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, margin: '0 0 1.5rem', lineHeight: 1.5, minHeight: '2.4em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {brand.description || t('no_description')}
                                 </p>
 
-                                <div className="w-full pt-6 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                                        ID #{brand.id}
-                                    </div>
-                                    <span>Verified Brand</span>
+                                {/* Actions */}
+                                <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                                    <button
+                                        onClick={() => handleOpenEdit(brand)}
+                                        style={{ flex: 1, padding: '0.65rem', borderRadius: '12px', border: '1.5px solid #f1f5f9', background: '#f8fafc', color: '#64748b', fontSize: '0.85rem', fontWeight: 750, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        {t('edit')}
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(brand.id)}
+                                        style={{ width: '42px', padding: '0.65rem', borderRadius: '12px', border: '1.5px solid #fecaca', background: '#fff1f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        title={t('delete')}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Empty State */}
-                {filteredBrands.length === 0 && (
-                    <div className="py-24 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
-                        <div className="w-20 h-20 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-700 mb-6">
-                            <Tag size={40} />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('no_brands_found', language)}</h3>
-                        <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8 font-medium">
-                            {language === 'bn' ? 'আমরা কোনো ব্র্যান্ড খুঁজে পাইনি। চালিয়ে যেতে একটি নতুন ব্র্যান্ড যোগ করুন।' : 'We couldn\'t find any brands matching your search. Create a new one to get started.'}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div style={{ ...cardStyle, padding: '5rem 1rem', textAlign: 'center', borderStyle: 'dashed', borderWidth: '2px', background: 'transparent' }}>
+                        <Tag size={48} color="#e2e8f0" style={{ margin: '0 auto 1.5rem' }} />
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 850, color: '#1e1b4b', margin: '0 0 0.5rem' }}>{t('no_brands_found')}</h3>
+                        <p style={{ fontSize: '0.95rem', color: '#64748b', margin: '0 0 2rem' }}>
+                            {searchQuery ? t('no_brands_match') : t('get_started_brand')}
                         </p>
-                        <Button onClick={handleOpenCreate} className="rounded-xl px-8 h-12 bg-indigo-600 hover:bg-indigo-700 font-bold gap-2">
-                            <Plus size={18} />
-                            {t('add_new', language)}
-                        </Button>
+                        <button
+                            onClick={handleOpenCreate}
+                            style={{ 
+                                display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '0 1.5rem', height: '48px',
+                                background: '#1e1b4b', border: 'none', borderRadius: '14px', color: '#fff', 
+                                fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(30,27,75,0.15)' 
+                            }}
+                        >
+                            <Plus size={18} /> {t('add_new_brand')}
+                        </button>
                     </div>
                 )}
             </div>
 
-            {/* Redesigned Brand Form Modal - Clean & Professional */}
+            {/* Brand Form Modal */}
             <Modal show={showModal} onClose={() => !processing && setShowModal(false)} maxWidth="2xl">
-                <div className="p-8 md:p-12 bg-white dark:bg-slate-950 rounded-[2.5rem]">
-                    <div className="flex items-center justify-between mb-10">
+                <div style={{ padding: '2.5rem', background: '#fff' }}>
+                    {/* Modal Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-                                {editingBrand ? (language === 'bn' ? 'ব্র্যান্ড এডিট করুন' : 'Edit Brand') : (language === 'bn' ? 'নতুন ব্র্যান্ড যোগ করুন' : 'Add New Brand')}
+                            <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>
+                                {editingBrand ? t('edit_brand') : t('new_brand')}
                             </h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">
-                                {editingBrand ? (language === 'bn' ? 'বিদ্যমান ব্র্যান্ডের তথ্য আপডেট করুন।' : 'Update the details for the existing brand.')
-                                    : (language === 'bn' ? 'আপনার ইনভেন্টরির জন্য একটি নতুন ব্র্যান্ড নিবন্ধিত করুন।' : 'Register a new brand identity for your inventory.')}
+                            <p style={{ fontSize: '0.9rem', color: '#64748b', margin: '4px 0 0', fontWeight: 500 }}>
+                                {editingBrand ? t('update_brand_details') : t('register_new_brand')}
                             </p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowModal(false)} className="rounded-full h-10 w-10">
+                        <button onClick={() => setShowModal(false)} style={{ border: 'none', background: '#f8fafc', borderRadius: '10px', padding: '8px', cursor: 'pointer', color: '#94a3b8' }}>
                             <X size={20} />
-                        </Button>
+                        </button>
                     </div>
 
-                    <form onSubmit={submit} className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                            {/* Logo Section */}
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
-                                    {language === 'bn' ? 'ব্র্যান্ড লোগো' : 'Brand Logo'}
-                                </label>
+                    <form onSubmit={submit}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, auto) 1fr', gap: '2rem', marginBottom: '2.5rem', alignItems: 'start' }}>
+                            {/* Logo Upload */}
+                            <div>
+                                <label style={labelStyle}>{t('brand_logo')}</label>
                                 <div
                                     onClick={() => !processing && document.getElementById('logo-upload-field').click()}
-                                    className="aspect-square rounded-[2rem] bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer group hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-600 transition-all overflow-hidden relative shadow-inner"
+                                    style={{
+                                        width: '140px', height: '140px', borderRadius: '20px',
+                                        border: '2px dashed #cbd5e1', background: '#f8fafc',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', overflow: 'hidden', transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#1e1b4b'; e.currentTarget.style.background = '#f1f5f9'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}
                                 >
                                     {logoPreview || (editingBrand?.logo && !data.logo) ? (
-                                        <img src={logoPreview || `/storage/${editingBrand.logo}`} className="w-full h-full object-contain p-4" alt="Preview" />
+                                        <img src={logoPreview || `/storage/${editingBrand.logo}`} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '12px' }} />
                                     ) : (
-                                        <div className="text-center p-6">
-                                            <CloudUpload size={32} className="mx-auto text-slate-400 group-hover:text-indigo-600 transition-colors mb-2" />
-                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">{language === 'bn' ? 'আপলোড করুন' : 'Upload Image'}</p>
-                                        </div>
+                                        <>
+                                            <CloudUpload size={32} color="#94a3b8" />
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', marginTop: '8px' }}>{t('upload')}</span>
+                                        </>
                                     )}
-                                    <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
-                                <input
-                                    id="logo-upload-field"
-                                    type="file"
-                                    className="hidden"
-                                    onChange={e => setData('logo', e.target.files[0])}
-                                    accept="image/*"
-                                />
-                                <p className="text-[10px] font-medium text-slate-400 text-center leading-relaxed">
-                                    {language === 'bn' ? 'সেরা রেজাল্টের জন্য ৫০০x৫০০ পিক্সেল পিএনজি লোগো ফাইল ব্যবহার করুন।' : 'Recommended: 500x500px PNG or JPG logo file.'}
-                                </p>
+                                <input id="logo-upload-field" type="file" style={{ display: 'none' }} onChange={e => setData('logo', e.target.files[0])} accept="image/*" />
+                                <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500, marginTop: '8px', textAlign: 'center' }}>{t('png_jpg')}</p>
                             </div>
 
-                            {/* Fields Section */}
-                            <div className="md:col-span-2 space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t('brand_name', language)} *</label>
+                            {/* Name + Description */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div>
+                                    <label style={labelStyle}>{t('brand_name')} *</label>
                                     <input
-                                        type="text"
-                                        required
-                                        className={cn(
-                                            "w-full h-12 bg-slate-50 dark:bg-slate-900 border border-transparent rounded-[1rem] font-semibold text-sm px-5 focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-900 transition-all outline-none",
-                                            errors.name && "border-rose-500 ring-4 ring-rose-500/10"
-                                        )}
-                                        placeholder={language === 'bn' ? 'ব্র্যান্ডের নাম লিখুন...' : 'Enter brand name...'}
-                                        value={data.name}
+                                        type="text" required value={data.name}
                                         onChange={e => setData('name', e.target.value)}
+                                        placeholder={t('brand_name_placeholder')}
+                                        style={{ ...inputStyle, borderColor: errors.name ? '#ef4444' : '#f1f5f9' }}
+                                        onFocus={onFocus} onBlur={onBlur}
                                     />
-                                    {errors.name && <p className="text-xs font-bold text-rose-500 ml-1">{errors.name}</p>}
+                                    {errors.name && <p style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, marginTop: '6px' }}>{errors.name}</p>}
                                 </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t('description', language)}</label>
+                                <div>
+                                    <label style={labelStyle}>{t('description')}</label>
                                     <textarea
-                                        rows="4"
-                                        className="w-full p-5 bg-slate-50 dark:bg-slate-900 border border-transparent rounded-[1.2rem] font-medium text-sm focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-900 transition-all outline-none resize-none"
-                                        placeholder={language === 'bn' ? 'ব্র্যান্ড সম্পর্কে কিছু লিখুন...' : 'Write a brief description about the brand...'}
+                                        rows={4}
                                         value={data.description}
                                         onChange={e => setData('description', e.target.value)}
-                                    ></textarea>
+                                        placeholder={t('brief_description')}
+                                        style={{ ...inputStyle, height: '100px', resize: 'none' }}
+                                        onFocus={onFocus} onBlur={onBlur}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex flex-col-reverse md:flex-row justify-end gap-3 mt-10 pt-8 border-t border-slate-50 dark:border-slate-800">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => setShowModal(false)}
-                                className="h-12 px-8 rounded-xl font-bold text-slate-500"
-                            >
-                                {t('cancel', language)}
-                            </Button>
-                            <Button
-                                disabled={processing}
-                                className="h-12 px-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-lg shadow-indigo-200 dark:shadow-none min-w-[160px]"
-                            >
-                                {processing ? (
-                                    <span className="flex items-center gap-2">
-                                        <Loader2 className="animate-spin" size={18} />
-                                        {language === 'bn' ? 'সেভ হচ্ছে...' : 'Saving...'}
-                                    </span>
-                                ) : (
-                                    editingBrand ? (language === 'bn' ? 'আপডেট করুন' : 'Update Brand') : (language === 'bn' ? 'ব্র্যান্ড সেভ করুন' : 'Save Brand')
-                                )}
-                            </Button>
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, height: '52px', borderRadius: '14px', border: '1.5px solid #f1f5f9', background: '#fff', color: '#64748b', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}>
+                                {t('cancel')}
+                            </button>
+                            <button type="submit" disabled={processing} style={{ flex: 1, height: '52px', borderRadius: '14px', border: 'none', background: '#1e1b4b', color: '#fff', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 8px 16px rgba(30,27,75,0.15)' }}>
+                                {processing ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> {t('saving')}</> : <><Save size={18} />{editingBrand ? t('update_changes') : t('save_brand')}</>}
+                            </button>
                         </div>
                     </form>
                 </div>
             </Modal>
-        </AuthenticatedLayout>
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .brand-card:hover {
+                    border-color: #cbd5e1 !important;
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 12px 30px rgba(0,0,0,0.06) !important;
+                }
+            `}</style>
+        </FigmaLayout>
     );
 }

@@ -1,313 +1,201 @@
-import React from 'react';
+import React, { useState } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import { t } from '../../Lang/translation';
 import {
-    ArrowLeft,
-    Pencil,
-    Package,
-    Building2,
-    Calendar,
-    Tag,
-    Trash2,
-    Activity,
-    ShieldCheck,
-    Zap,
-    Briefcase,
-    TrendingUp,
-    Layers,
-    Target,
-    Scale,
-    AlertCircle,
-    Building,
-    User,
-    Clock,
-    Truck,
-    CheckCircle2,
-    BarChart3
+    ArrowLeft, Pencil, Package, Building2, Calendar, Tag, Trash2,
+    Activity, ShieldCheck, Zap, Briefcase, TrendingUp, Layers,
+    Target, Scale, AlertCircle, Building, User, Clock, Truck,
+    CheckCircle2, BarChart3, Image as ImageIcon, ChevronRight, Wallet
 } from 'lucide-react';
 
-const cardStyle = {
-    background: '#fff',
-    borderRadius: '20px',
-    border: '1.5px solid #f0eeff',
-    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
-    padding: '1.5rem',
-    overflow: 'hidden'
-};
+const fmt = (n) => `৳${new Intl.NumberFormat().format(Number(n) || 0)}`;
 
-const badgeStyle = (bg, color) => ({
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    padding: '4px 12px',
-    borderRadius: '20px',
-    fontSize: '0.75rem',
-    fontWeight: 700,
-    background: bg,
-    color: color
-});
+const styles = {
+    card: {
+        background: '#fff',
+        borderRadius: '16px',
+        border: '1px solid #f1f5f9',
+        padding: '24px',
+        transition: 'all 0.2s ease',
+    }
+};
 
 export default function Show({ auth, item }) {
     const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this inventory item?')) {
+        if (confirm('Are you sure you want to remove this material from the stock records?')) {
             router.delete(route('inventory.destroy', item.id));
         }
     };
 
-    const getStatusInfo = (s) => {
-        const stats = {
-            active: { label: 'Active', color: '#10b981', bg: '#ecfdf5', icon: CheckCircle2 },
-            inactive: { label: 'Inactive', color: '#6b7280', bg: '#f3f4f6', icon: clock },
-            discontinued: { label: 'Discontinued', color: '#ef4444', bg: '#fef2f2', icon: X },
-        };
-        const res = stats[s] || { label: s.toUpperCase(), color: '#f59e0b', bg: '#fffbeb', icon: AlertCircle };
-        return res;
+    const statusColors = {
+        active:       { label: 'Available',    color: '#10b981', bg: '#f0fdf4' },
+        inactive:     { label: 'Reserved',     color: '#64748b', bg: '#f1f5f9' },
+        discontinued: { label: 'Out of Stock', color: '#ef4444', bg: '#fef2f2' },
     };
 
-    const statusInfo = getStatusInfo(item.status);
-    const totalValue = (item.quantity_in_stock || 0) * (item.unit_price || 0);
-
-    const stats = [
-        { label: 'Total Value', value: `৳${new Intl.NumberFormat().format(totalValue)}`, icon: Scale, color: '#6366f1', bg: '#f5f3ff' },
-        { label: 'Stock Level', value: `${item.quantity_in_stock} ${item.unit || 'pcs'}`, icon: Package, color: '#10b981', bg: '#ecfdf5' },
-        { label: 'Unit Price', value: `৳${new Intl.NumberFormat().format(item.unit_price)}`, icon: Tag, color: '#8b5cf6', bg: '#f9f7ff' },
-    ];
+    const sc = statusColors[item.status] || statusColors.inactive;
+    const totalVal = (item.quantity_in_stock || 0) * (item.unit_price || 0);
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title={`Inventory Item - ${item.name}`} />
+            <Head title={`${item.name} | Stock Detail`} />
 
-            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '4rem' }}>
                 
-                {/* Header Section */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                {/* ── HEADER ── */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                         <Link href={route('inventory.index')}>
-                            <button style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fff', border: '1.5px solid #ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6366f1', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
-                                <ArrowLeft size={18} />
+                            <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+                                <ArrowLeft size={20} />
                             </button>
                         </Link>
                         <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '4px' }}>
-                                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e1b4b', margin: 0, letterSpacing: '-0.02em' }}>{item.name}</h1>
-                                <span style={badgeStyle(statusInfo.bg, statusInfo.color)}>
-                                    {statusInfo.icon && <statusInfo.icon size={12} />}
-                                    {statusInfo.label}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>
+                                    {item.name}
+                                </h1>
+                                <span style={{ background: sc.bg, color: sc.color, fontSize: '0.7rem', fontWeight: 800, padding: '4px 12px', borderRadius: '10px' }}>
+                                    {sc.label.toUpperCase()}
                                 </span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Tag size={14} color="#9ca3af" />
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b7280' }}>SKU: {item.sku || 'Not set'}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Building size={14} color="#9ca3af" />
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b7280' }}>Brand: {item.brand?.name || 'Generic'}</span>
-                                </div>
-                            </div>
+                            <p style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500, margin: '4px 0 0' }}>
+                                SKU Code: {item.sku || 'N/A'} • {item.brand?.name || 'Generic Material'}
+                            </p>
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <Link href={route('inventory.edit', item.id)} style={{ textDecoration: 'none' }}>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.7rem 1.5rem', background: '#1e1b4b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(30,27,75,0.2) transition: all 0.2s' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#312e81'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#1e1b4b'}>
-                                <Pencil size={18} />
-                                Edit Item
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <Link href={route('inventory.edit', item.id)}>
+                            <button style={{ 
+                                display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', 
+                                background: '#4f46e5', border: 'none', borderRadius: '12px', 
+                                color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer'
+                            }}>
+                                <Pencil size={18} /> Update Stock
                             </button>
                         </Link>
-                        <button onClick={handleDelete} title="Delete Item" style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fff', border: '1.5px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444', transition: 'all 0.2s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#ef4444'; }}>
+                        <button onClick={handleDelete} style={{ 
+                            padding: '12px', background: '#fff', border: '1px solid #fee2e2', borderRadius: '12px', 
+                            color: '#ef4444', cursor: 'pointer'
+                        }}>
                             <Trash2 size={20} />
                         </button>
                     </div>
                 </div>
 
-                {/* Summary Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }} className="stats-grid">
-                    {stats.map((s, i) => (
-                        <div key={i} style={cardStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1.2px solid #f5f3ff' }}>
-                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <s.icon size={16} color={s.color} />
-                                </div>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</span>
-                            </div>
-                            <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{s.value}</p>
-                        </div>
-                    ))}
+                {/* ── METRIC STRIP ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+                    <MiniStat label="Total Stock Value" value={fmt(totalVal)} color="#4f46e5" icon={Wallet} />
+                    <MiniStat label="In Stock Qty" value={`${item.quantity_in_stock} ${item.unit}`} color="#10b981" icon={Package} />
+                    <MiniStat label="Price Per Piece" value={fmt(item.unit_price)} color="#8b5cf6" icon={Tag} />
                 </div>
 
-                {/* Main Content Layout */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }} className="content-grid">
+                {/* ── CORE GRID ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
                     
-                    {/* Left Column */}
+                    {/* LEFT Column */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         
-                        {/* Assignment Details */}
-                        <div style={cardStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
-                                <Briefcase size={18} color="#6366f1" />
-                                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Project & Client Assignment</h3>
-                            </div>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                                <div style={{ background: '#f9f7ff', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #f0eeff' }}>
-                                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 10px', textTransform: 'uppercase' }}>Target Project</p>
-                                    {item.project ? (
-                                        <Link href={route('projects.show', item.project.id)} style={{ textDecoration: 'none' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <Target size={16} color="#6366f1" />
-                                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e1b4b' }}>{item.project.title}</span>
-                                                <ChevronRight size={14} color="#a78bfa" />
-                                            </div>
-                                        </Link>
-                                    ) : (
-                                        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#d1d5db', margin: 0 }}>Unassigned (Stock)</p>
-                                    )}
-                                </div>
-                                <div style={{ background: '#f9f7ff', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #f0eeff' }}>
-                                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 10px', textTransform: 'uppercase' }}>Assigned Client</p>
-                                    {item.client ? (
-                                        <Link href={route('clients.show', item.client.id)} style={{ textDecoration: 'none' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <Building2 size={16} color="#6366f1" />
-                                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e1b4b' }}>{item.client.company_name || item.client.name}</span>
-                                                <ChevronRight size={14} color="#a78bfa" />
-                                            </div>
-                                        </Link>
-                                    ) : (
-                                        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#d1d5db', margin: 0 }}>Internal Inventory</p>
-                                    )}
-                                </div>
+                        {/* Material Details */}
+                        <div style={styles.card}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 1000, color: '#0f172a', marginBottom: '1.5rem' }}>Stock Information</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                                <section>
+                                    <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '1rem' }}>Sourcing Details</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <InfoRow icon={Truck} label="Supplied By" val={item.supplier?.company_name || 'Individual Supplier'} />
+                                        <InfoRow icon={Building2} label="Manufacturer" val={item.brand?.name || 'Generic'} />
+                                        <InfoRow icon={Calendar} label="Last Sourced" val={item.created_at} />
+                                    </div>
+                                </section>
+                                <section>
+                                    <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '1rem' }}>Assignment Detail</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <InfoRow icon={Briefcase} label="Attached Project" val={item.project?.title || 'Open Stock Inventory'} />
+                                        <InfoRow icon={User} label="Linked Client" val={item.client?.company_name || item.client?.name || 'Internal Stock'} />
+                                        <InfoRow icon={Target} label="Implementation Use" val={item.project_id ? 'Project Allocation' : 'Warehouse Stock'} />
+                                    </div>
+                                </section>
                             </div>
                         </div>
 
-                        {/* Activity Log / Info */}
-                        <div style={cardStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1.5px solid #f5f3ff' }}>
-                                <Activity size={18} color="#10b981" />
-                                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Item Timeline</h3>
-                            </div>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Clock size={18} color="#10b981" />
-                                    </div>
-                                    <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 2px', textTransform: 'uppercase' }}>Created On</p>
-                                        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151', margin: 0 }}>{new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Activity size={18} color="#6366f1" />
-                                    </div>
-                                    <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', margin: '0 0 2px', textTransform: 'uppercase' }}>Last Updated</p>
-                                        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151', margin: 0 }}>{new Date(item.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* Additional Info */}
+                        <div style={styles.card}>
+                            <p style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600, lineHeight: 1.6 }}>
+                                This item represents a high-priority material node in your inventory tracking system. 
+                                Quantities and values are calculated automatically based on input procurement costs.
+                            </p>
                         </div>
                     </div>
 
-                    {/* Right Column */}
+                    {/* RIGHT Column Sidebar */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         
-                        {/* Supplier Info */}
-                        <div style={{ ...cardStyle, background: '#1e1b4b', border: 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                                <Truck size={16} color="#a5b4fc" />
-                                <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', margin: 0 }}>Supplier Details</h3>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '14px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 800, color: '#1e1b4b' }}>
-                                    {(item.supplier?.company_name || 'D').charAt(0)}
-                                </div>
-                                <div>
-                                    <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff', margin: 0 }}>{item.supplier?.company_name || 'Direct / Unknown'}</p>
-                                    <p style={{ fontSize: '0.7rem', color: '#a5b4fc', margin: '2px 0 0' }}>Origin Source</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Low Stock Alert */}
+                        {/* Low Stock Watch */}
                         {item.quantity_in_stock <= (item.reorder_level || 0) && (
-                            <div style={{ padding: '1.25rem', borderRadius: '20px', background: '#fef2f2', border: '1.5px solid #fecaca', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <AlertCircle size={18} color="#ef4444" />
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase' }}>Low Stock Alert</span>
+                            <div style={{ ...styles.card, background: '#fef2f2', border: '1px solid #fecaca' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444', marginBottom: '12px' }}>
+                                    <AlertCircle size={20} />
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 1000 }}>LOW STOCK ALERT</span>
                                 </div>
-                                <p style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600, margin: 0, lineHeight: '1.5' }}>
-                                    This item has reached its reorder level ({item.reorder_level || 0}). Please consider restocking.
+                                <p style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 600, margin: 0 }}>
+                                    Your stock level is at {item.quantity_in_stock}. We recommend reordering more to avoid delays.
                                 </p>
                             </div>
                         )}
 
-                        {/* Visual Asset (Thumbnail if exists) */}
-                        <div style={cardStyle}>
-                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <ImageIcon size={14} color="#6366f1" />
-                                <h3 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Item Photo</h3>
-                            </div>
-                            <div style={{ width: '100%', height: '180px', borderRadius: '14px', background: '#f9f9fb', border: '1.5px solid #f0eeff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                                <Package size={32} color="#d1d5db" />
-                                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>Standard Stock Unit</span>
+                        {/* Status Check */}
+                        <div style={styles.card}>
+                            <h3 style={{ fontSize: '0.9rem', fontWeight: 1000, color: '#0f172a', marginBottom: '1rem' }}>Operational Status</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #d1fae5' }}>
+                                <CheckCircle2 size={18} color="#10b981" />
+                                <div>
+                                    <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#065f46', margin: 0 }}>Sync Operational</p>
+                                    <p style={{ fontSize: '0.65rem', fontWeight: 600, color: '#059669', margin: 0 }}>Real-time database active</p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* System Status */}
-                        <div style={{ padding: '1rem', borderRadius: '16px', background: '#ecfdf5', border: '1.5px solid #d1fae5', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}></div>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#065f46' }}>Stock Sync: Operational</span>
-                                <span style={{ fontSize: '0.65rem', color: '#059669' }}>Real-time database active</span>
-                            </div>
+                        {/* Item Photo Placeholder */}
+                        <div style={{ ...styles.card, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', background: '#f8fafc' }}>
+                            <Package size={48} color="#cbd5e1" />
+                            <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', margin: 0 }}>NO PHOTO ADDED</p>
                         </div>
 
                     </div>
+
                 </div>
             </div>
-
-            <style>{`
-                @media (max-width: 992px) {
-                    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-                    .content-grid { grid-template-columns: 1fr !important; }
-                }
-                @media (max-width: 576px) {
-                    .stats-grid { grid-template-columns: 1fr !important; }
-                }
-            `}</style>
         </FigmaLayout>
     );
 }
 
-function ChevronRight({ size, color, style }) {
+function MiniStat({ label, value, color, icon: Icon }) {
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={style}>
-            <path d="m9 18 6-6-6-6"/>
-        </svg>
+        <div style={styles.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>{label}</p>
+                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: `${color}10`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={16} />
+                </div>
+            </div>
+            <h4 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 0' }}>{value}</h4>
+        </div>
     );
 }
 
-function X({ size }) {
+function InfoRow({ icon: Icon, label, val }) {
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-        </svg>
-    )
-}
-
-function clock({ size }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-    )
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0 }}>
+                <Icon size={20} />
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', margin: 0, textTransform: 'uppercase' }}>{label}</p>
+                <p style={{ fontSize: '0.88rem', fontWeight: 750, color: '#334155', margin: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{val || 'Not Added'}</p>
+            </div>
+        </div>
+    );
 }

@@ -33,6 +33,16 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                'permissions' => $request->user() ? $request->user()->roles()->with('permissions')->get()->pluck('permissions')->flatten()->unique('name')->pluck('name')->toArray() : [],
+                'is_admin' => $request->user() ? $request->user()->isAdmin() : false,
+            ],
+            'settings' => [
+                'app_name' => \App\Models\Setting::get('app_name', config('app.name')),
+                'app_logo' => \App\Models\Setting::get('app_logo'),
+            ],
+            'flash' => [
+                'success' => session('success'),
+                'error' => session('error'),
             ],
         ];
     }

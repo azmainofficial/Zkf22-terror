@@ -3,41 +3,33 @@ import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import {
     Wallet, Zap, Printer, PieChart, CheckCircle2, Clock, Calendar, ChevronDown,
-    Search, Filter, X, Edit, ShieldCheck, TrendingUp, Inbox, Save, AlertTriangle, AlertCircle, Trash2
+    Search, Filter, X, Edit, ShieldCheck, TrendingUp, Inbox, Save, AlertTriangle, 
+    AlertCircle, Trash2, FileSpreadsheet, Loader2, Plus, ArrowRight, Activity,
+    Layers, LayoutGrid, FileText, Award
 } from 'lucide-react';
 import Modal from '@/Components/Modal';
 
-// ─── Status Config ─────────────────────────────────────────────
 const STATUS_CONFIG = {
-    paid:      { label: 'Paid',      bg: '#f0fdf4', color: '#16a34a' },
-    pending:   { label: 'Pending',   bg: '#fffbeb', color: '#f59e0b' },
-    cancelled: { label: 'Cancelled', bg: '#fff1f2', color: '#dc2626' },
-};
-function getStatus(s) { return STATUS_CONFIG[(s||'').toLowerCase()] || STATUS_CONFIG.pending; }
-
-// ─── Shared Styles ─────────────────────────────────────────────
-const card = {
-    background: '#fff', borderRadius: '16px',
-    border: '1.5px solid #f0eeff',
-    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
-};
-const onFocus = e => { e.target.style.borderColor = '#8b5cf6'; e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)'; };
-const onBlur  = e => { e.target.style.borderColor = '#ede9fe'; e.target.style.boxShadow = 'none'; };
-
-const selectStyle = {
-    padding: '0.625rem 0.875rem', background: '#f9f7ff',
-    border: '1.5px solid #ede9fe', borderRadius: '10px',
-    fontSize: '0.82rem', color: '#4338ca', fontWeight: 600,
-    outline: 'none', cursor: 'pointer', appearance: 'none',
-    fontFamily: 'inherit',
+    paid:      { label: 'Finalized', bg: '#f0fdf4', color: '#10b981', icon: CheckCircle2 },
+    pending:   { label: 'Queued',    bg: '#fffbeb', color: '#f59e0b', icon: Clock },
+    cancelled: { label: 'Cancelled', bg: '#fef2f2', color: '#ef4444', icon: X },
 };
 
-const iconBtn = (bg, color) => ({
-    width: '32px', height: '32px', borderRadius: '8px',
-    background: bg, border: 'none', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', color,
-    transition: 'transform 0.1s'
-});
+const styles = {
+    card: {
+        background: '#fff',
+        borderRadius: '16px',
+        border: '1px solid #f1f5f9',
+        padding: '24px',
+        transition: 'all 0.2s ease',
+    },
+    actionBtn: (bg, color) => ({
+        width: '36px', height: '36px', borderRadius: '10px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: bg, color, border: 'none', cursor: 'pointer',
+        transition: 'all 0.2s'
+    })
+};
 
 export default function Index({ auth, payrolls, filters, stats }) {
     const [month, setMonth] = useState(filters.month || new Date().getMonth() + 1);
@@ -49,14 +41,13 @@ export default function Index({ auth, payrolls, filters, stats }) {
     // Edit Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedPayroll, setSelectedPayroll] = useState(null);
+    const monthName = new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
     const editForm = useForm({
-        status: '',
-        bonus: 0,
-        deductions: 0,
-        late_deduction: 0,
-        absent_deduction: 0,
-        payment_method: 'cash',
-        note: ''
+        status: '', bonus: 0, deductions: 0, late_deduction: 0, absent_deduction: 0,
+        conveyance: 0, house_rent: 0, medical_allowance: 0, supervision_allowance: 0,
+        construction_allowance: 0, mobile_allowance: 0, overtime_pay: 0, snacks_allowance: 0,
+        advance_salary: 0, loan_installment: 0, fund_source: 'SEC',
+        payment_method: 'cash', note: ''
     });
 
     const handleFilter = (e) => {
@@ -68,10 +59,7 @@ export default function Index({ auth, payrolls, filters, stats }) {
         e.preventDefault();
         setProcessingGeneration(true);
         router.post(route('payroll.generate'), { month, year }, {
-            onSuccess: () => {
-                setIsGenerateModalOpen(false);
-                setProcessingGeneration(false);
-            },
+            onSuccess: () => { setIsGenerateModalOpen(false); setProcessingGeneration(false); },
             onError: () => setProcessingGeneration(false)
         });
     };
@@ -84,6 +72,17 @@ export default function Index({ auth, payrolls, filters, stats }) {
             deductions: parseFloat(payroll.deductions) || 0,
             late_deduction: parseFloat(payroll.late_deduction) || 0,
             absent_deduction: parseFloat(payroll.absent_deduction) || 0,
+            conveyance: parseFloat(payroll.conveyance) || 0,
+            house_rent: parseFloat(payroll.house_rent) || 0,
+            medical_allowance: parseFloat(payroll.medical_allowance) || 0,
+            supervision_allowance: parseFloat(payroll.supervision_allowance) || 0,
+            construction_allowance: parseFloat(payroll.construction_allowance) || 0,
+            mobile_allowance: parseFloat(payroll.mobile_allowance) || 0,
+            overtime_pay: parseFloat(payroll.overtime_pay) || 0,
+            snacks_allowance: parseFloat(payroll.snacks_allowance) || 0,
+            advance_salary: parseFloat(payroll.advance_salary) || 0,
+            loan_installment: parseFloat(payroll.loan_installment) || 0,
+            fund_source: payroll.fund_source || 'SEC',
             payment_method: payroll.payment_method || 'cash',
             note: payroll.note || ''
         });
@@ -98,7 +97,7 @@ export default function Index({ auth, payrolls, filters, stats }) {
     };
 
     const markAsPaid = (id) => {
-        if (confirm('Verify: Authorized temporal salary discharge?')) {
+        if (confirm('Verify: Authorized payment discharge for this member?')) {
             router.patch(route('payroll.update', id), { 
                 status: 'paid', 
                 payment_date: new Date().toISOString().split('T')[0] 
@@ -106,249 +105,398 @@ export default function Index({ auth, payrolls, filters, stats }) {
         }
     };
 
-    const statCards = [
-        { label: 'Fiscal Potential', value: `৳${stats.total_salary.toLocaleString()}`, icon: TrendingUp, bg: '#f5f3ff', color: '#6366f1' },
-        { label: 'Discharged Assets', value: `৳${stats.paid_salary.toLocaleString()}`, icon: CheckCircle2, bg: '#f0fdf4', color: '#16a34a' },
-        { label: 'Temporal Pending', value: `৳${stats.pending_salary.toLocaleString()}`, icon: Clock, bg: '#fffbeb', color: '#f59e0b' },
-    ];
-
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Payroll" />
+            <Head title="Payroll Management" />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+            <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '4rem' }}>
                 
-                {/* ── Header ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                {/* ── HEADER ── */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
-                            <Wallet size={16} color="#a78bfa" />
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Financial Matrix</span>
-                        </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Payroll Records</h1>
-                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Manage temporal salary vectors and attendance deductions</p>
+                        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>
+                            Payroll & Salaries
+                        </h1>
+                        <p style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500, margin: '4px 0 0' }}>
+                            View and manage monthly monthly salaries and attendance deductions
+                        </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
-                        <Link href={route('payroll.sheet', { month, year })} target="_blank">
-                            <button style={{
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '0.6rem 1.125rem',
-                                background: '#fff', border: '1.5px solid #ede9fe',
-                                borderRadius: '12px', color: '#6366f1',
-                                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-                                boxShadow: '0 1px 6px rgba(99,102,241,0.07)',
-                            }}>
-                                <Printer size={15} /> Print Manifest
-                            </button>
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <a href={route('payroll.export', { month, year, status })} target="_blank" style={{ textDecoration: 'none' }}>
+                            <button style={secondaryBtn}><FileSpreadsheet size={18} /> Download Excel</button>
+                        </a>
+                        <Link href={route('payroll.sheet', { month, year })}>
+                            <button style={secondaryBtn}><Printer size={18} /> Print Sheet</button>
                         </Link>
-                        <button onClick={() => setIsGenerateModalOpen(true)}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '0.6rem 1.25rem',
-                                background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-                                border: 'none', borderRadius: '12px', color: '#fff',
-                                fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
-                                boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
-                            }}>
-                            <Zap size={16} /> Sync Salaries
+                        <button onClick={() => setIsGenerateModalOpen(true)} style={primaryBtn}>
+                            <Zap size={18} /> Sync Salaries
                         </button>
                     </div>
                 </div>
 
-                {/* ── Stats ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1rem' }}>
-                    {statCards.map((s, i) => (
-                        <div key={i} style={{ ...card, padding: '1.1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <s.icon size={20} color={s.color} />
+                {/* ── METRIC STRIP ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+                    {[
+                        { label: 'Total Salary Budget', value: `৳${stats.total_salary.toLocaleString()}`, icon: TrendingUp, bg: '#f5f3ff', color: '#6366f1' },
+                        { label: 'Amount Already Paid', value: `৳${stats.paid_salary.toLocaleString()}`, icon: CheckCircle2, bg: '#f0fdf4', color: '#16a34a' },
+                        { label: 'Pending Approval', value: `৳${stats.pending_salary.toLocaleString()}`, icon: Clock, bg: '#fffbeb', color: '#f59e0b' },
+                    ].map((stat, i) => (
+                        <div key={i} style={styles.card}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>{stat.label}</p>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, color: stat.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <stat.icon size={20} />
+                                </div>
                             </div>
-                            <div>
-                                <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>{s.label}</p>
-                                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
-                            </div>
+                            <h4 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 0' }}>{stat.value}</h4>
                         </div>
                     ))}
                 </div>
 
-                {/* ── Filters ── */}
-                <div style={{ ...card, padding: '1rem 1.25rem' }}>
-                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <div style={{ flex: 1, minWidth: '180px', position: 'relative' }}>
-                            <Calendar size={14} color="#a78bfa" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} />
-                            <select value={month} onChange={e => setMonth(e.target.value)} style={{ ...selectStyle, width: '100%', paddingLeft: '2.2rem' }} onFocus={onFocus} onBlur={onBlur}>
+                {/* ── FILTER HUD ── */}
+                <div style={{ ...styles.card, padding: '20px', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 140px', gap: '1.25rem' }}>
+                        <div style={{ position: 'relative' }}>
+                            <Calendar size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                            <select value={month} onChange={e => setMonth(e.target.value)} style={filterInput}>
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                     <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('en-US', { month: 'long' })}</option>
                                 ))}
                             </select>
+                            <ChevronDown size={14} color="#94a3b8" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                         </div>
-                        <select value={year} onChange={e => setYear(e.target.value)} style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
-                            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-                        </select>
-                        <select value={status} onChange={e => setStatus(e.target.value)} style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
-                            <option value="">Global State</option>
-                            <option value="paid">Finalized</option>
-                            <option value="pending">Queued</option>
-                        </select>
-                        <button onClick={handleFilter} style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: '0.6rem 1.125rem', background: '#1e1b4b',
-                            border: 'none', borderRadius: '10px', color: '#fff',
-                            fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-                        }}>
-                            <Search size={15} /> Execute Scan
+                        <div style={{ position: 'relative' }}>
+                            <Layers size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                            <select value={year} onChange={e => setYear(e.target.value)} style={filterInput}>
+                                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                            <ChevronDown size={14} color="#94a3b8" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <Activity size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                            <select value={status} onChange={e => setStatus(e.target.value)} style={filterInput}>
+                                <option value="">Any Status</option>
+                                <option value="paid">Already Paid</option>
+                                <option value="pending">Pending/Queued</option>
+                            </select>
+                            <ChevronDown size={14} color="#94a3b8" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        </div>
+                        <button onClick={handleFilter} style={{ height: '44px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}>
+                            Filter Records
                         </button>
                     </div>
                 </div>
 
-                {/* ── Table Header Indications ── */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0 1.25rem', marginBottom: '-0.5rem' }}>
-                    <div style={{ width: '44px' }}></div>
-                    <div style={{ flex: 2, minWidth: '160px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Operative</span>
+                {/* ── PAYROLL LIST ── */}
+                <div style={styles.card}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0 1.25rem', marginBottom: '1rem' }}>
+                        <div style={{ width: '44px' }}></div>
+                        <div style={{ flex: 1.5, minWidth: '160px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>In-Office Member</span>
+                        </div>
+                        <div style={{ flex: 2 }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Earnings Trace (Allowances)</span>
+                        </div>
+                        <div style={{ flex: 1.5 }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Recoveries / Penalties</span>
+                        </div>
+                        <div style={{ width: '90px', textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Final Pay</span>
+                        </div>
+                        <div style={{ width: '85px', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Status</span>
+                        </div>
+                        <div style={{ width: '80px', textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Action</span>
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '4px', width: '135px', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Trace</span>
-                    </div>
-                    <div style={{ width: '94px', textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Base Pay</span>
-                    </div>
-                    <div style={{ width: '110px', textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Net Salary</span>
-                    </div>
-                    <div style={{ width: '85px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>State</span>
-                    </div>
-                    <div style={{ width: '80px', textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Auth</span>
-                    </div>
-                </div>
 
-                {/* ── Records ── */}
-                {payrolls.data.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                        {payrolls.data.map(payroll => {
-                            const cfg = getStatus(payroll.status);
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {payrolls.data.length > 0 ? payrolls.data.map((payroll, i) => {
+                            const cfg = STATUS_CONFIG[payroll.status.toLowerCase()] || STATUS_CONFIG.pending;
+                            const penalty = parseFloat(payroll.late_deduction) + parseFloat(payroll.absent_deduction);
+                            
                             return (
-                                <div key={payroll.id} style={{
-                                    ...card, padding: '1rem 1.25rem',
-                                    display: 'flex', alignItems: 'center',
-                                    gap: '1rem', flexWrap: 'wrap',
-                                    transition: 'box-shadow 0.15s, transform 0.15s',
-                                }}
-                                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 22px rgba(99,102,241,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                                >
-                                    {/* Operative Node */}
-                                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#6366f1', border: '1.5px solid #ede9fe' }}>
-                                        {payroll.employee.first_name?.[0]}
-                                    </div>
-                                    <div style={{ flex: 2, minWidth: '160px' }}>
-                                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e1b4b', margin: 0 }}>{payroll.employee.first_name} {payroll.employee.last_name}</p>
-                                        <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 600, margin: '2px 0 0' }}>{payroll.employee.employee_id} • {payroll.employee.department}</p>
-                                    </div>
-
-                                    {/* Status Trace */}
-                                    <div style={{ display: 'flex', gap: '4px', width: '135px', justifyContent: 'center', flexShrink: 0 }}>
-                                        <div title="Present" style={{ padding: '3px 8px', background: '#f0fdf4', color: '#16a34a', borderRadius: '12px', fontSize: '0.68rem', fontWeight: 800 }}>P:{payroll.present_days}</div>
-                                        <div title="Absent" style={{ padding: '3px 8px', background: '#fff1f2', color: '#ef4444', borderRadius: '12px', fontSize: '0.68rem', fontWeight: 800 }}>A:{payroll.absent_days}</div>
-                                        <div title="Late" style={{ padding: '3px 8px', background: '#fffbeb', color: '#f59e0b', borderRadius: '12px', fontSize: '0.68rem', fontWeight: 800 }}>L:{payroll.late_days}</div>
+                                <div key={payroll.id} className="payroll-row" style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', padding: '16px', borderRadius: '12px',
+                                    transition: 'all 0.2s', borderBottom: i === payrolls.data.length - 1 ? 'none' : '1px solid #f8fafc',
+                                    gap: '1rem'
+                                }}>
+                                    {/* IDENTITY */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1.5, minWidth: '160px' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 950, color: '#6366f1' }}>
+                                            {payroll.employee.first_name?.[0]}
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{payroll.employee.first_name} {payroll.employee.last_name}</p>
+                                            <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                                                <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>P:{payroll.present_days}</span>
+                                                <span style={{ background: '#fff1f2', color: '#e11d48', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>A:{payroll.absent_days}</span>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Base Magnitude */}
-                                    <div style={{ textAlign: 'right', width: '94px', flexShrink: 0 }}>
-                                        <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#6b7280', margin: 0 }}>৳{parseFloat(payroll.base_salary).toLocaleString()}</p>
+                                    {/* EARNINGS TRACE */}
+                                    <div style={{ flex: 2, display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                        {[
+                                            { label: 'TA', val: payroll.conveyance, color: '#059669' },
+                                            { label: 'Rent', val: payroll.house_rent, color: '#10b981' },
+                                            { label: 'Med', val: payroll.medical_allowance, color: '#34d399' },
+                                            { label: 'Spv', val: payroll.supervision_allowance, color: '#6366f1' },
+                                            { label: 'Cst', val: payroll.construction_allowance, color: '#4f46e5' },
+                                            { label: 'Mob', val: payroll.mobile_allowance, color: '#8b5cf6' },
+                                            { label: 'OT', val: payroll.overtime_pay, color: '#a855f7' },
+                                            { label: 'Snk', val: payroll.snacks_allowance, color: '#d946ef' },
+                                        ].filter(item => parseFloat(item.val) > 0).map((item, idx) => (
+                                            <div key={idx} style={{ 
+                                                display: 'flex', alignItems: 'center', gap: '3px',
+                                                background: `${item.color}08`, border: `1px solid ${item.color}20`,
+                                                padding: '2px 6px', borderRadius: '5px'
+                                            }}>
+                                                <span style={{ fontSize: '0.55rem', fontWeight: 900, color: item.color, textTransform: 'uppercase' }}>{item.label}</span>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#334155' }}>{parseFloat(item.val).toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                        {parseFloat(payroll.bonus) > 0 && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: '#f0fdf4', border: '1px solid #10b98130', padding: '2px 6px', borderRadius: '5px' }}>
+                                                <span style={{ fontSize: '0.55rem', fontWeight: 900, color: '#10b981', textTransform: 'uppercase' }}>Bonus</span>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#065f46' }}>{parseFloat(payroll.bonus).toLocaleString()}</span>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Net Vector */}
-                                    <div style={{ textAlign: 'right', width: '110px', flexShrink: 0 }}>
-                                        <p style={{ fontSize: '1rem', fontWeight: 900, color: '#4338ca', margin: 0 }}>৳{parseFloat(payroll.total).toLocaleString()}</p>
+                                    {/* RECOVERIES TRACE */}
+                                    <div style={{ flex: 1.5, display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                        {[
+                                            { label: 'Adv', val: payroll.advance_salary, color: '#ef4444' },
+                                            { label: 'Loan', val: payroll.loan_installment, color: '#dc2626' },
+                                            { label: 'Late', val: payroll.late_deduction, color: '#f59e0b' },
+                                            { label: 'Abs', val: payroll.absent_deduction, color: '#ef4444' },
+                                        ].filter(item => parseFloat(item.val) > 0).map((item, idx) => (
+                                            <div key={idx} style={{ 
+                                                display: 'flex', alignItems: 'center', gap: '3px',
+                                                background: `${item.color}08`, border: `1px solid ${item.color}20`,
+                                                padding: '2px 6px', borderRadius: '5px'
+                                            }}>
+                                                <span style={{ fontSize: '0.55rem', fontWeight: 900, color: item.color, textTransform: 'uppercase' }}>{item.label}</span>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#334155' }}>{parseFloat(item.val).toLocaleString()}</span>
+                                            </div>
+                                        ))}
                                     </div>
 
-                                    {/* State Badge */}
-                                    <div style={{ width: '85px', textAlign: 'center', flexShrink: 0 }}>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.7rem', fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '3px 10px', borderRadius: '20px', textTransform: 'uppercase' }}>
+                                    {/* FINAL PAY */}
+                                    <div style={{ width: '90px', textAlign: 'right' }}>
+                                        <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', margin: 0, textTransform: 'uppercase' }}>Net Pay</p>
+                                        <p style={{ fontSize: '0.95rem', fontWeight: 950, color: '#0f172a', margin: 0 }}>৳{parseFloat(payroll.total).toLocaleString()}</p>
+                                    </div>
+
+                                    {/* STATUS */}
+                                    <div style={{ width: '85px', display: 'flex', justifyContent: 'center' }}>
+                                        <span style={{ 
+                                            background: cfg.bg, color: cfg.color, 
+                                            fontSize: '0.6rem', fontWeight: 900, 
+                                            padding: '4px 10px', borderRadius: '8px',
+                                            textTransform: 'uppercase', letterSpacing: '0.02em'
+                                        }}>
                                             {cfg.label}
                                         </span>
                                     </div>
 
-                                    {/* Actions */}
-                                    <div style={{ display: 'flex', gap: '4px', width: '80px', justifyContent: 'flex-end', flexShrink: 0 }}>
-                                        <button onClick={() => openEditModal(payroll)} title="Override" style={iconBtn('#f9fafb', '#64748b')}><Edit size={14} /></button>
+                                    {/* ACTIONS */}
+                                    <div style={{ width: '80px', display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                        <button onClick={() => openEditModal(payroll)} style={styles.actionBtn('#f8fafc', '#64748b')} title="Override"><Edit size={16} /></button>
                                         {payroll.status === 'pending' && (
-                                            <button onClick={() => markAsPaid(payroll.id)} title="Discharge" style={iconBtn('#f0fdf4', '#16a34a')}><ShieldCheck size={16} /></button>
+                                            <button onClick={() => markAsPaid(payroll.id)} style={styles.actionBtn('#eff6ff', '#4f46e5')} title="Verify Discharge"><ShieldCheck size={18} /></button>
                                         )}
                                     </div>
                                 </div>
                             );
-                        })}
+                        }) : (
+                            <div style={{ textAlign: 'center', padding: '5rem 0' }}>
+                                <Inbox size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                                <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#64748b', margin: 0 }}>No salary records found</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>Sync salaries for the current period or check selected filters</p>
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <div style={{ textAlign: 'center', padding: '4rem 1rem', border: '2px dashed #ede9fe', borderRadius: '18px' }}>
-                        <Inbox size={40} color="#e0d9ff" style={{ margin: '0 auto 1rem' }} />
-                        <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e1b4b', margin: '0 0 0.4rem' }}>Vector Matrix Void</h3>
-                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 1.5rem' }}>Generate temporal salary vectors for the selected period.</p>
-                        <button onClick={() => setIsGenerateModalOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.625rem 1.25rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
-                            <Plus size={15} /> First Sync
-                        </button>
-                    </div>
-                )}
+                </div>
 
-                {/* ── Pagination ── */}
+                {/* ── PAGINATION ── */}
                 {payrolls.links && payrolls.links.length > 3 && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', ...card, padding: '0.875rem 1.25rem' }}>
-                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
-                            Page <strong style={{ color: '#1e1b4b' }}>{payrolls.current_page}</strong> of <strong style={{ color: '#1e1b4b' }}>{payrolls.last_page}</strong>
-                        </p>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                            {payrolls.links.map((link, i) => link.url ? (
-                                <Link key={i} href={link.url} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '9px', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none', background: link.active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : '#f5f3ff', color: link.active ? '#fff' : '#6366f1' }} dangerouslySetInnerHTML={{ __html: link.label }} />
-                            ) : (
-                                <span key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '9px', fontSize: '0.78rem', fontWeight: 700, background: '#f9fafb', color: '#d1d5db' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
+                        <div style={{ display: 'flex', background: '#fff', padding: '6px', borderRadius: '14px', border: '1px solid #f1f5f9', gap: '4px' }}>
+                            {payrolls.links.map((link, i) => (
+                                link.url ? (
+                                    <Link key={i} href={link.url}
+                                        style={{
+                                            height: '36px', minWidth: '36px', padding: '0 12px',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700,
+                                            background: link.active ? '#4f46e5' : 'transparent',
+                                            color: link.active ? '#fff' : '#64748b',
+                                            textDecoration: 'none', transition: 'all 0.2s'
+                                        }}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ) : (
+                                    <span key={i} style={{ height: '36px', minWidth: '36px', padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#cbd5e1' }} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                )
                             ))}
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* SYNC MODAL */}
+            {/* ── MODALS ── */}
             <Modal show={isGenerateModalOpen} onClose={() => !processingGeneration && setIsGenerateModalOpen(false)} maxWidth="sm">
-                <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}><Zap size={20} /></div>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Temporal Vector Sync</h3>
+                <div style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}><Zap size={20} /></div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Sync Salary Records</h3>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Month</label><select value={month} onChange={e => setMonth(e.target.value)} style={{ ...selectStyle, width: '100%' }}>{Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('en-US', { month: 'long' })}</option>)}</select></div>
-                        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Year</label><select value={year} onChange={e => setYear(e.target.value)} style={{ ...selectStyle, width: '100%' }}>{[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}</select></div>
+                        <div style={{ position: 'relative' }}>
+                            <label style={modalLabel}>Select Month</label>
+                            <select value={month} onChange={e => setMonth(e.target.value)} style={modalInp}>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('en-US', { month: 'long' })}</option>)}
+                            </select>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <label style={modalLabel}>Select Year</label>
+                            <select value={year} onChange={e => setYear(e.target.value)} style={modalInp}>
+                                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                        </div>
                     </div>
-                    <button onClick={handleGenerate} disabled={processingGeneration} style={{ width: '100%', height: '48px', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(99,102,241,0.25)' }}>
-                        {processingGeneration ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />} EXECUTE GENERATION
+                    <button onClick={handleGenerate} disabled={processingGeneration} style={modalSubmitStyle}>
+                        {processingGeneration ? <Loader2 size={18} className="animate-spin" /> : 'START SYNC'}
                     </button>
                 </div>
             </Modal>
 
-            {/* OVERRIDE MODAL */}
-            <Modal show={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="md">
-                <form onSubmit={handleUpdate} style={{ padding: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><AlertTriangle size={20} /></div>
-                        <div><h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>Vector Override</h3><p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', margin: 0 }}>{selectedPayroll?.employee?.first_name} {selectedPayroll?.employee?.last_name}</p></div>
+            <Modal show={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="xl">
+                <form onSubmit={handleUpdate} style={{ padding: '32px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+                                <Award size={28} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 950, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>Salary Override</h3>
+                                <p style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600, margin: '2px 0 0' }}>
+                                    {selectedPayroll?.employee?.first_name} {selectedPayroll?.employee?.last_name} • {selectedPayroll?.employee?.designation}
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' }}>Period</p>
+                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{monthName} {year}</p>
+                        </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.2rem' }}>
-                        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Bonus Node</label><input type="number" value={editForm.data.bonus} onChange={e => editForm.setData('bonus', e.target.value)} style={{ width: '100%', height: '40px', padding: '0 0.75rem', border: '1.5px solid #ede9fe', borderRadius: '10px', background: '#f9f7ff', fontSize: '0.82rem', fontWeight: 700 }} /></div>
-                        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Ded. Node</label><input type="number" value={editForm.data.deductions} onChange={e => editForm.setData('deductions', e.target.value)} style={{ width: '100%', height: '40px', padding: '0 0.75rem', border: '1.5px solid #ede9fe', borderRadius: '10px', background: '#f9f7ff', fontSize: '0.82rem', fontWeight: 700 }} /></div>
-                        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Late Penalty</label><input type="number" value={editForm.data.late_deduction} onChange={e => editForm.setData('late_deduction', e.target.value)} style={{ width: '100%', height: '40px', padding: '0 0.75rem', border: '1.5px solid #ede9fe', borderRadius: '10px', background: '#f9f7ff', fontSize: '0.82rem', fontWeight: 700 }} /></div>
-                        <div><label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Abs. Penalty</label><input type="number" value={editForm.data.absent_deduction} onChange={e => editForm.setData('absent_deduction', e.target.value)} style={{ width: '100%', height: '40px', padding: '0 0.75rem', border: '1.5px solid #ede9fe', borderRadius: '10px', background: '#f9f7ff', fontSize: '0.82rem', fontWeight: 700 }} /></div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '40px' }}>
+                        {/* ALLOWANCES SECTION */}
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem' }}>
+                                <Plus size={16} color="#10b981" />
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Earnings & Allowances</h4>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div><label style={modalLabel}>Conveyance TA/DA</label><input type="number" step="0.01" value={editForm.data.conveyance} onChange={e => editForm.setData('conveyance', e.target.value)} style={modalInp} /></div>
+                                <div><label style={modalLabel}>Home Rent</label><input type="number" step="0.01" value={editForm.data.house_rent} onChange={e => editForm.setData('house_rent', e.target.value)} style={modalInp} /></div>
+                                <div><label style={modalLabel}>Medical Allowance</label><input type="number" step="0.01" value={editForm.data.medical_allowance} onChange={e => editForm.setData('medical_allowance', e.target.value)} style={modalInp} /></div>
+                                <div><label style={modalLabel}>Supervision</label><input type="number" step="0.01" value={editForm.data.supervision_allowance} onChange={e => editForm.setData('supervision_allowance', e.target.value)} style={modalInp} /></div>
+                                <div><label style={modalLabel}>Construction</label><input type="number" step="0.01" value={editForm.data.construction_allowance} onChange={e => editForm.setData('construction_allowance', e.target.value)} style={modalInp} /></div>
+                                <div><label style={modalLabel}>Mobile Bill</label><input type="number" step="0.01" value={editForm.data.mobile_allowance} onChange={e => editForm.setData('mobile_allowance', e.target.value)} style={modalInp} /></div>
+                                <div><label style={modalLabel}>Overtime Pay</label><input type="number" step="0.01" value={editForm.data.overtime_pay} onChange={e => editForm.setData('overtime_pay', e.target.value)} style={modalInp} /></div>
+                                <div><label style={modalLabel}>Snacks Bill</label><input type="number" step="0.01" value={editForm.data.snacks_allowance} onChange={e => editForm.setData('snacks_allowance', e.target.value)} style={modalInp} /></div>
+                            </div>
+
+                            <div style={{ marginTop: '2rem', padding: '16px', background: '#f0fdf4', borderRadius: '14px', border: '1px solid #dcfce7' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#166534' }}>Estimated Gross</span>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: 950, color: '#166534' }}>৳{(
+                                        parseFloat(selectedPayroll?.base_salary || 0) + 
+                                        parseFloat(editForm.data.conveyance || 0) + 
+                                        parseFloat(editForm.data.house_rent || 0) + 
+                                        parseFloat(editForm.data.medical_allowance || 0) + 
+                                        parseFloat(editForm.data.supervision_allowance || 0) + 
+                                        parseFloat(editForm.data.construction_allowance || 0) + 
+                                        parseFloat(editForm.data.mobile_allowance || 0) + 
+                                        parseFloat(editForm.data.overtime_pay || 0) + 
+                                        parseFloat(editForm.data.snacks_allowance || 0)
+                                    ).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* DEDUCTIONS SECTION */}
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem' }}>
+                                <Trash2 size={16} color="#ef4444" />
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recoveries & Deductions</h4>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div><label style={modalLabel}>Advance Salary</label><input type="number" step="0.01" value={editForm.data.advance_salary} onChange={e => editForm.setData('advance_salary', e.target.value)} style={modalInp} /></div>
+                                    <div><label style={modalLabel}>Loan Installment</label><input type="number" step="0.01" value={editForm.data.loan_installment} onChange={e => editForm.setData('loan_installment', e.target.value)} style={modalInp} /></div>
+                                    <div><label style={modalLabel}>Late Penalty</label><input type="number" step="0.01" value={editForm.data.late_deduction} onChange={e => editForm.setData('late_deduction', e.target.value)} style={modalInp} /></div>
+                                    <div><label style={modalLabel}>Absent Penalty</label><input type="number" step="0.01" value={editForm.data.absent_deduction} onChange={e => editForm.setData('absent_deduction', e.target.value)} style={modalInp} /></div>
+                                </div>
+                                <div><label style={modalLabel}>Source of Fund</label><input type="text" value={editForm.data.fund_source} onChange={e => editForm.setData('fund_source', e.target.value)} style={modalInp} placeholder="e.g. SEC" /></div>
+                                <div><label style={modalLabel}>Payment Status</label>
+                                    <select value={editForm.data.status} onChange={e => editForm.setData('status', e.target.value)} style={modalInp}>
+                                        <option value="pending">Pending Review</option>
+                                        <option value="paid">Mark as Paid</option>
+                                        <option value="cancelled">Dispute/Cancel</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div style={{ marginBottom: '1.5rem' }}><label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>State Vector</label><select value={editForm.data.status} onChange={e => editForm.setData('status', e.target.value)} style={{ ...selectStyle, width: '100%' }}><option value="pending">Queued</option><option value="paid">Finalized</option><option value="cancelled">Aborted</option></select></div>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}><button type="button" onClick={() => setIsEditModalOpen(false)} style={{ flex: 1, padding: '0.625rem', border: '1.5px solid #ede9fe', borderRadius: '10px', color: '#64748b', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>Abort</button><button type="submit" style={{ flex: 2, padding: '0.625rem', background: '#1e1b4b', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Save size={15} /> Commit Vectors</button></div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '3rem' }}>
+                        <button type="button" onClick={() => setIsEditModalOpen(false)} style={modalSecondaryBtn}>ABORT CHANGES</button>
+                        <button type="submit" style={modalSubmitStyle}>SAVE FISCAL RECORD</button>
+                    </div>
                 </form>
             </Modal>
-
+            
             <style>{`
+                .payroll-row:hover { background: #f8fafc !important; transform: translateX(4px); }
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
         </FigmaLayout>
     );
 }
+
+function MiniStat({ label, value, color, icon: Icon }) {
+    return (
+        <div style={styles.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>{label}</p>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${color}10`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={20} />
+                </div>
+            </div>
+            <h4 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 0' }}>{value}</h4>
+        </div>
+    );
+}
+
+const filterInput = {
+    width: '100%', padding: '12px 16px 12px 48px', background: '#f8fafc',
+    border: '1px solid #f1f5f9', borderRadius: '12px', fontSize: '0.85rem',
+    outline: 'none', fontWeight: 600, color: '#1e293b', appearance: 'none',
+    height: '44px'
+};
+
+const primaryBtn = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: '#4f46e5', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(79,70,229,0.2)' };
+const secondaryBtn = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: '#fff', border: '1px solid #f1f5f9', borderRadius: '12px', color: '#475569', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' };
+const modalLabel = { fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px', display: 'block', letterSpacing: '0.05em' };
+const modalInp = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f1f5f9', background: '#f8fafc', fontSize: '0.9rem', fontWeight: 600, outline: 'none' };
+const modalSubmitStyle = { flex: 2, height: '48px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' };
+const modalSecondaryBtn = { flex: 1, padding: '12px', border: '1.5px solid #f1f5f9', background: 'transparent', borderRadius: '12px', color: '#64748b', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' };

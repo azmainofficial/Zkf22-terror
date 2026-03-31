@@ -15,6 +15,10 @@ class UserManagementController extends Controller
      */
     public function index(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_users')) {
+            abort(403, 'Unauthorized access to user directory.');
+        }
+
         $query = User::with('roles');
 
         // Filter by role
@@ -45,8 +49,12 @@ class UserManagementController extends Controller
     /**
      * Show user details
      */
-    public function show(User $user)
+    public function show(Request $request, User $user)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_users')) {
+            abort(403, 'Unauthorized access to user profile.');
+        }
+
         $user->load([
             'roles.permissions',
             'auditLogs' => function ($query) {
@@ -67,6 +75,10 @@ class UserManagementController extends Controller
      */
     public function store(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('create_users')) {
+            abort(403, 'Unauthorized operation: Register Portal User.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -93,6 +105,10 @@ class UserManagementController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_users')) {
+            abort(403, 'Unauthorized operation: Update User Authentication.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
@@ -122,8 +138,12 @@ class UserManagementController extends Controller
     /**
      * Delete user
      */
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('delete_users')) {
+            abort(403, 'Unauthorized operation: Terminate User Access.');
+        }
+
         // Prevent deleting yourself
         if ($user->id === auth()->id()) {
             return redirect()->back()->with('error', 'You cannot delete your own account.');
@@ -139,6 +159,9 @@ class UserManagementController extends Controller
      */
     public function assignRole(Request $request, User $user)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_users')) {
+            abort(403, 'Unauthorized operation: Modify Access Hierarchy.');
+        }
         $validated = $request->validate([
             'role_id' => 'required|exists:roles,id',
         ]);
@@ -153,6 +176,9 @@ class UserManagementController extends Controller
      */
     public function removeRole(Request $request, User $user)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_users')) {
+            abort(403, 'Unauthorized operation: Revoke Access Hierarchy.');
+        }
         $validated = $request->validate([
             'role_id' => 'required|exists:roles,id',
         ]);

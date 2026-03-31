@@ -24,14 +24,30 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_projects')) {
+            abort(403, 'Unauthorized access to project portfolio.');
+        }
+
         $query = Project::with(['client']);
 
+        // Persist global counts regardless of filters/pagination
+        $stats = [
+            'all'       => Project::count(),
+            'ongoing'   => Project::where('status', 'ongoing')->count(),
+            'completed' => Project::where('status', 'completed')->count(),
+            'pending'   => Project::where('status', 'pending')->count(),
+            'on_hold'   => Project::where('status', 'on_hold')->count(),
+            'cancelled' => Project::where('status', 'cancelled')->count(),
+        ];
+
         if ($request->search) {
-            $query->where('title', 'like', '%' . $request->search . '%')
-                ->orWhereHas('client', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->search . '%')
-                        ->orWhere('company_name', 'like', '%' . $request->search . '%');
-                });
+            $query->where(function($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhereHas('client', function ($sq) use ($request) {
+                      $sq->where('name', 'like', '%' . $request->search . '%')
+                         ->orWhere('company_name', 'like', '%' . $request->search . '%');
+                  });
+            });
         }
 
         if ($request->status && $request->status !== 'All') {
@@ -40,13 +56,17 @@ class ProjectController extends Controller
 
         return Inertia::render('Projects/Index', [
             'projects' => $query->latest()->paginate(10)->withQueryString(),
-            'filters' => $request->only(['search', 'status']),
-            'clients' => Client::all(['id', 'name', 'company_name']),
+            'filters'  => $request->only(['search', 'status']),
+            'stats'    => $stats,
+            'clients'  => Client::all(['id', 'name', 'company_name']),
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('create_projects')) {
+            abort(403, 'Unauthorized operation: Create Project.');
+        }
         return Inertia::render('Projects/Create', [
             'clients' => Client::all(['id', 'name', 'company_name']),
         ]);
@@ -54,31 +74,63 @@ class ProjectController extends Controller
 
     public function store(StoreProjectRequest $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('create_projects')) {
+            abort(403, 'Unauthorized operation: Create Project.');
+        }
         $this->projectService->createProject(
             $request->validated(),
-            $request->file('designs', [])
+            $request->file('designs'),
+            $request->file('documents')
         );
 
         return redirect()->route('projects.index')->with('success', 'Project created successfully.');
     }
 
-    public function show(Project $project)
+    public function show(Request $request, Project $project)
     {
-        $project->load(['client', 'expenses', 'projectMaterials.inventoryItem.brand.supplier']);
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_projects')) {
+            abort(403, 'Unauthorized access to project details.');
+        }
+        $project->load(['client', 'expenses', 'projectMaterials.inventoryItem.brand.supplier', 'designs', 'clientDesigns', 'payments', 'documents']);
+
+        $allDesigns = $project->designs->concat($project->clientDesigns);
+
+        // Calculate project totals
+        $contract_amount = $project->budget ?? 0;
+        $paid_amount = $project->payments->where('status', 'completed')->sum('amount');
+        $due_amount = max(0, $contract_amount - $paid_amount);
+
+        // Automated progress calculation (Financial Progress)
+        $calculated_progress = $contract_amount > 0 ? min(100, round(($paid_amount / $contract_amount) * 100)) : 0;
+
+        // Sync local progress if status is not 'completed' or 'cancelled' or manually set to 100%
+        if (!in_array($project->status, ['completed', 'cancelled'])) {
+            $project->update(['progress' => $calculated_progress]);
+        }
 
         return Inertia::render('Projects/Show', [
             'project' => $project,
-            'designs' => $project->designs,
+            'designs' => $allDesigns,
             'connectedInventory' => InventoryItem::where('project_id', $project->id)
                 ->with(['brand', 'supplier'])
                 ->get(),
+            'stats' => [
+                'contract_amount' => $contract_amount,
+                'paid_amount' => $paid_amount,
+                'due_amount' => $due_amount,
+                'calculated_progress' => $calculated_progress,
+            ]
         ]);
     }
 
     public function uploadDesign(Request $request, Project $project)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Upload Design.');
+        }
+
         $request->validate([
-            'files.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:10240',
+            'files.*' => 'required|file|max:30720', // Increased to 30MB for heavy CAD files
         ]);
 
         if ($request->hasFile('files')) {
@@ -87,9 +139,9 @@ class ProjectController extends Controller
 
                 $project->designs()->create([
                     'file_path' => $path,
-                    'file_name' => $file->getClientOriginalName(),
+                    'file_name' => substr($file->getClientOriginalName(), 0, 255),
                     'file_size' => $file->getSize(),
-                    'file_type' => $file->getClientMimeType(),
+                    'file_type' => substr($file->getClientMimeType(), 0, 100),
                 ]);
             }
         }
@@ -97,27 +149,54 @@ class ProjectController extends Controller
         return redirect()->back()->with('success', 'Designs uploaded successfully.');
     }
 
-    public function edit(Project $project)
+    public function edit(Request $request, Project $project)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Edit Project.');
+        }
         return Inertia::render('Projects/Edit', [
             'project' => $project,
             'clients' => Client::all(['id', 'name', 'company_name']),
         ]);
     }
 
+    public function updateStatus(Request $request, Project $project)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Update Status.');
+        }
+
+        $validated = $request->validate([
+            'status'   => 'nullable|in:pending,ongoing,on_hold,completed,cancelled',
+            'progress' => 'nullable|integer|min:0|max:100',
+        ]);
+
+        $project->update(array_filter($validated, fn($v) => $v !== null));
+
+        return back()->with('success', 'Project updated.');
+    }
+
     public function update(UpdateProjectRequest $request, Project $project)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Edit Project.');
+        }
         $this->projectService->updateProject(
             $project,
             $request->validated(),
-            $request->file('image')
+            $request->file('image'),
+            $request->file('designs'),
+            $request->file('documents')
         );
 
         return redirect()->route('projects.show', $project->id)->with('success', 'Project updated successfully.');
     }
 
-    public function destroy(Project $project)
+    public function destroy(Request $request, Project $project)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('delete_projects')) {
+            abort(403, 'Unauthorized operation: Delete Project.');
+        }
         $this->projectService->deleteProject($project);
 
         return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');
@@ -125,6 +204,9 @@ class ProjectController extends Controller
 
     public function addMaterial(AddMaterialRequest $request, Project $project)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Add Material.');
+        }
         $this->projectService->addMaterial($project, $request->validated());
 
         return redirect()->back()->with('success', 'Material added successfully.');
@@ -132,6 +214,9 @@ class ProjectController extends Controller
 
     public function updateMaterial(Request $request, ProjectMaterial $projectMaterial)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Update Material.');
+        }
         $validated = $request->validate([
             'quantity_needed' => 'required|numeric|min:0',
             'quantity_used' => 'nullable|numeric|min:0',
@@ -143,10 +228,117 @@ class ProjectController extends Controller
         return redirect()->back()->with('success', 'Material updated successfully.');
     }
 
-    public function removeMaterial(ProjectMaterial $projectMaterial)
+    public function removeMaterial(Request $request, ProjectMaterial $projectMaterial)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Remove Material.');
+        }
         $this->projectService->removeMaterial($projectMaterial);
 
         return redirect()->back()->with('success', 'Material removed successfully.');
+    }
+
+    public function destroyDesign(Request $request, Project $project, \App\Models\ProjectDesign $design)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Delete Design File.');
+        }
+
+        if ($design->project_id !== $project->id) {
+            abort(403, 'This file does not belong to the specified project.');
+        }
+
+        if ($design->file_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($design->file_path);
+        }
+        $design->delete();
+
+        return redirect()->back()->with('success', 'Design file deleted successfully.');
+    }
+
+    public function replaceDesign(Request $request, Project $project, \App\Models\ProjectDesign $design)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Replace Design File.');
+        }
+
+        if ($design->project_id !== $project->id) {
+            abort(403, 'This file does not belong to the specified project.');
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:30720',
+        ]);
+
+        // Delete old file from storage
+        if ($design->file_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($design->file_path);
+        }
+
+        $file = $request->file('file');
+        $path = $file->store('project-designs', 'public');
+
+        $design->update([
+            'file_path' => $path,
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+            'file_type' => $file->getClientMimeType(),
+        ]);
+
+        return redirect()->back()->with('success', 'Design file replaced successfully.');
+    }
+
+    public function updateReviewStatus(Request $request, Project $project, \App\Models\ProjectDesign $design)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Update Review Status.');
+        }
+
+        if ($design->project_id !== $project->id) {
+            abort(403, 'This design does not belong to the specified project.');
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:pending,approved,modification_required',
+            'remarks' => 'nullable|string|max:1000',
+        ]);
+
+        $design->update($validated);
+
+        return redirect()->back()->with('success', 'Design status updated successfully.');
+    }
+
+    public function destroyDocument(Request $request, Project $project, \App\Models\ProjectDocument $document)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Delete Document.');
+        }
+
+        if ($document->project_id !== $project->id) {
+            abort(403, 'This document does not belong to the specified project.');
+        }
+
+        if ($document->file_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($document->file_path);
+        }
+        
+        $document->delete();
+
+        return redirect()->back()->with('success', 'Document deleted successfully.');
+    }
+
+    public function renameDocument(Request $request, Project $project, \App\Models\ProjectDocument $document)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Rename Document.');
+        }
+
+        $validated = $request->validate([
+            'file_name' => 'required|string|max:255',
+        ]);
+
+        $document->update($validated);
+
+        return redirect()->back()->with('success', 'Document renamed successfully.');
     }
 }

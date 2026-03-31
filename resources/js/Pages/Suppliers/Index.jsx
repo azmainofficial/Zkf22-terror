@@ -1,231 +1,183 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import { t } from '../../Lang/translation';
 import {
-    Search,
-    Plus,
-    Phone,
-    Mail,
-    MapPin,
-    Building2,
-    Edit2,
-    Trash2,
-    Activity,
-    Layers,
-    Filter,
-    ChevronDown,
-    ExternalLink,
-    Building,
-    ShieldCheck,
-    Briefcase,
-    Zap,
-    History
+    Search, Plus, Phone, Mail, MapPin, 
+    Building2, Pencil, Trash2, Filter, 
+    ChevronDown, ExternalLink, Globe,
+    MoreVertical, User, Briefcase
 } from 'lucide-react';
-import { Button } from '@/Components/ui/Button';
-import { Badge } from '@/Components/ui/Badge';
-import { Card, CardContent } from '@/Components/ui/Card';
-import { cn } from '@/lib/utils';
 
 export default function Index({ auth, suppliers, filters }) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'All');
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(route('suppliers.index'), { search, status }, { preserveState: true, replace: true });
-    };
-
-    const handleStatusFilter = (s) => {
-        setStatus(s);
-        router.get(route('suppliers.index'), { search, status: s }, { preserveState: true, replace: true });
-    };
+    useEffect(() => {
+        const t = setTimeout(() => {
+            router.get(route('suppliers.index'), { search, status }, { preserveState: true, replace: true });
+        }, 500);
+        return () => clearTimeout(t);
+    }, [search, status]);
 
     const handleDelete = (id) => {
-        if (confirm('Decommission this supplier entity from the corporate registry?')) {
-            router.delete(route('suppliers.destroy', id));
+        if (confirm(t('delete_supplier_confirm'))) {
+            router.delete(route('suppliers.destroy', id), { preserveScroll: true });
         }
+    };
+
+    const cardStyle = {
+        background: '#fff',
+        borderRadius: '20px',
+        border: '1px solid #f1f5f9',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)',
+        padding: '1.5rem',
+        transition: 'all 0.2s ease',
+    };
+
+    const inputStyle = {
+        width: '100%',
+        padding: '0.75rem 1rem',
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        fontSize: '0.875rem',
+        outline: 'none',
+        transition: 'all 0.2s',
     };
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Supplier Intelligence" />
+            <Head title={t('suppliers')} />
 
-            <div className="space-y-10 pb-32">
-                {/* Tactical Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-none">
-                            Supplier Hub
-                        </h1>
-                        <div className="flex items-center gap-2">
-                            <Activity size={12} className="text-indigo-600" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none italic">Supply Chain Intelligence & Logistics</p>
-                        </div>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1rem' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div>
+                        <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.025em' }}>{t('suppliers')}</h1>
+                        <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>{t('suppliers_network')}</p>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                        <Link href={route('suppliers.create')}>
-                            <Button className="h-14 px-8 rounded-[1.8rem] bg-indigo-600 hover:bg-slate-900 text-white font-black text-xs uppercase tracking-widest gap-3 shadow-xl shadow-indigo-100 dark:shadow-none transition-all hover:scale-105 active:scale-95">
-                                <Plus size={20} />
-                                Integrate Vendor
-                            </Button>
-                        </Link>
-                    </div>
+                    <Link href={route('suppliers.create')}>
+                        <button style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            background: '#2563eb', color: '#fff', border: 'none',
+                            padding: '0.75rem 1.5rem', borderRadius: '12px',
+                            fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
+                            boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)'
+                        }}>
+                            <Plus size={18} />
+                            {t('add_supplier')}
+                        </button>
+                    </Link>
                 </div>
 
-                {/* Intelligence Filtering Pipeline */}
-                <Card className="rounded-[32px] border-none bg-white dark:bg-slate-900 shadow-sm overflow-hidden no-print">
-                    <CardContent className="p-4 md:p-6">
-                        <div className="flex flex-col md:flex-row gap-6 items-center">
-                            <form onSubmit={handleSearch} className="flex-1 w-full relative group">
-                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none">
-                                    <Search size={18} />
-                                </div>
-                                <input
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Search by Entity Name, ID, or Contact..."
-                                    className="w-full h-16 pl-16 pr-8 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-bold text-sm text-slate-600 dark:text-slate-300 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-600/10 transition-all shadow-inner"
-                                />
-                            </form>
-
-                            <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-[1.8rem] w-full md:w-auto overflow-x-auto scrollbar-hide no-print">
-                                {['All', 'Active', 'Inactive'].map((s) => (
-                                    <button
-                                        key={s}
-                                        onClick={() => handleStatusFilter(s)}
-                                        className={cn(
-                                            "h-12 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap",
-                                            status === s
-                                                ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm"
-                                                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                                        )}
-                                    >
-                                        {s}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Supplier Intelligence Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {suppliers.data.map((supplier) => (
-                        <Card key={supplier.id} className="rounded-[40px] border-none bg-white dark:bg-slate-900 shadow-sm hover:shadow-2xl hover:shadow-indigo-100 dark:hover:shadow-none transition-all group overflow-hidden border border-transparent hover:border-indigo-100 dark:hover:border-slate-800">
-                            <CardContent className="p-8 space-y-8">
-                                <div className="flex items-start justify-between">
-                                    <div className="relative">
-                                        <div className="w-20 h-20 rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-slate-50 dark:border-slate-800 transition-transform group-hover:scale-110">
-                                            {supplier.avatar ? (
-                                                <img src={`/storage/${supplier.avatar}`} className="w-full h-full object-cover" alt={supplier.name} />
-                                            ) : (
-                                                <Building2 size={32} className="text-slate-200" />
-                                            )}
-                                        </div>
-                                        <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full border-4 border-white dark:border-slate-900 bg-emerald-500 flex items-center justify-center no-print">
-                                            <ShieldCheck size={14} className="text-white" />
-                                        </div>
-                                    </div>
-                                    <Badge className={cn(
-                                        "px-4 py-1.5 rounded-full font-black text-[9px] uppercase tracking-[0.2em] border-none shadow-sm",
-                                        supplier.status === 'active'
-                                            ? "bg-emerald-50 text-emerald-600"
-                                            : "bg-slate-100 text-slate-500"
-                                    )}>
-                                        {supplier.status === 'active' ? 'Active' : 'Inactive'}
-                                    </Badge>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic leading-none group-hover:text-indigo-600 transition-colors">{supplier.company_name}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <Briefcase size={10} className="text-slate-400" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{supplier.name}</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                            <Mail size={14} />
-                                        </div>
-                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">{supplier.email || 'No email registered'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                            <Phone size={14} />
-                                        </div>
-                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{supplier.phone || '+880 N/A'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                            <MapPin size={14} />
-                                        </div>
-                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">{supplier.address || 'Location Unknown'}</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 pt-6 no-print">
-                                    <Link href={route('suppliers.show', supplier.id)} className="flex-1">
-                                        <Button variant="outline" className="w-full h-12 rounded-xl border-slate-100 dark:border-slate-800 font-black text-[10px] uppercase tracking-widest gap-2 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800">
-                                            <ExternalLink size={14} /> Intelligence
-                                        </Button>
-                                    </Link>
-                                    <Link href={route('suppliers.edit', supplier.id)}>
-                                        <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 hover:scale-110 transition-transform">
-                                            <Edit2 size={16} />
-                                        </Button>
-                                    </Link>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDelete(supplier.id)}
-                                        className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 hover:bg-rose-100 hover:scale-110 transition-all"
-                                    >
-                                        <Trash2 size={16} />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-
-                    {suppliers.data.length === 0 && (
-                        <Card className="col-span-full py-24 rounded-[40px] border-none bg-white dark:bg-slate-900 text-center space-y-6">
-                            <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center mx-auto text-slate-200">
-                                <Building2 size={48} />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">No Vendor Entities Detected</h3>
-                                <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">The supply chain registry is currently empty.</p>
-                            </div>
-                            <Link href={route('suppliers.create')}>
-                                <Button className="h-14 px-10 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 dark:shadow-none">
-                                    Initialize Global Sourcing
-                                </Button>
-                            </Link>
-                        </Card>
-                    )}
-                </div>
-
-                {/* High-Fidelity Pagination */}
-                {suppliers.links.length > 3 && (
-                    <div className="flex justify-center items-center gap-3 pt-10 no-print">
-                        {suppliers.links.map((link, i) => (
-                            <Link
-                                key={i}
-                                href={link.url}
-                                className={cn(
-                                    "h-12 min-w-[3rem] px-4 flex items-center justify-center rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
-                                    link.active
-                                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl"
-                                        : "bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-900 dark:hover:text-white shadow-sm border border-slate-50 dark:border-slate-800",
-                                    !link.url && "opacity-30 pointer-events-none"
-                                )}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
+                {/* Filters */}
+                <div style={{ ...cardStyle, marginBottom: '2rem', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '300px', position: 'relative' }}>
+                            <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder={t('search_suppliers_placeholder')}
+                                style={{ ...inputStyle, paddingLeft: '2.75rem' }}
                             />
-                        ))}
+                        </div>
+                        <div style={{ width: '200px', position: 'relative' }}>
+                            <select
+                                value={status}
+                                onChange={e => setStatus(e.target.value)}
+                                style={{ ...inputStyle, appearance: 'none' }}
+                            >
+                                <option value="All">{t('all_status')}</option>
+                                <option value="active">{t('active')}</option>
+                                <option value="inactive">{t('inactive')}</option>
+                            </select>
+                            <ChevronDown size={16} color="#94a3b8" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+                    {suppliers.data.map((supplier) => (
+                        <div key={supplier.id} style={cardStyle} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        {supplier.avatar ? (
+                                            <img src={`/storage/${supplier.avatar}`} style={{ width: '100%', height: '100%', objectCover: 'cover' }} alt="" />
+                                        ) : (
+                                            <Building2 size={24} color="#94a3b8" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: '#1e293b' }}>{supplier.company_name}</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.75rem', fontWeight: 500, marginTop: '2px' }}>
+                                            <User size={12} />
+                                            {supplier.name}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span style={{
+                                    padding: '4px 10px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    background: supplier.status === 'active' ? '#f0fdf4' : '#f8fafc',
+                                    color: supplier.status === 'active' ? '#16a34a' : '#64748b',
+                                    border: `1px solid ${supplier.status === 'active' ? '#dcfce7' : '#f1f5f9'}`
+                                }}>
+                                    {supplier.status === 'active' ? t('active') : t('inactive')}
+                                </span>
+                            </div>
+
+                            <div style={{ spaceY: '0.75rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#475569', fontSize: '0.875rem' }}>
+                                    <Mail size={16} color="#94a3b8" />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{supplier.email || t('no_email')}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#475569', fontSize: '0.875rem', marginTop: '0.75rem' }}>
+                                    <Phone size={16} color="#94a3b8" />
+                                    <span>{supplier.phone || t('no_phone')}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#475569', fontSize: '0.875rem', marginTop: '0.75rem' }}>
+                                    <MapPin size={16} color="#94a3b8" />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{supplier.address || t('no_address')}</span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
+                                <Link href={route('suppliers.show', supplier.id)} style={{ flex: 1 }}>
+                                    <button style={{ width: '100%', padding: '0.625rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                        <ExternalLink size={14} /> {t('view_details')}
+                                    </button>
+                                </Link>
+                                <Link href={route('suppliers.edit', supplier.id)}>
+                                    <button style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fff', border: '1px solid #e2e8f0', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                        <Pencil size={16} />
+                                    </button>
+                                </Link>
+                                <button
+                                    onClick={() => handleDelete(supplier.id)}
+                                    style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fff', border: '1px solid #fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {suppliers.data.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '5rem 0' }}>
+                        <div style={{ width: '80px', height: '80px', background: '#f8fafc', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                            <Building2 size={32} color="#cbd5e1" />
+                        </div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{t('no_suppliers_found')}</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.5rem' }}>{t('try_adjusting')}</p>
                     </div>
                 )}
             </div>

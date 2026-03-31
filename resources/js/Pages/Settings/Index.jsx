@@ -1,77 +1,59 @@
 import React, { useState } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, useForm, router, Link } from '@inertiajs/react';
+import { t } from '../../Lang/translation';
 import { 
     Settings as SettingsIcon, 
     Upload, 
     Save, 
-    Building2, 
+    Building, 
     Image as ImageIcon, 
     CreditCard, 
     Plus, 
     Trash2, 
     CheckCircle2, 
-    XCircle, 
-    FileText, 
-    ChevronRight,
-    Puzzle,
-    Key,
-    History,
-    Users,
-    Cpu,
     Smartphone,
-    LayoutDashboard,
-    Palette,
-    ShieldCheck,
+    Users,
     Lock,
+    History,
+    ChevronRight,
     Globe,
+    ShieldCheck,
     Zap,
-    Mail,
-    Bell
+    X,
+    Check
 } from 'lucide-react';
 
 const cardStyle = {
     background: '#fff',
-    borderRadius: '16px',
-    border: '1.5px solid #f0eeff',
-    boxShadow: '0 2px 12px rgba(99,102,241,0.05)',
-    padding: '1.5rem',
-    position: 'relative',
-    transition: 'all 0.2s'
+    borderRadius: '24px',
+    border: '1px solid #f0f4f8',
+    padding: '2rem',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
+    transition: 'all 0.3s ease'
 };
 
 const inputStyle = {
     width: '100%',
-    height: '46px',
-    padding: '0 1rem',
-    borderRadius: '10px',
-    border: '1.5px solid #ede9fe',
-    background: '#f9f7ff',
-    fontSize: '0.85rem',
-    fontWeight: 700,
+    height: '50px',
+    padding: '0 1.25rem',
+    borderRadius: '12px',
+    border: '1.5px solid #eef2f6',
+    background: '#fff',
+    fontSize: '0.9rem',
+    fontWeight: 500,
     outline: 'none',
     transition: 'all 0.2s',
-    color: '#1e1b4b'
+    color: '#1e293b'
 };
 
 const labelStyle = {
-    fontSize: '0.7rem',
-    fontWeight: 800,
-    color: '#a78bfa',
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    color: '#475569',
     display: 'block',
-    marginBottom: '8px'
-};
-
-const onFocus = e => {
-    e.target.style.borderColor = '#8b5cf6';
-    e.target.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.1)';
-};
-
-const onBlur = e => {
-    e.target.style.borderColor = '#ede9fe';
-    e.target.style.boxShadow = 'none';
+    marginBottom: '8px',
+    paddingLeft: '2px'
 };
 
 export default function Index({ auth, settings, paymentMethods = [] }) {
@@ -108,7 +90,7 @@ export default function Index({ auth, settings, paymentMethods = [] }) {
     };
 
     const handleDeletePaymentMethod = (id) => {
-        if (confirm('Are you sure you want to delete this payment method?')) {
+        if (confirm(t('delete_payment_method_confirm'))) {
             router.delete(route('payment-methods.destroy', id), { preserveScroll: true });
         }
     };
@@ -120,145 +102,139 @@ export default function Index({ auth, settings, paymentMethods = [] }) {
         }, { preserveScroll: true });
     };
 
-    const statCards = [
-        { label: 'Platform Engine', value: data.app_name || 'ZK Base SDK', icon: Cpu, bg: '#f5f3ff', color: '#6366f1' },
-        { label: 'Payment Protocols', value: `${paymentMethods.length} Methods`, icon: CreditCard, bg: '#eff6ff', color: '#3b82f6' },
-        { label: 'Active Services', value: paymentMethods.filter(m => m.is_active).length, icon: Zap, bg: '#f0fdf4', color: '#16a34a' },
-    ];
-
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Core Settings" />
+            <Head title={t('settings')} />
 
-            <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '4rem' }}>
+            <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '4rem' }}>
                 
-                {/* Header (Inventory Style) */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                {/* ── Page Title ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '3px' }}>
-                            <SettingsIcon size={16} color="#a78bfa" />
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Control Panel</span>
-                        </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>System Parameters</h1>
-                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '3px 0 0' }}>Configure company identity and transactional protocols</p>
+                        <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>{t('settings')}</h1>
+                        <p style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500, margin: '8px 0 0' }}>{t('configure_identity_subtitle')}</p>
                     </div>
                 </div>
 
-                {/* Sub-Navigation Grid (Aligned with Roles pattern) */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                {/* ── Navigation Grid ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
                     {[
-                        { name: 'Devices', label: 'Biometric hardware', icon: Smartphone, href: route('devices.index'), color: '#3b82f6' },
-                        { name: 'User Directory', label: 'Access accounts', icon: Users, href: route('users.index'), color: '#10b981' },
-                        { name: 'Access Rules', label: 'RBAC & Tiers', icon: Lock, href: route('roles.index'), color: '#f59e0b' },
-                        { name: 'Audit Logs', label: 'Activity history', icon: History, href: route('audit-logs.index'), color: '#ec4899' },
+                        { name: t('devices'), label: t('face_finger_hardware'), icon: Smartphone, href: route('devices.index'), color: '#3b82f6' },
+                        { name: t('hr_team'), label: t('team_accounts'), icon: Users, href: route('users.index'), color: '#10b981' },
+                        { name: t('admin'), label: t('access_permissions'), icon: Lock, href: route('roles.index'), color: '#f59e0b' },
+                        { name: t('logs'), label: t('system_history'), icon: History, href: route('audit-logs.index'), color: '#ec4899' },
                     ].map((item, idx) => (
                         <Link key={idx} href={item.href} style={{ textDecoration: 'none' }}>
-                            <div style={{ ...cardStyle, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.2s', cursor: 'pointer', border: '1.5px solid #f1f5f9' }} onMouseEnter={e => { e.currentTarget.style.borderColor = item.color; e.currentTarget.style.boxShadow = `0 4px 12px ${item.color}10`; }} onMouseLeave={e => { e.currentTarget.style.borderColor = '#f1f5f9'; e.currentTarget.style.boxShadow = 'none'; }}>
-                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `${item.color}10`, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ ...cardStyle, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }} onMouseEnter={e => { e.currentTarget.style.borderColor = item.color; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = '#f0f4f8'; e.currentTarget.style.transform = 'none'; }}>
+                                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${item.color}10`, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <item.icon size={20} />
                                 </div>
                                 <div>
-                                    <h4 style={{ fontSize: '0.85rem', fontWeight: 850, color: '#1e1b4b', margin: 0 }}>{item.name}</h4>
-                                    <p style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, margin: 0 }}>{item.label}</p>
+                                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{item.name}</h4>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, margin: 0 }}>{item.label}</p>
                                 </div>
-                                <div style={{ marginLeft: 'auto', color: '#cbd5e1' }}>
-                                    <ChevronRight size={16} />
-                                </div>
+                                <ChevronRight size={14} color="#cbd5e1" style={{ marginLeft: 'auto' }} />
                             </div>
                         </Link>
                     ))}
                 </div>
 
-                {/* Stat Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: '1rem' }}>
-                    {statCards.map((s, i) => (
-                        <div key={i} style={{ ...cardStyle, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <s.icon size={22} color={s.color} />
-                            </div>
-                            <div>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{s.label}</p>
-                                <p style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e1b4b', margin: 0, lineHeight: 1.2 }}>{s.value}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1.5rem' }} className="settings-grid">
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }} className="settings-main-grid">
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {/* Application Identity Card */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {/* Company Identity */}
                         <div style={cardStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
-                                <div style={{ background: '#f5f3ff', padding: '10px', borderRadius: '12px' }}>
-                                    <Building2 size={24} color="#6366f1" />
-                                </div>
-                                <div>
-                                    <h3 style={{ fontSize: '1rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Identity & Presence</h3>
-                                    <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, margin: 0 }}>Set your custom branding and platform title</p>
-                                </div>
+                            <div style={{ marginBottom: '2rem' }}>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{t('business_identity')}</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, marginTop: '4px' }}>{t('business_appearance_desc')}</p>
                             </div>
 
                             <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                <div>
-                                    <label style={labelStyle}>Platform Title</label>
-                                    <input type="text" value={data.app_name} onChange={e => setData('app_name', e.target.value)} placeholder="e.g. ZK Force HQ" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
-                                    {errors.app_name && <p style={{ color: '#ef4444', fontSize: '0.7rem', fontWeight: 800, marginTop: '8px' }}>{errors.app_name}</p>}
-                                </div>
-
-                                <div>
-                                    <label style={labelStyle}>Brand Representative (Logo)</label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem', background: '#fdfbff', borderRadius: '14px', border: '1.5px dashed #ede9fe' }}>
-                                        <div style={{ width: '80px', height: '80px', borderRadius: '12px', background: '#fff', border: '1.5px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                                            {preview ? <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} /> : <ImageIcon size={32} color="#cbd5e1" />}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', padding: '2rem', background: '#fafbfc', borderRadius: '20px', marginBottom: '1rem' }}>
+                                    <div style={{ position: 'relative' }}>
+                                        <div style={{ 
+                                            width: '120px', 
+                                            height: '120px', 
+                                            borderRadius: '24px', 
+                                            background: '#fff', 
+                                            border: '3px solid #6366f1', // Direct border on logo as requested
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center', 
+                                            overflow: 'hidden',
+                                            boxShadow: '0 8px 20px rgba(99,102,241,0.1)'
+                                        }}>
+                                            {preview ? <img src={preview} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '10px' }} /> : <ImageIcon size={40} color="#cbd5e1" />}
                                         </div>
-                                        <div style={{ flex: 1 }}>
-                                            <input type="file" id="logo-upload" style={{ display: 'none' }} onChange={handleFileChange} />
-                                            <label htmlFor="logo-upload" style={{ display: 'inline-flex', height: '40px', padding: '0 1rem', background: '#1e1b4b', color: '#fff', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', alignItems: 'center', gap: '8px' }}>
-                                                <Upload size={14} /> Update Logo
-                                            </label>
-                                            <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, marginTop: '8px' }}>Recommend PNG with transparent background.</p>
-                                        </div>
+                                        <input type="file" id="logo-upload" style={{ display: 'none' }} onChange={handleFileChange} />
+                                        <label htmlFor="logo-upload" style={{
+                                            position: 'absolute',
+                                            bottom: '-10px',
+                                            right: '-10px',
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '50%',
+                                            background: '#6366f1',
+                                            color: '#fff',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                                            border: '3px solid #fff'
+                                        }}>
+                                            <Upload size={16} />
+                                        </label>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('upload_company_logo')}</h4>
+                                        <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>{t('upload_logo_hint')}</p>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <button disabled={processing} style={{ height: '46px', padding: '0 1.5rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(99,102,241,0.2)' }}>
-                                        <Save size={18} /> {processing ? 'Syncing...' : 'Apply Identity'}
+                                <div>
+                                    <label style={labelStyle}>{t('business_name')}</label>
+                                    <input type="text" value={data.app_name} onChange={e => setData('app_name', e.target.value)} placeholder={t('enter_business_name')} style={inputStyle} />
+                                    {errors.app_name && <p style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 600, marginTop: '8px' }}>{errors.app_name}</p>}
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                                    <button disabled={processing} style={{ height: '48px', padding: '0 2rem', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(99,102,241,0.2)' }}>
+                                        <Save size={18} /> {processing ? t('saving') : t('save_settings')}
                                     </button>
                                 </div>
                             </form>
                         </div>
 
-                        {/* Additional Config Section */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                            <div style={{ ...cardStyle, opacity: 0.7 }}>
+                        {/* System Info Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                            <div style={cardStyle}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                                    <Globe size={18} color="#94a3b8" />
-                                    <h4 style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>System Region</h4>
+                                    <Globe size={18} color="#2563eb" />
+                                    <h4 style={{ fontSize: '0.850rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{t('region_time')}</h4>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', margin: '1rem 0' }}>UTC+06:00 (Dhaka Time)</p>
-                                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#10b981', background: '#ecfdf5', padding: '4px 8px', borderRadius: '6px' }}>AUTOMATICALLY SYNCED</span>
+                                <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155', margin: '0' }}>Asia / Dhaka (GMT+6)</p>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#059669', background: '#f0fdf4', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '12px' }}>{t('auto_synced')}</span>
                             </div>
-                            <div style={{ ...cardStyle, opacity: 0.7 }}>
+                            <div style={cardStyle}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                                    <ShieldCheck size={18} color="#94a3b8" />
-                                    <h4 style={{ fontSize: '0.8rem', fontWeight: 900, color: '#1e1b4b', margin: 0 }}>Engine Security</h4>
+                                    <ShieldCheck size={18} color="#059669" />
+                                    <h4 style={{ fontSize: '0.850rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{t('data_security')}</h4>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', margin: '1rem 0' }}>CSRF/XSS Protections</p>
-                                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#3b82f6', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px' }}>STRICT MODE ACTIVE</span>
+                                <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155', margin: '0' }}>{t('realtime_encryption')}</p>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#2563eb', background: '#eff6ff', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', marginTop: '12px' }}>{t('protected')}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Sidebar / Payment Methods */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div style={{ ...cardStyle, background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', border: 'none', boxShadow: '0 10px 30px rgba(30,27,75,0.2)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                                <CreditCard size={20} color="#6366f1" />
-                                <h3 style={{ fontSize: '1rem', fontWeight: 900, margin: 0 }}>Payment Protocol</h3>
+                    {/* Payment Sidebar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        <div style={{ ...cardStyle, background: '#0f172a', color: '#fff', border: 'none' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <CreditCard size={20} color="#a5b4fc" />
+                                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>{t('payment_methods')}</h3>
                             </div>
-                            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, lineHeight: 1.5, marginBottom: '2rem' }}>Authorize new transaction methods for financial documentation and invoicing.</p>
+                            <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500, lineHeight: 1.5, marginBottom: '2rem' }}>{t('payment_methods_desc')}</p>
                             
                             <form onSubmit={handleAddPaymentMethod} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <input 
@@ -266,33 +242,56 @@ export default function Index({ auth, settings, paymentMethods = [] }) {
                                     value={newMethodName} 
                                     onChange={e => setNewMethodName(e.target.value)} 
                                     placeholder="e.g. PayPal, Bank AC"
-                                    style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff', padding: '0 1rem', fontWeight: 700, outline: 'none', fontSize: '0.85rem' }}
+                                    style={{ width: '100%', height: '48px', background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff', padding: '0 1rem', fontWeight: 600, outline: 'none', fontSize: '0.85rem' }}
                                 />
-                                <button style={{ width: '100%', height: '46px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                                    <Plus size={16} /> Register Protocol
+                                <button style={{ width: '100%', height: '48px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}>
+                                    <Plus size={18} /> {t('add_new_method')}
                                 </button>
                             </form>
                         </div>
 
-                        <div style={{ ...cardStyle, borderRadius: '20px' }}>
-                            <h4 style={{ fontSize: '0.7rem', fontWeight: 900, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '1.25rem' }}>Active Methods</h4>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {paymentMethods.map(method => (
-                                    <div key={method.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '12px', border: '1.5px solid #f1f5f9', transition: 'all 0.2s' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={cardStyle}>
+                            <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem' }}>{t('active_methods')}</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {paymentMethods.length > 0 ? paymentMethods.map(method => (
+                                    <div key={method.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: '#fafbfc', borderRadius: '14px', border: '1px solid #f0f4f8' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: method.is_active ? '#10b981' : '#cbd5e1' }} />
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 850, color: '#1e1b4b' }}>{method.name}</span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{method.name}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <button onClick={() => togglePaymentMethodStatus(method)} style={{ height: '28px', padding: '0 10px', borderRadius: '6px', border: 'none', background: method.is_active ? '#ecfdf5' : '#fff1f2', color: method.is_active ? '#10b981' : '#ef4444', fontSize: '0.6rem', fontWeight: 900, cursor: 'pointer' }}>
-                                                {method.is_active ? 'ON' : 'OFF'}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <button 
+                                                onClick={() => togglePaymentMethodStatus(method)} 
+                                                style={{ 
+                                                    width: '40px', 
+                                                    height: '24px', 
+                                                    borderRadius: '12px', 
+                                                    border: 'none', 
+                                                    background: method.is_active ? '#6366f1' : '#e2e8f0', 
+                                                    position: 'relative', 
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <div style={{ 
+                                                    width: '18px', 
+                                                    height: '18px', 
+                                                    borderRadius: '50%', 
+                                                    background: '#fff', 
+                                                    position: 'absolute', 
+                                                    top: '3px', 
+                                                    left: method.is_active ? '19px' : '3px',
+                                                    transition: 'all 0.2s'
+                                                }} />
                                             </button>
-                                            <button onClick={() => handleDeletePaymentMethod(method.id)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
-                                                <Trash2 size={14} />
+                                            <button onClick={() => handleDeletePaymentMethod(method.id)} style={{ padding: '6px', borderRadius: '8px', border: 'none', background: 'transparent', color: '#cbd5e1', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}>
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </div>
-                                ))}
+                                )) : (
+                                    <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#94a3b8', padding: '2rem 0' }}>{t('no_payment_methods')}</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -300,8 +299,8 @@ export default function Index({ auth, settings, paymentMethods = [] }) {
             </div>
 
             <style>{`
-                @media (max-width: 1000px) {
-                    .settings-grid { grid-template-columns: 1fr !important; }
+                @media (max-width: 900px) {
+                    .settings-main-grid { grid-template-columns: 1fr !important; }
                 }
             `}</style>
         </FigmaLayout>

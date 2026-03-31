@@ -17,48 +17,45 @@ class ExpenseController extends Controller
     {
         $query = Expense::with(['category', 'project', 'approver']);
 
-        // Search
-        if ($request->has('search') && $request->search) {
+        // Search by number, title, vendor, category, project
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('expense_number', 'like', "%{$search}%")
-                    ->orWhere('title', 'like', "%{$search}%")
-                    ->orWhere('vendor_name', 'like', "%{$search}%")
-                    ->orWhereHas('category', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
-                    });
+                  ->orWhere('title', 'like', "%{$search}%")
+                  ->orWhere('vendor_name', 'like', "%{$search}%")
+                  ->orWhereHas('category', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('project',  fn($q) => $q->where('title', 'like', "%{$search}%"));
             });
         }
 
-        // Filter by status
-        if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
+        if ($request->filled('status'))         $query->where('status', $request->status);
+        if ($request->filled('category_id'))    $query->where('expense_category_id', $request->category_id);
+        if ($request->filled('project_id'))     $query->where('project_id', $request->project_id);
+        if ($request->filled('payment_method')) $query->where('payment_method', $request->payment_method);
+        if ($request->filled('from_date'))      $query->whereDate('expense_date', '>=', $request->from_date);
+        if ($request->filled('to_date'))        $query->whereDate('expense_date', '<=', $request->to_date);
+
+        // project_type: with_project / no_project
+        if ($request->filled('project_type')) {
+            if ($request->project_type === 'with_project')   $query->whereNotNull('project_id');
+            if ($request->project_type === 'no_project')     $query->whereNull('project_id');
         }
 
-        // Filter by category
-        if ($request->has('category_id') && $request->category_id) {
-            $query->where('expense_category_id', $request->category_id);
-        }
-
-        // Filter by date range
-        if ($request->has('from_date') && $request->from_date) {
-            $query->whereDate('expense_date', '>=', $request->from_date);
-        }
-        if ($request->has('to_date') && $request->to_date) {
-            $query->whereDate('expense_date', '<=', $request->to_date);
-        }
-
-        $expenses = $query->latest('expense_date')->paginate(15);
-        $categories = ExpenseCategory::where('is_active', true)->get();
-        $projects = Project::select('id', 'title')->get();
+        $expenses       = $query->latest('expense_date')->paginate(20)->withQueryString();
+        $categories     = ExpenseCategory::where('is_active', true)->get();
+        $projects       = Project::select('id', 'title')->orderBy('title')->get();
         $paymentMethods = PaymentMethod::where('is_active', true)->get();
 
         return Inertia::render('Finance/Expenses/Index', [
-            'expenses' => $expenses,
-            'categories' => $categories,
-            'projects' => $projects,
+            'expenses'       => $expenses,
+            'categories'     => $categories,
+            'projects'       => $projects,
             'paymentMethods' => $paymentMethods,
-            'filters' => $request->only(['search', 'status', 'category_id', 'from_date', 'to_date']),
+            'filters'        => $request->only([
+                'search','status','category_id','project_id',
+                'payment_method','from_date','to_date','project_type'
+            ]),
         ]);
     }
 

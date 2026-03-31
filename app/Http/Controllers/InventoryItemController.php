@@ -14,6 +14,10 @@ class InventoryItemController extends Controller
 {
     public function index(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_inventory')) {
+            abort(403, 'Unauthorized access to inventory management.');
+        }
+
         $query = InventoryItem::with(['brand', 'supplier', 'client', 'project']);
 
         if ($request->search) {
@@ -37,6 +41,10 @@ class InventoryItemController extends Controller
 
         if ($request->brand_id) {
             $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->supplier_id) {
+            $query->where('supplier_id', $request->supplier_id);
         }
 
         // Date filtering
@@ -75,6 +83,9 @@ class InventoryItemController extends Controller
         if ($request->brand_id) {
             $totalValueQuery->where('brand_id', $request->brand_id);
         }
+        if ($request->supplier_id) {
+            $totalValueQuery->where('supplier_id', $request->supplier_id);
+        }
         if ($request->month) {
             $totalValueQuery->whereMonth('created_at', date('m', strtotime($request->month)))
                 ->whereYear('created_at', date('Y', strtotime($request->month)));
@@ -90,16 +101,20 @@ class InventoryItemController extends Controller
 
         return Inertia::render('Inventory/Index', [
             'items' => $items,
-            'filters' => $request->only(['search', 'status', 'project_id', 'client_id', 'brand_id', 'month', 'from_date', 'to_date']),
+            'filters' => $request->only(['search', 'status', 'project_id', 'client_id', 'brand_id', 'supplier_id', 'month', 'from_date', 'to_date']),
             'projects' => Project::all(['id', 'title', 'client_id']),
             'clients' => Client::all(['id', 'name', 'company_name']),
             'brands' => Brand::all(['id', 'name']),
+            'suppliers' => Supplier::all(['id', 'company_name', 'name']),
             'totalValue' => $totalValue,
         ]);
     }
 
     public function create(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('create_inventory')) {
+            abort(403, 'Unauthorized operation: Register Resource.');
+        }
         return Inertia::render('Inventory/Create', [
             'brands' => Brand::all(['id', 'name']),
             'suppliers' => Supplier::all(['id', 'company_name']),
@@ -112,6 +127,9 @@ class InventoryItemController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('create_inventory')) {
+            abort(403, 'Unauthorized operation: Register Resource.');
+        }
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'sku' => 'nullable|string',
@@ -121,9 +139,9 @@ class InventoryItemController extends Controller
             'reorder_level' => 'nullable|numeric|min:0',
             'unit_price' => 'required|numeric|min:0',
             'status' => 'nullable|in:active,inactive,discontinued',
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'client_id' => 'nullable|exists:clients,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'client_id' => 'required|exists:clients,id',
+            'project_id' => 'required|exists:projects,id',
         ]);
 
         if (empty($validated['status'])) {
@@ -142,15 +160,21 @@ class InventoryItemController extends Controller
         return redirect()->route('inventory.index')->with('success', 'Product added to inventory successfully.');
     }
 
-    public function show(InventoryItem $inventory)
+    public function show(Request $request, InventoryItem $inventory)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_inventory')) {
+            abort(403, 'Unauthorized access to resource details.');
+        }
         return Inertia::render('Inventory/Show', [
             'item' => $inventory->load(['brand.supplier', 'client', 'project.client']),
         ]);
     }
 
-    public function edit(InventoryItem $inventory)
+    public function edit(Request $request, InventoryItem $inventory)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_inventory')) {
+            abort(403, 'Unauthorized operation: Edit Resource.');
+        }
         return Inertia::render('Inventory/Edit', [
             'item' => $inventory,
             'brands' => Brand::all(['id', 'name']),
@@ -163,6 +187,9 @@ class InventoryItemController extends Controller
 
     public function update(Request $request, InventoryItem $inventory)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_inventory')) {
+            abort(403, 'Unauthorized operation: Edit Resource.');
+        }
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'sku' => 'nullable|string',
@@ -172,9 +199,9 @@ class InventoryItemController extends Controller
             'reorder_level' => 'nullable|numeric|min:0',
             'unit_price' => 'required|numeric|min:0',
             'status' => 'nullable|in:active,inactive,discontinued',
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'client_id' => 'nullable|exists:clients,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'client_id' => 'required|exists:clients,id',
+            'project_id' => 'required|exists:projects,id',
         ]);
 
         if (empty($validated['status'])) {
@@ -193,14 +220,20 @@ class InventoryItemController extends Controller
         return redirect()->route('inventory.index')->with('success', 'Product updated successfully.');
     }
 
-    public function destroy(InventoryItem $inventory)
+    public function destroy(Request $request, InventoryItem $inventory)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('delete_inventory')) {
+            abort(403, 'Unauthorized operation: Remove Resource.');
+        }
         $inventory->delete();
         return redirect()->route('inventory.index')->with('success', 'Product removed from inventory.');
     }
 
     public function exportToExcel(Request $request)
     {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_inventory')) {
+            abort(403, 'Unauthorized operation: Export Data.');
+        }
         $query = InventoryItem::with(['brand.supplier', 'client', 'project']);
 
         if ($request->search) {
