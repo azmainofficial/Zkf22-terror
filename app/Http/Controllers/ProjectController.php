@@ -130,7 +130,7 @@ class ProjectController extends Controller
         }
 
         $request->validate([
-            'files.*' => 'required|file|max:30720', // Increased to 30MB for heavy CAD files
+            'files.*' => 'required|file|max:102400', // 100MB for large CAD/DWG files
         ]);
 
         if ($request->hasFile('files')) {
@@ -267,7 +267,7 @@ class ProjectController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|max:30720',
+            'file' => 'required|file|max:102400',
         ]);
 
         // Delete old file from storage

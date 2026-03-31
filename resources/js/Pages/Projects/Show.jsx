@@ -164,8 +164,8 @@ export default function Show({ auth, project, connectedInventory, designs, stats
             <Head title={`${project.title} | Hub`} />
 
             {/* Hidden file inputs */}
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} multiple style={{ display: 'none' }} />
-            <input type="file" ref={replaceInputRef} onChange={handleReplaceFile} style={{ display: 'none' }} />
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} multiple accept=".dwg,.dxf,.cad,.step,.stl,.obj,.pdf,.png,.jpg,.jpeg,.svg" style={{ display: 'none' }} />
+            <input type="file" ref={replaceInputRef} onChange={handleReplaceFile} accept=".dwg,.dxf,.cad,.step,.stl,.obj,.pdf,.png,.jpg,.jpeg,.svg" style={{ display: 'none' }} />
 
             <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '4rem' }}>
 
@@ -672,16 +672,30 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                             <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 800 }}>{previewDesign?.file_name}</h3>
                             <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '0.75rem' }}>{previewDesign?.file_type} • File Preview</p>
                         </div>
-                        <button onClick={() => setPreviewDesign(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
-                            <CloseIcon size={18} />
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {['dwg','dxf','cad','step','stl'].includes((previewDesign?.file_name||'').split('.').pop().toLowerCase()) && (
+                                <a href={`/storage/${previewDesign?.file_path}`} download style={{ padding: '6px 14px', background: '#4f46e5', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Download size={13} /> Download
+                                </a>
+                            )}
+                            <button onClick={() => setPreviewDesign(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+                                <CloseIcon size={18} />
+                            </button>
+                        </div>
                     </div>
                     
-                    <div style={{ flex: 1, background: '#1e293b', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ flex: 1, background: '#1e293b', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                         {previewDesign?.file_type?.startsWith('image/') ? (
                             <img src={`/storage/${previewDesign.file_path}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Design Preview" />
                         ) : previewDesign?.file_type === 'application/pdf' ? (
                             <iframe src={`/storage/${previewDesign.file_path}`} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
+                        ) : (['dwg', 'dxf', 'cad', 'step', 'obj', 'stl'].includes((previewDesign?.file_name || '').split('.').pop().toLowerCase())) ? (
+                            <iframe
+                                key={previewDesign?.id}
+                                src={`/cad-viewer.html?url=${encodeURIComponent(window.location.origin + '/storage/' + (previewDesign?.file_path || ''))}&name=${encodeURIComponent(previewDesign?.file_name || '')}`}
+                                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px', background: '#0f172a' }}
+                                title="CAD Viewer"
+                            />
                         ) : (
                             <div style={{ textAlign: 'center', color: '#94a3b8' }}>
                                 <FileSearch size={64} style={{ marginBottom: '1rem', opacity: 0.3 }} />
@@ -826,14 +840,28 @@ function DesignCard({ design, canEdit, onDelete, onReplace, onReview, onPreview 
         <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '24px', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
             <div style={{ padding: '1.5rem', display: 'flex', gap: '1.5rem' }}>
                 {/* Thumbnail / Icon Section */}
-                <div onClick={onPreview} style={{ width: '100px', height: '100px', flexShrink: 0, borderRadius: '16px', background: '#f8fafc', border: '1px solid #f1f5f9', overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div onClick={onPreview} style={{ 
+                    width: '100px', height: '100px', flexShrink: 0, borderRadius: '16px', 
+                    background: ['dwg', 'dxf', 'cad'].includes(ext.toLowerCase()) ? '#f0f7ff' : '#f8fafc', 
+                    border: ['dwg', 'dxf', 'cad'].includes(ext.toLowerCase()) ? '2px solid #bfdbfe' : '1px solid #f1f5f9', 
+                    overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative'
+                }}>
                     {isImage
                         ? <img src={`/storage/${design.file_path}`} alt={design.file_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <div style={{ textAlign: 'center' }}>
-                            <HardDrive size={32} color="#4f46e5" />
-                            <p style={{ margin: '4px 0 0', fontSize: '0.65rem', fontWeight: 900, color: '#4f46e5', background: '#f0efff', padding: '2px 6px', borderRadius: '4px' }}>{ext}</p>
+                            <HardDrive size={34} color={['dwg', 'dxf', 'cad'].includes(ext.toLowerCase()) ? '#2563eb' : '#4f46e5'} />
+                            <p style={{ 
+                                margin: '6px 0 0', fontSize: '0.65rem', fontWeight: 950, 
+                                color: '#fff', 
+                                background: ['dwg', 'dxf', 'cad'].includes(ext.toLowerCase()) ? '#2563eb' : '#4f46e5', 
+                                padding: '2px 8px', borderRadius: '6px' 
+                            }}>{ext}</p>
                           </div>
                     }
+                    {['dwg', 'dxf', 'cad'].includes(ext.toLowerCase()) && (
+                        <div style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb' }} />
+                    )}
                 </div>
 
                 {/* Info Content Section */}
