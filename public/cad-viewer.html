@@ -262,9 +262,9 @@ if (!fileUrl) {
             autoResize    : true,
             baseUrl       : 'https://mlightcad.gitlab.io/cad-data/',
             webworkerFileUrls: {
-                dwgParser  : 'https://cdn.jsdelivr.net/npm/@mlightcad/cad-simple-viewer@1.4.11/dist/libredwg-parser-worker.js',
-                mtextRender: 'https://cdn.jsdelivr.net/npm/@mlightcad/cad-simple-viewer@1.4.11/dist/mtext-renderer-worker.js',
-                dxfParser  : 'https://cdn.jsdelivr.net/npm/@mlightcad/data-model@1.7.12/dist/dxf-parser-worker.js',
+                dwgParser  : '/cad-workers/libredwg-parser-worker.js',
+                mtextRender: '/cad-workers/mtext-renderer-worker.js',
+                dxfParser  : '/cad-workers/dxf-parser-worker.js',
             },
         });
 
