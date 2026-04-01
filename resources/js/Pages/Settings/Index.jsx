@@ -21,7 +21,9 @@ import {
     ShieldCheck,
     Zap,
     X,
-    Check
+    Check,
+    FileText,
+    Printer
 } from 'lucide-react';
 
 const cardStyle = {
@@ -117,7 +119,7 @@ export default function Index({ auth, settings, paymentMethods = [] }) {
                 </div>
 
                 {/* ── Navigation Grid ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
                     {[
                         { name: t('devices'), label: t('face_finger_hardware'), icon: Smartphone, href: route('devices.index'), color: '#3b82f6' },
                         { name: t('hr_team'), label: t('team_accounts'), icon: Users, href: route('users.index'), color: '#10b981' },
@@ -138,6 +140,36 @@ export default function Index({ auth, settings, paymentMethods = [] }) {
                         </Link>
                     ))}
                 </div>
+
+                {/* ── Document Design Manager ── */}
+                <Link href={route('slip-designs.index')} style={{ textDecoration: 'none' }}>
+                    <div
+                        style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%)', borderRadius: '24px', padding: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', cursor: 'pointer', boxShadow: '0 8px 30px rgba(79,70,229,0.25)', transition: 'all 0.3s ease', flexWrap: 'wrap' }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 40px rgba(79,70,229,0.35)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(79,70,229,0.25)'; }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <div style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                                <Printer size={28} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fff', margin: 0 }}>Document Design Manager</h3>
+                                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, margin: '6px 0 0' }}>Design &amp; manage receipt, invoice, payroll slip, expense, project, and report print layouts</p>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                                    {['Invoice', 'Payment', 'Payroll', 'Expense', 'Project', 'Report'].map(t => (
+                                        <span key={t} style={{ padding: '3px 10px', background: 'rgba(255,255,255,0.15)', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 800, color: '#e0e7ff', letterSpacing: '0.02em' }}>{t}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#a5b4fc' }}>
+                            <div style={{ textAlign: 'right' }}>
+                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Manage Templates</p>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#c7d2fe' }}>Create · Edit · Activate →</span>
+                            </div>
+                        </div>
+                    </div>
+                </Link>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }} className="settings-main-grid">
                     

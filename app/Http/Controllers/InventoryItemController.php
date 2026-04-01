@@ -61,7 +61,7 @@ class InventoryItemController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        $items = $query->latest()->paginate(12)->withQueryString();
+        $items = $query->latest()->paginate(12)->appends(request()->query());
 
         $totalValueQuery = InventoryItem::query();
 
@@ -137,9 +137,9 @@ class InventoryItemController extends Controller
             'unit' => 'required|string|max:50',
             'quantity_in_stock' => 'required|numeric|min:0',
             'reorder_level' => 'nullable|numeric|min:0',
-            'unit_price' => 'required|numeric|min:0',
+            'unit_price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive,discontinued',
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
             'project_id' => 'required|exists:projects,id',
         ]);
@@ -148,9 +148,15 @@ class InventoryItemController extends Controller
             $validated['status'] = 'active';
         }
 
+        // Ensure unit_price is never null for DB integrity
+        if (!isset($validated['unit_price']) || $validated['unit_price'] === null) {
+            $validated['unit_price'] = 0;
+        }
+
         if (!empty($validated['project_id'])) {
             $project = Project::find($validated['project_id']);
             if ($project) {
+                // Force sync client_id from project for data integrity
                 $validated['client_id'] = $project->client_id;
             }
         }
@@ -197,9 +203,9 @@ class InventoryItemController extends Controller
             'unit' => 'required|string|max:50',
             'quantity_in_stock' => 'required|numeric|min:0',
             'reorder_level' => 'nullable|numeric|min:0',
-            'unit_price' => 'required|numeric|min:0',
+            'unit_price' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:active,inactive,discontinued',
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
             'project_id' => 'required|exists:projects,id',
         ]);

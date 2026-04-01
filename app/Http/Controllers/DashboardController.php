@@ -20,6 +20,42 @@ class DashboardController extends Controller
         $yesterday = Carbon::yesterday();
         $now = Carbon::now();
         $prevM = $now->copy()->subMonth();
+
+        if (!$request->user()->isAdmin()) {
+            $employee = $request->user()->employee()->with(['shift'])->first();
+            
+            $attendance = [];
+            $payslips = [];
+            
+            if ($employee) {
+                // Get this month's attendance mapped by date for calendar view
+                $logs = clone \App\Models\AttendanceLog::where('user_id', $employee->employee_id)
+                    ->whereMonth('timestamp', $now->month)
+                    ->whereYear('timestamp', $now->year)
+                    ->orderBy('timestamp', 'desc')
+                    ->get();
+                    
+                foreach ($logs as $log) {
+                    $date = Carbon::parse($log->timestamp)->format('Y-m-d');
+                    if (!isset($attendance[$date])) $attendance[$date] = [];
+                    $attendance[$date][] = [
+                        'time' => Carbon::parse($log->timestamp)->format('H:i:s'),
+                        'type' => $log->state_type
+                    ];
+                }
+                
+                $payslips = \App\Models\Payroll::where('employee_id', $employee->id)->latest()->take(5)->get();
+            }
+
+            return Inertia::render('PersonalDashboard', [
+                'employee' => $employee ?? null,
+                'attendance_calendar' => $attendance,
+                'payslips' => $payslips,
+                'today_date' => $today->format('jS F Y'),
+                'current_time' => $now->format('g:i:s A'),
+            ]);
+        }
+        $prevM = $now->copy()->subMonth();
         
         // ── Sales Intelligence Analytics ────────────────────────────────────
         $dailySales = [];

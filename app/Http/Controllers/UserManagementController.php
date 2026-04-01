@@ -56,6 +56,7 @@ class UserManagementController extends Controller
         }
 
         $user->load([
+            'employee',
             'roles.permissions',
             'auditLogs' => function ($query) {
                 $query->latest()->take(10);
@@ -63,10 +64,12 @@ class UserManagementController extends Controller
         ]);
 
         $allRoles = Role::all();
+        $allEmployees = \App\Models\Employee::orderBy('first_name')->get(['id', 'employee_id', 'first_name', 'last_name', 'email']);
 
         return Inertia::render('Users/Show', [
             'user' => $user,
             'allRoles' => $allRoles,
+            'allEmployees' => $allEmployees,
         ]);
     }
 
@@ -109,17 +112,20 @@ class UserManagementController extends Controller
             abort(403, 'Unauthorized operation: Update User Authentication.');
         }
 
-        $validated = $request->validate([
+        $validated = $request->request->all(); // get all explicitly to easily use nullable since React might pass raw null
+        $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed',
+            'employee_id' => 'nullable|exists:employees,id',
             'roles' => 'array',
             'roles.*' => 'exists:roles,id',
         ]);
 
         $user->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
+            'name' => $request->name,
+            'email' => $request->email,
+            'employee_id' => $request->employee_id,
         ]);
 
         if (!empty($validated['password'])) {

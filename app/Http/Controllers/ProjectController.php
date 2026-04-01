@@ -12,6 +12,9 @@ use App\Models\ProjectMaterial;
 use App\Services\ProjectService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\User;
+use App\Notifications\DesignReviewedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class ProjectController extends Controller
 {
@@ -55,7 +58,7 @@ class ProjectController extends Controller
         }
 
         return Inertia::render('Projects/Index', [
-            'projects' => $query->latest()->paginate(10)->withQueryString(),
+            'projects' => $query->latest()->paginate(10)->appends(request()->query()),
             'filters'  => $request->only(['search', 'status']),
             'stats'    => $stats,
             'clients'  => Client::all(['id', 'name', 'company_name']),
@@ -108,8 +111,13 @@ class ProjectController extends Controller
             $project->update(['progress' => $calculated_progress]);
         }
 
+        $slipDesign = \App\Models\SlipDesign::where('is_active', true)
+            ->whereIn('type', ['project', 'report'])
+            ->first() ?? \App\Models\SlipDesign::where('is_active', true)->first();
+
         return Inertia::render('Projects/Show', [
             'project' => $project,
+            'slipDesign' => $slipDesign,
             'designs' => $allDesigns,
             'connectedInventory' => InventoryItem::where('project_id', $project->id)
                 ->with(['brand', 'supplier'])
@@ -147,6 +155,32 @@ class ProjectController extends Controller
         }
 
         return redirect()->back()->with('success', 'Designs uploaded successfully.');
+    }
+
+    public function uploadDocument(Request $request, Project $project)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+            abort(403, 'Unauthorized operation: Upload Documentation.');
+        }
+
+        $request->validate([
+            'documents.*' => 'required|file|max:102400',
+        ]);
+
+        if ($request->hasFile('documents')) {
+            foreach ($request->file('documents') as $file) {
+                $path = $file->store('project-documents', 'public');
+
+                $project->documents()->create([
+                    'file_path' => $path,
+                    'file_name' => substr($file->getClientOriginalName(), 0, 255),
+                    'file_size' => $file->getSize(),
+                    'file_type' => substr($file->getClientMimeType(), 0, 100),
+                ]);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Formal documentation uploaded successfully.');
     }
 
     public function edit(Request $request, Project $project)
@@ -267,7 +301,9 @@ class ProjectController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|max:102400',
+            'file'    => 'required|file|max:102400',
+            'status'  => 'required|in:pending,approved,modification_required',
+            'remarks' => 'nullable|string|max:1000',
         ]);
 
         // Delete old file from storage
@@ -283,9 +319,22 @@ class ProjectController extends Controller
             'file_name' => $file->getClientOriginalName(),
             'file_size' => $file->getSize(),
             'file_type' => $file->getClientMimeType(),
+            'status'    => $request->status,
+            'remarks'   => $request->remarks,
         ]);
 
-        return redirect()->back()->with('success', 'Design file replaced successfully.');
+        // Notify other permitted users
+        $usersToNotify = User::where('id', '!=', $request->user()->id)
+            ->where(function ($query) {
+                $query->whereHas('roles', function ($q) { $q->where('name', 'admin'); })
+                ->orWhereHas('roles.permissions', function ($q) {
+                    $q->whereIn('name', ['edit_projects', 'view_project_designs']);
+                });
+            })->get();
+
+        \Illuminate\Support\Facades\Notification::send($usersToNotify, new \App\Notifications\DesignReviewedNotification($design, $project, $request->user()));
+
+        return redirect()->back()->with('success', 'Design file replaced and updated successfully.');
     }
 
     public function updateReviewStatus(Request $request, Project $project, \App\Models\ProjectDesign $design)
@@ -304,6 +353,19 @@ class ProjectController extends Controller
         ]);
 
         $design->update($validated);
+        
+        // Notify other permitted users
+        $usersToNotify = User::where('id', '!=', $request->user()->id)
+            ->where(function ($query) {
+                // Admins
+                $query->whereHas('roles', function ($q) { $q->where('name', 'admin'); })
+                // Or users with specific design view/edit permissions
+                ->orWhereHas('roles.permissions', function ($q) {
+                    $q->whereIn('name', ['edit_projects', 'view_project_designs']);
+                });
+            })->get();
+
+        Notification::send($usersToNotify, new DesignReviewedNotification($design, $project, $request->user()));
 
         return redirect()->back()->with('success', 'Design status updated successfully.');
     }

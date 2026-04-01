@@ -109,9 +109,9 @@ export default function Index({ auth, items, filters, projects = [], clients = [
 
                 {/* ── STATS SUMMARY ── */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
-                    <MiniStat label="Total Stock Value" value={fmt(totalValue)} color="#4f46e5" icon={BarChart3} />
-                    <MiniStat label="Items in Stock" value={items.total} color="#10b981" icon={Package} />
-                    <MiniStat label="Active Brands" value={brands.length} color="#f59e0b" icon={Layers} />
+                    <MiniStat label={t('total_stock_value')} value={fmt(totalValue)} color="#4f46e5" icon={BarChart3} />
+                    <MiniStat label={t('quantity')} value={items.total} color="#10b981" icon={Package} />
+                    <MiniStat label={t('brands')} value={brands.length} color="#f59e0b" icon={Layers} />
                 </div>
 
                 {/* ── ITEM SEARCH HUB ── */}
@@ -166,11 +166,11 @@ export default function Index({ auth, items, filters, projects = [], clients = [
                 {/* ── STOCK LIST ── */}
                 <div style={styles.card}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 100px 1.2fr 140px 120px 100px', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <div style={{ paddingLeft: '8px' }}>Material Identity</div>
-                        <div>Category Brand</div>
-                        <div>Quantity</div>
-                        <div>Assigned Source</div>
-                        <div>Stock Value</div>
+                        <div style={{ paddingLeft: '8px' }}>{t('item_name')}</div>
+                        <div>{t('brand')}</div>
+                        <div>{t('quantity')}</div>
+                        <div>{t('assignment')}</div>
+                        <div>{t('total_value')}</div>
                         <div style={{ textAlign: 'center' }}>Status</div>
                         <div></div>
                     </div>

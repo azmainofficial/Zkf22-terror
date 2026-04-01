@@ -69,6 +69,11 @@ class ZktecoADMSController extends Controller
                 $status = 'In';
             }
 
+            $availability = 0;
+            if ($firstPunch && $lastPunch && $firstPunch->id !== $lastPunch->id) {
+                $availability = \Carbon\Carbon::parse($lastPunch->timestamp)->diffInMinutes(\Carbon\Carbon::parse($firstPunch->timestamp));
+            }
+
             // Monthly Summary Calculation
             $empLogs = $allMonthlyLogs[$employee->employee_id] ?? collect([]);
             $empLeaves = $allMonthlyLeaves[$employee->id] ?? collect([]);
@@ -119,6 +124,7 @@ class ZktecoADMSController extends Controller
                 })->values()->toArray(),
                 'entry_time' => $firstPunch ? \Carbon\Carbon::parse($firstPunch->timestamp)->format('H:i') : null,
                 'exit_time' => $lastPunch ? \Carbon\Carbon::parse($lastPunch->timestamp)->format('H:i') : null,
+                'availability_mins' => $availability,
                 'monthly_summary' => [
                     'present' => $presentDays,
                     'late' => $lateDays,
@@ -196,10 +202,13 @@ class ZktecoADMSController extends Controller
                     return $l->start_date <= $currDate && $l->end_date >= $currDate;
                 });
 
-                if ($isHoliday || $isOnLeave) continue;
-
                 $dailyLogs = $logs[$currDate] ?? null;
                 $status = 'absent';
+                
+                if ($isOnLeave) {
+                    $status = 'on_leave';
+                }
+
                 $firstIn = null;
                 $lastOut = null;
                 $lateMinutes = 0;
@@ -209,7 +218,7 @@ class ZktecoADMSController extends Controller
                     $sorted = $dailyLogs->sortBy('timestamp')->values();
                     $firstIn = $sorted->first()->timestamp;
                     $lastOut = $sorted->count() > 1 ? $sorted->last()->timestamp : null;
-                    $status = 'present';
+                    $status = 'present'; // override holiday/leave if they worked
 
                     if ($lastOut) {
                         $totalWorked = \Carbon\Carbon::parse($lastOut)->diffInMinutes(\Carbon\Carbon::parse($firstIn));
@@ -226,16 +235,20 @@ class ZktecoADMSController extends Controller
                     }
                 }
 
-                \App\Models\Attendance::updateOrCreate(
-                    ['employee_id' => $empRecord->id, 'date' => $currDate],
-                    [
-                        'clock_in' => $firstIn ? \Carbon\Carbon::parse($firstIn)->format('H:i:s') : null,
-                        'clock_out' => $lastOut ? \Carbon\Carbon::parse($lastOut)->format('H:i:s') : null,
-                        'status' => $status,
-                        'late_minutes' => $lateMinutes,
-                        'total_worked_minutes' => $totalWorked
-                    ]
-                );
+                if ($isHoliday && !$dailyLogs) {
+                    \App\Models\Attendance::where(['employee_id' => $empRecord->id, 'date' => $currDate])->delete();
+                } else {
+                    \App\Models\Attendance::updateOrCreate(
+                        ['employee_id' => $empRecord->id, 'date' => $currDate],
+                        [
+                            'clock_in' => $firstIn ? \Carbon\Carbon::parse($firstIn)->format('H:i:s') : null,
+                            'clock_out' => $lastOut ? \Carbon\Carbon::parse($lastOut)->format('H:i:s') : null,
+                            'status' => $status,
+                            'late_minutes' => $lateMinutes,
+                            'total_worked_minutes' => $totalWorked
+                        ]
+                    );
+                }
             }
         }
 

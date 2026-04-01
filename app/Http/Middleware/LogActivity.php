@@ -9,25 +9,31 @@ use Symfony\Component\HttpFoundation\Response;
 
 class LogActivity
 {
-    /**
-     * Handle an incoming request.
-     * Logs all authenticated user activity (method + URL) to the Laravel log.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
 
-        // Only log for authenticated users on state-changing requests
         if (auth()->check() && in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'])) {
-            Log::info('User activity', [
+            $actionMap = [
+                'POST' => 'Created',
+                'PUT' => 'Updated',
+                'PATCH' => 'Modified',
+                'DELETE' => 'Deleted'
+            ];
+            
+            $action = $actionMap[$request->method()] ?? 'Executed';
+            $path = ltrim($request->path(), '/');
+
+            // Exclude non-database spam or extreme payloads if necessary, but keep it solid
+            \App\Models\AuditLog::create([
                 'user_id' => auth()->id(),
-                'user_email' => auth()->user()->email,
-                'method' => $request->method(),
-                'url' => $request->fullUrl(),
-                'ip' => $request->ip(),
-                'status' => $response->getStatusCode(),
+                'action' => $action,
+                'auditable_type' => \App\Models\User::class,
+                'auditable_id' => auth()->id() ?? 0,
+                'description' => "User {$action} data via /{$path}",
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'new_values' => $request->except(['password', 'password_confirmation', '_token', '_method', 'files', 'documents', 'image', 'photo']),
             ]);
         }
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import FigmaLayout from '@/Layouts/FigmaLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { t } from '../../Lang/translation';
@@ -7,10 +7,13 @@ import {
     Eye, Activity, X, Clock, AlertCircle, ChevronRight,
     Upload, Truck, HardDrive, FileText, Download, Printer,
     Trash2, Wallet, Info, TrendingUp, CheckCircle2, RefreshCw, Layout, Receipt,
-    MessageSquare, CheckCircle, AlertTriangle, FileSearch, X as CloseIcon, Maximize2
+    MessageSquare, CheckCircle, AlertTriangle, FileSearch, X as CloseIcon, Maximize2, Tag
 } from 'lucide-react';
 import Modal from '@/Components/Modal';
 import ProjectCalculationTable from '@/Components/ProjectCalculationTable';
+import { 
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
+} from 'recharts';
 
 const STATUS_CONFIG = {
     ongoing:   { label: 'Active',     color: '#4f46e5', bg: '#f5f3ff', icon: Activity },
@@ -36,13 +39,23 @@ const styles = {
     })
 };
 
-export default function Show({ auth, project, connectedInventory, designs, stats }) {
-    const [selectedTab, setSelectedTab] = useState('details');
+export default function Show({ auth, project, connectedInventory, designs, stats, slipDesign }) {
+    const [selectedTab, setSelectedTab] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('tab') || 'overview';
+        }
+        return 'overview';
+    });
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('tab');
+        if (t && t !== selectedTab) setSelectedTab(t);
+    }, []);
     const [localStatus, setLocalStatus] = useState(project.status || 'pending');
     const [localProgress, setLocalProgress] = useState(project.progress || 0);
     const fileInputRef = useRef(null);
-    const replaceInputRef = useRef(null);
-    const [replacingDesignId, setReplacingDesignId] = useState(null);
     
     // Design Review States
     const [previewDesign, setPreviewDesign] = useState(null);
@@ -50,6 +63,16 @@ export default function Show({ auth, project, connectedInventory, designs, stats
     const [reviewForm, setReviewForm] = useState({ status: 'pending', remarks: '' });
 
     const canEditProject = auth.is_admin || (auth.permissions || []).includes('edit_projects');
+    const canViewFinance = auth.is_admin || (auth.permissions || []).includes('view_project_finance');
+    const canEditFinance = auth.is_admin || (auth.permissions || []).includes('edit_project_finance');
+    const canViewDesigns = auth.is_admin || (auth.permissions || []).includes('view_project_designs');
+    const canEditDesigns = auth.is_admin || (auth.permissions || []).includes('edit_project_designs');
+    const canViewMaterials = auth.is_admin || (auth.permissions || []).includes('view_project_materials');
+    const canEditMaterials = auth.is_admin || (auth.permissions || []).includes('edit_project_materials');
+    const canViewDocuments = auth.is_admin || (auth.permissions || []).includes('view_project_documents');
+    const canEditDocuments = auth.is_admin || (auth.permissions || []).includes('edit_project_documents');
+    const [replacingDesign, setReplacingDesign] = useState(null);
+    const [replaceForm, setReplaceForm] = useState({ file: null, status: 'pending', remarks: '' });
 
     const contractAmount  = Number(stats?.contract_amount) || 0;
     const realizedCapital = Number(stats?.paid_amount) || 0;
@@ -91,8 +114,7 @@ export default function Show({ auth, project, connectedInventory, designs, stats
     const handleDocumentUpload = (e) => {
         const filesArray = Array.from(e.target.files);
         if (filesArray.length === 0) return;
-        router.post(route('projects.update', project.id), { 
-            _method: 'PUT',
+        router.post(route('projects.documents.upload', project.id), { 
             documents: filesArray 
         }, {
             forceFormData: true, preserveScroll: true,
@@ -127,19 +149,139 @@ export default function Show({ auth, project, connectedInventory, designs, stats
         });
     };
 
-    const handleReplaceClick = (designId) => {
-        setReplacingDesignId(designId);
-        setTimeout(() => replaceInputRef.current?.click(), 50);
+    const handleReplaceClick = (design) => {
+        setReplacingDesign(design);
+        setReplaceForm({ file: null, status: design.status || 'pending', remarks: design.remarks || '' });
     };
 
-    const handleReplaceFile = (e) => {
-        const file = e.target.files[0];
-        if (!file || !replacingDesignId) return;
-        router.post(route('projects.designs.replace', { project: project.id, design: replacingDesignId }), { file }, {
-            forceFormData: true, preserveScroll: true,
-            onSuccess: () => { setReplacingDesignId(null); if (replaceInputRef.current) replaceInputRef.current.value = ''; },
-            onError: () => setReplacingDesignId(null),
+    const handleReplaceSubmit = (e) => {
+        e.preventDefault();
+        if (!replaceForm.file) { alert('Please select a file to upload'); return; }
+        
+        router.post(route('projects.designs.replace', { project: project.id, design: replacingDesign.id }), {
+            ...replaceForm
+        }, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setReplacingDesign(null);
+                setReplaceForm({ file: null, status: 'pending', remarks: '' });
+            }
         });
+    };
+
+    const printMasterReport = () => {
+        const N = (n) => Number(n || 0).toLocaleString('en-BD');
+        const CUR = (n) => `৳${N(n)}`;
+        const calc = project.contract_details || {};
+        const stats = {
+            total_budget: Number(calc.grand_total || project.budget || 0),
+            total_paid: project.payments?.reduce((s, p) => p.status === 'completed' ? s + Number(p.amount) : s, 0) || 0,
+            total_expense: project.expenses?.reduce((s, e) => s + Number(e.amount), 0) || 0,
+        };
+        stats.balance = stats.total_budget - stats.total_paid;
+
+        const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>Master Project Report — ${project.title}</title>
+<style>
+    @page { size: A4; margin: 15mm; }
+    body { font-family: 'Inter', system-ui, sans-serif; font-size: 11px; color: #1e293b; background: #fff; line-height: 1.4; }
+    .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: rgba(226, 232, 240, 0.3); z-index: -1; white-space: nowrap; pointer-events: none; text-transform: uppercase; letter-spacing: 12px; }
+    .header { display: flex; justify-content: space-between; border-bottom: 2px solid ${slipDesign?.accent_color || '#0f172a'}; padding-bottom: 15px; margin-bottom: 20px; position: relative; }
+    .brand-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .logo-img { max-height: 50px; width: auto; object-fit: contain; }
+    .brand-text-container { display: flex; flexDirection: column; justify-content: center; }
+    .brand-name { font-size: 16px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
+    .brand-tagline { font-size: 9px; font-weight: 600; color: #64748b; letter-spacing: 1px; margin-top: 2px; }
+    .title { font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 6px; }
+    .meta { text-align: right; font-size: 10px; color: #64748b; line-height: 1.6; }
+    .section-title { font-size: 13px; font-weight: 800; margin: 25px 0 12px; border-left: 4px solid ${slipDesign?.accent_color || '#4f46e5'}; padding-left: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; position: relative; z-index: 1; table-layout: fixed; }
+    th { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; text-align: left; font-weight: 700; color: #475569; text-transform: uppercase; font-size: 9px; }
+    td { border: 1px solid #e2e8f0; padding: 10px 14px; background: rgba(255,255,255,0.85); overflow: hidden; text-overflow: ellipsis; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 25px; position: relative; z-index: 1; }
+    .summary-card { background: rgba(248, 250, 252, 0.95); border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; text-align: center; border-bottom: 3px solid ${slipDesign?.accent_color || '#e2e8f0'}; }
+    .summary-val { font-size: 18px; font-weight: 900; color: #0f172a; margin-top: 6px; }
+    .footer { margin-top: 60px; border-top: 1px solid #e2e8f0; padding-top: 15px; display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; }
+</style>
+</head><body>
+    <div class="watermark">${slipDesign?.company_name || 'ZK BASE'}</div>
+    <div class="header">
+        <div>
+            <div class="brand-logo">
+                ${slipDesign?.header_logo 
+                   ? `<img src="/storage/${slipDesign.header_logo}" class="logo-img" />`
+                   : `<div style="background:#0f172a; color:#fff; width:45px; height:45px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-weight:900; font-size:20px;">${(slipDesign?.company_name || 'Z').charAt(0)}</div>`
+                }
+                <div class="brand-text-container">
+                    <div class="brand-name">${slipDesign?.company_name || 'ZK Base Management'}</div>
+                    <div class="brand-tagline">${slipDesign?.company_tagline || 'Excellence in Engineering & Construction'}</div>
+                </div>
+            </div>
+            <div class="title">Project Master Report</div>
+            <div style="font-weight: 600; margin-top: 10px; font-size: 14px; color: #1e293b;">${project.title} (ID: ${project.id})</div>
+            <div style="color: #64748b; font-size: 11px; margin-top: 4px;">Client: ${project.client?.company_name || project.client?.name}</div>
+        </div>
+        <div class="meta">
+            <div>Print Date: <strong>${new Date().toLocaleString()}</strong></div>
+            <div>Status: <strong style="color: ${slipDesign?.accent_color || '#4f46e5'}">${localStatus.toUpperCase()}</strong></div>
+            <div style="margin-top: 5px;">Progress: <strong>${localProgress}%</strong></div>
+        </div>
+    </div>
+
+    <div class="section-title">I. Financial Summary</div>
+    <div class="summary-grid">
+        <div class="summary-card"><div>Contract Budget</div><div class="summary-val">${CUR(stats.total_budget)}</div></div>
+        <div class="summary-card"><div>Total Collected</div><div class="summary-val">${CUR(stats.total_paid)}</div></div>
+        <div class="summary-card"><div>Total Expenses</div><div class="summary-val">${CUR(stats.total_expense)}</div></div>
+        <div class="summary-card"><div>Outstanding Balance</div><div class="summary-val">${CUR(stats.balance)}</div></div>
+    </div>
+
+    <div class="section-title">II. Detailed Cost Calculation</div>
+    <table>
+        <thead><tr><th>Description</th><th style="text-align:right">Value 1</th><th style="text-align:right">Value 2</th><th style="text-align:right">Amount (BDT)</th></tr></thead>
+        <tbody>
+            <tr><td>Total Plan Fee / মোট নকশা ফি</td><td style="text-align:right"></td><td style="text-align:right"></td><td style="text-align:right; font-weight:700">${CUR(calc.total_plan_fee || 0)}</td></tr>
+            <tr><td>VAT (${calc.vat_percent || 0}%)</td><td style="text-align:right"></td><td style="text-align:right">${calc.vat_percent || 0}%</td><td style="text-align:right">${CUR(calc.vat_amount || 0)}</td></tr>
+            ${(calc.enabled_fields || []).map(fid => {
+                const fVal = calc[fid] || 0;
+                const label = fid.replace(/_/g, ' ').toUpperCase();
+                return `<tr><td>${label}</td><td></td><td></td><td style="text-align:right">${CUR(fVal)}</td></tr>`;
+            }).join('')}
+            <tr style="background:#f1f5f9; font-weight:800"><td colspan="3">GRAND TOTAL / সর্বমোট</td><td style="text-align:right">${CUR(stats.total_budget)}</td></tr>
+        </tbody>
+    </table>
+
+    <div class="section-title">III. Material Inventory Status</div>
+    <table>
+        <thead><tr><th>Material Name</th><th>Brand</th><th>SKU</th><th style="text-align:right">Stock On-Site</th><th style="text-align:right">Unit Val.</th></tr></thead>
+        <tbody>
+            ${connectedInventory.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.brand?.name || 'Generic'}</td>
+                    <td>${item.sku || '-'}</td>
+                    <td style="text-align:right">${item.quantity_in_stock} ${item.unit}</td>
+                    <td style="text-align:right">${CUR(item.unit_price)}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <span>© ZK Base Management System</span>
+        <span>Authorized Personnel Only</span>
+        <span>Page 1 of 1</span>
+    </div>
+</body></html>`;
+
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+        document.body.appendChild(iframe);
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open(); doc.write(html); doc.close();
+        iframe.contentWindow.focus();
+        setTimeout(() => { iframe.contentWindow.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 500);
     };
 
     const handleStatusClick = (status) => {
@@ -151,13 +293,13 @@ export default function Show({ auth, project, connectedInventory, designs, stats
     const fmt = (n) => `৳${new Intl.NumberFormat().format(n)}`;
 
     const tabs = [
-        { id: 'overview',  label: 'Overview',  icon: Layout },
-        { id: 'details',   label: 'Financial', icon: Wallet },
-        { id: 'inventory', label: 'Materials', icon: Package },
-        { id: 'designs',   label: 'CAD Files', icon: HardDrive },
-        { id: 'documents', label: 'Documents', icon: FileText },
-        { id: 'status',    label: 'Tracking',  icon: TrendingUp },
-    ];
+        { id: 'overview',  label: 'Overview',  icon: Layout, show: true },
+        { id: 'details',   label: 'Financial', icon: Wallet, show: canViewFinance },
+        { id: 'inventory', label: 'Materials', icon: Package, show: canViewMaterials },
+        { id: 'designs',   label: 'CAD Files', icon: HardDrive, show: canViewDesigns },
+        { id: 'documents', label: 'Documents', icon: FileText, show: canViewDocuments },
+        { id: 'status',    label: 'Tracking',  icon: TrendingUp, show: canEditProject },
+    ].filter(t => t.show);
 
     return (
         <FigmaLayout user={auth.user}>
@@ -165,27 +307,28 @@ export default function Show({ auth, project, connectedInventory, designs, stats
 
             {/* Hidden file inputs */}
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} multiple accept=".dwg,.dxf,.cad,.step,.stl,.obj,.pdf,.png,.jpg,.jpeg,.svg" style={{ display: 'none' }} />
-            <input type="file" ref={replaceInputRef} onChange={handleReplaceFile} accept=".dwg,.dxf,.cad,.step,.stl,.obj,.pdf,.png,.jpg,.jpeg,.svg" style={{ display: 'none' }} />
 
             <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '4rem' }}>
 
                 {/* ── HEADER ── */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
-                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                <div className="project-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                    <div className="project-title-section" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                         <Link href={route('projects.index')}>
-                            <button style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
-                                <ArrowLeft size={20} />
+                            <button className="back-btn" style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+                                <ArrowLeft size={18} />
                             </button>
                         </Link>
                         <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="project-identity" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                 <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>{project.title}</h1>
-                                <span style={{ background: '#000', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '5px 14px', borderRadius: '10px' }}>
-                                    ID: {project.id}
-                                </span>
-                                <span style={{ background: cfg.bg, color: cfg.color, fontSize: '0.75rem', fontWeight: 800, padding: '5px 14px', borderRadius: '10px' }}>
-                                    {cfg.label.toUpperCase()}
-                                </span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <span style={{ background: '#000', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '5px 14px', borderRadius: '10px' }}>
+                                        ID: {project.id}
+                                    </span>
+                                    <span style={{ background: cfg.bg, color: cfg.color, fontSize: '0.75rem', fontWeight: 800, padding: '5px 14px', borderRadius: '10px' }}>
+                                        {cfg.label.toUpperCase()}
+                                    </span>
+                                </div>
                             </div>
                             <p style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500, margin: '4px 0 0' }}>
                                 Project Reference #{project.id.toString().padStart(6, '0')} • {project.client?.company_name || project.client?.name}
@@ -193,33 +336,41 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                         </div>
                     </div>
 
-                    {canEditProject && (
-                        <Link href={route('projects.edit', project.id)}>
-                            <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: '#4f46e5', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' }}>
-                                <Pencil size={18} /> Edit Business Profile
-                            </button>
-                        </Link>
-                    )}
+                    <div className="project-actions-container" style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={printMasterReport} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: '#334155', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' }}>
+                            <Printer size={18} /> <span className="hide-mobile">Financial & Inventory Report</span>
+                            <span className="show-mobile">Report</span>
+                        </button>
+                        {canEditProject && (
+                            <Link href={route('projects.edit', project.id)}>
+                                <button style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: '#4f46e5', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' }}>
+                                    <Pencil size={18} /> <span className="hide-mobile">Edit Business Profile</span>
+                                    <span className="show-mobile">Edit</span>
+                                </button>
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
-                {/* ── STATS STRIP ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
-                    <MiniStat label="Contract Value" value={fmt(contractAmount)} color="#4f46e5" icon={Wallet} />
-                    <MiniStat label="Net Paid" value={fmt(realizedCapital)} color="#10b981" icon={DollarSign} />
-                    <MiniStat label="Project Debt" value={fmt(due)} color="#ef4444" icon={AlertCircle} />
-                    <MiniStat label="Project Expenses" value={fmt(project.expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0)} color="#8b5cf6" icon={Receipt} />
-                </div>
+                {canViewFinance && (
+                    <div className="project-stats-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+                        <MiniStat label="Contract Value" value={fmt(contractAmount)} color="#4f46e5" icon={Wallet} />
+                        <MiniStat label="Net Paid" value={fmt(realizedCapital)} color="#10b981" icon={DollarSign} />
+                        <MiniStat label="Project Debt" value={fmt(due)} color="#ef4444" icon={AlertCircle} />
+                        <MiniStat label="Project Expenses" value={fmt(project.expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0)} color="#8b5cf6" icon={Receipt} />
+                    </div>
+                )}
 
                 {/* ── BODY GRID ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
+                <div className="project-body-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
 
                     {/* LEFT PANEL */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
                         {/* Tab Switcher */}
-                        <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '6px', borderRadius: '16px', border: '1px solid #f1f5f9', width: 'fit-content' }}>
+                        <div className="tab-switcher" style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '6px', borderRadius: '16px', border: '1px solid #f1f5f9', width: 'fit-content', overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'none' }}>
                             {tabs.map(tab => (
-                                <button key={tab.id} onClick={() => setSelectedTab(tab.id)} style={styles.tabBtn(selectedTab === tab.id)}>
+                                <button key={tab.id} onClick={() => setSelectedTab(tab.id)} style={{ ...styles.tabBtn(selectedTab === tab.id), whiteSpace: 'nowrap', flexShrink: 0 }}>
                                     <tab.icon size={16} /> {tab.label}
                                 </button>
                             ))}
@@ -231,7 +382,7 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                             {/* OVERVIEW TAB */}
                             {selectedTab === 'overview' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                                    <div className="overview-top-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                                         <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
                                             <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Work Progress Analytics</h3>
                                             <div style={{ position: 'relative', height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden', marginBottom: '1rem' }}>
@@ -242,6 +393,36 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                                 <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#4f46e5' }}>{localProgress}%</span>
                                             </div>
                                         </div>
+
+                                        {/* Financial Overview Chart */}
+                                        <div style={{ background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9', minHeight: '340px' }}>
+                                            <h3 style={{ margin: '0 0 1.5rem', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Financial Health Spectrum</h3>
+                                            <div style={{ width: '100%', height: '250px', minWidth: 0, minHeight: 0 }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={[
+                                                        { name: 'Contracted', amount: contractAmount, color: '#4f46e5' },
+                                                        { name: 'Collected', amount: realizedCapital, color: '#10b981' },
+                                                        { name: 'Expenses', amount: project.expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0, color: '#f59e0b' },
+                                                        { name: 'Due Debt', amount: due, color: '#ef4444' }
+                                                    ]} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} />
+                                                        <YAxis hide />
+                                                        <Tooltip 
+                                                            cursor={{ fill: '#f8fafc' }}
+                                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 800, fontSize: '0.85rem' }}
+                                                            formatter={(val) => `৳${Number(val).toLocaleString()}`}
+                                                        />
+                                                        <Bar dataKey="amount" radius={[6, 6, 0, 0]} barSize={45}>
+                                                            {[0,1,2,3].map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={['#4f46e5','#10b981','#f59e0b','#ef4444'][index]} />
+                                                            ))}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+
                                         <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
                                             <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Time Tracking</h3>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -338,7 +519,7 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                                 title="Payment Transaction Log" 
                                                 description="All incoming deposits and verified project payments" 
                                             />
-                                            {canEditProject && (
+                                            {canEditFinance && (
                                                 <Link href={route('payments.create', { project_id: project.id })}>
                                                     <button style={{ 
                                                         padding: '10px 20px', background: '#f8fafc', 
@@ -370,20 +551,30 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <a 
-                                                                href={route('payments.show', p.id) + '?print=true'} 
-                                                                target="_blank" 
-                                                                title="Print Receipt"
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const iframe = document.createElement('iframe');
+                                                                    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+                                                                    document.body.appendChild(iframe);
+                                                                    iframe.src = route('payments.slip', p.id);
+                                                                    iframe.onload = () => {
+                                                                        setTimeout(() => {
+                                                                            iframe.contentWindow.print();
+                                                                            setTimeout(() => document.body.removeChild(iframe), 1000);
+                                                                        }, 500);
+                                                                    };
+                                                                }}
+                                                                title="Print Slip"
                                                                 style={{ 
                                                                     width: '36px', height: '36px', borderRadius: '10px', 
-                                                                    background: '#f8fafc', color: '#64748b', 
+                                                                    background: '#f8fafc', color: '#10b981', 
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                                                    textDecoration: 'none', border: '1px solid #f1f5f9'
+                                                                    cursor: 'pointer', border: '1px solid #d1fae5'
                                                                 }}
                                                             >
                                                                 <Printer size={16} />
-                                                            </a>
-                                                            {canEditProject && (
+                                                            </button>
+                                                            {canEditFinance && (
                                                                 <button 
                                                                     onClick={() => handlePaymentDelete(p.id)}
                                                                     title="Delete Payment Record"
@@ -422,7 +613,7 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                                 title="Internal Project Expense Log" 
                                                 description="All specific costs and expenditures for this project" 
                                             />
-                                            {canEditProject && (
+                                            {canEditFinance && (
                                                 <Link href={route('expenses.create', { project_id: project.id })}>
                                                     <button style={{ 
                                                         padding: '10px 20px', background: '#f8fafc', 
@@ -471,11 +662,36 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                                                     </span>
                                                                 </div>
                                                             </div>
-                                                            <Link href={route('expenses.show', e.id)}>
-                                                                <button title="View Detail" style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                                                                    <Eye size={16} />
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const iframe = document.createElement('iframe');
+                                                                        iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+                                                                        document.body.appendChild(iframe);
+                                                                        iframe.src = route('expenses.slip', e.id);
+                                                                        iframe.onload = () => {
+                                                                            setTimeout(() => {
+                                                                                iframe.contentWindow.print();
+                                                                                setTimeout(() => document.body.removeChild(iframe), 1000);
+                                                                            }, 500);
+                                                                        };
+                                                                    }}
+                                                                    title="Print Voucher"
+                                                                    style={{ 
+                                                                        width: '36px', height: '36px', borderRadius: '10px', 
+                                                                        background: '#fcf8f1', color: '#d97706', 
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                                        cursor: 'pointer', border: '1px solid #fef3c7'
+                                                                    }}
+                                                                >
+                                                                    <Printer size={16} />
                                                                 </button>
-                                                            </Link>
+                                                                <Link href={route('expenses.show', e.id)}>
+                                                                    <button title="View Detail" style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                                                        <Eye size={16} />
+                                                                    </button>
+                                                                </Link>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))
@@ -496,28 +712,72 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                                         <SectionHeader title="Material Inventory" description={`Tracking ${connectedInventory?.length || 0} registered commodities`} />
-                                        {canEditProject && (
+                                        {canEditMaterials && (
                                             <Link href={route('inventory.create', { project_id: project.id })}>
                                                 <button style={{ padding: '8px 16px', background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', color: '#4f46e5', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>+ Add Item</button>
                                             </Link>
                                         )}
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {connectedInventory?.map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '16px', background: '#fcfdfe', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <Package size={20} color="#10b981" />
+
+                                    {/* Brand Summary */}
+                                    {connectedInventory?.length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '2rem', padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                            <p style={{ width: '100%', margin: '0 0 8px', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Brand Distribution Summary</p>
+                                            {Object.entries(connectedInventory.reduce((acc, item) => {
+                                                const brandName = item.brand?.name || 'Generic';
+                                                const unitName = item.unit || 'Units';
+                                                const key = `${brandName} (${unitName})`;
+                                                acc[key] = (acc[key] || 0) + Number(item.quantity_in_stock);
+                                                return acc;
+                                            }, {})).map(([brandKey, qty]) => (
+                                                <div key={brandKey} style={{ background: '#fff', padding: '8px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                                    <Tag size={12} color="#4f46e5" />
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>{brandKey}:</span>
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{qty}</span>
                                                 </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{item.name}</p>
-                                                    <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', margin: 0 }}>SKU: {item.sku || 'N/A'}</p>
-                                                </div>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <p style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>{item.quantity_in_stock} {item.unit}</p>
-                                                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', margin: 0 }}>{fmt(item.unit_price * item.quantity_in_stock)} Total</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                                                    <th style={{ textAlign: 'left', padding: '16px 20px', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase' }}>Material Name & Identification</th>
+                                                    <th style={{ textAlign: 'left', padding: '16px 20px', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase' }}>Brand & Manufacturing</th>
+                                                    <th style={{ textAlign: 'right', padding: '16px 20px', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase' }}>Current Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {connectedInventory?.map(item => (
+                                                    <tr key={item.id} style={{ borderBottom: '1px solid #f8fafc', display: 'table-row' }}>
+                                                        <td style={{ padding: '16px 20px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                    <Package size={14} color="#10b981" />
+                                                                </div>
+                                                                <div>
+                                                                    <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>{item.name}</p>
+                                                                    <p style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', margin: 0 }}>SKU: {item.sku || 'N/A'}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '16px 20px' }}>
+                                                            {item.brand ? (
+                                                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4f46e5', background: '#f5f3ff', padding: '4px 12px', borderRadius: '8px', textTransform: 'uppercase' }}>
+                                                                    {item.brand.name}
+                                                                </span>
+                                                            ) : (
+                                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>Generic</span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                                            <p style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>{item.quantity_in_stock} {item.unit}</p>
+                                                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#10b981', margin: 0 }}>{fmt((item.unit_price || 0) * (item.quantity_in_stock || 0))} Val.</p>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             )}
@@ -527,7 +787,7 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                                         <SectionHeader title="CAD & Engineering" description={`${designs?.length || 0} design files attached`} />
-                                        {canEditProject && (
+                                        {canEditDesigns && (
                                             <button onClick={() => fileInputRef.current.click()} style={{ padding: '8px 20px', background: '#4f46e5', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <Upload size={16} /> Upload CAD
                                             </button>
@@ -540,9 +800,9 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                                 <DesignCard
                                                     key={d.id}
                                                     design={d}
-                                                    canEdit={canEditProject}
+                                                    canEdit={canEditDesigns}
                                                     onDelete={() => handleDeleteDesign(d.id)}
-                                                    onReplace={() => handleReplaceClick(d.id)}
+                                                    onReplace={() => handleReplaceClick(d)}
                                                     onReview={() => handleReviewClick(d)}
                                                     onPreview={() => setPreviewDesign(d)}
                                                 />
@@ -566,7 +826,7 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                             title="Formal Documentation" 
                                             description={`${project.documents?.length || 0} secure documents verified`} 
                                         />
-                                        {canEditProject && (
+                                        {canEditDocuments && (
                                             <button onClick={() => document.getElementById('doc-upload-input').click()} style={{ padding: '8px 20px', background: '#10b981', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <Upload size={16} /> Add Documents
                                             </button>
@@ -575,14 +835,15 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                                     </div>
 
                                     {project.documents?.length > 0 ? (
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.25rem' }}>
                                             {project.documents.map(doc => (
                                                 <DocumentItem 
                                                     key={doc.id} 
                                                     doc={doc} 
-                                                    canEdit={canEditProject} 
+                                                    canEdit={canEditDocuments} 
                                                     onDelete={() => handleDocumentDelete(doc.id)}
                                                     onRename={(newName) => handleDocumentRename(doc.id, newName)}
+                                                    onPreview={() => window.open(`/storage/${doc.file_path}`, '_blank')}
                                                 />
                                             ))}
                                         </div>
@@ -643,23 +904,25 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                             </div>
                         </div>
 
-                        <div style={styles.card}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Capital History</h3>
-                                <Link href={route('payments.index', { project_id: project.id })} style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4f46e5' }}>Analyze</Link>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {project.payments?.slice(0, 3).map(p => (
-                                    <div key={p.id} style={{ padding: '12px', background: '#fcfdfe', border: '1px solid #f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <p style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>{fmt(p.amount)}</p>
-                                            <p style={{ fontSize: '0.65rem', fontWeight: 600, color: '#94a3b8', margin: 0 }}>{p.payment_date}</p>
+                        {canViewFinance && (
+                            <div style={styles.card}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Capital History</h3>
+                                    <Link href={route('payments.index', { project_id: project.id })} style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4f46e5' }}>Analyze</Link>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {project.payments?.slice(0, 3).map(p => (
+                                        <div key={p.id} style={{ padding: '12px', background: '#fcfdfe', border: '1px solid #f8fafc', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <p style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>{fmt(p.amount)}</p>
+                                                <p style={{ fontSize: '0.65rem', fontWeight: 600, color: '#94a3b8', margin: 0 }}>{p.payment_date}</p>
+                                            </div>
+                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
                                         </div>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -762,17 +1025,128 @@ export default function Show({ auth, project, connectedInventory, designs, stats
                 </div>
             </Modal>
 
+            {/* ── REPLACE & REVIEW MODAL ── */}
+            <Modal show={!!replacingDesign} onClose={() => setReplacingDesign(null)} maxWidth="xl">
+                <div style={{ padding: '2.5rem', background: '#fff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Replace & Review Version</h3>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Upgrading: {replacingDesign?.file_name}</p>
+                        </div>
+                        <button onClick={() => setReplacingDesign(null)} style={{ border: 'none', background: '#f8fafc', padding: '8px', borderRadius: '10px', cursor: 'pointer', color: '#94a3b8' }}><CloseIcon size={20} /></button>
+                    </div>
+
+                    <form onSubmit={handleReplaceSubmit}>
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Upload New CAD/blueprint</label>
+                            <div style={{ position: 'relative', background: '#f8fafc', border: '2px dashed #e2e8f0', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+                                <input 
+                                    type="file" 
+                                    onChange={e => setReplaceForm(f => ({ ...f, file: e.target.files[0] }))}
+                                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                                />
+                                <Upload size={32} color="#4f46e5" style={{ marginBottom: '10px', opacity: 0.5 }} />
+                                <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#4f46e5' }}>
+                                    {replaceForm.file ? replaceForm.file.name : 'Click to select or drag and drop'}
+                                </p>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>Supports DWG, DXF, PDF, Image (Max 100MB)</p>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Assign New Status</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                {[
+                                    { id: 'pending', label: 'Pending', icon: Clock, color: '#f59e0b', bg: '#fffbeb' },
+                                    { id: 'approved', label: 'Approved', icon: CheckCircle, color: '#10b981', bg: '#ecfdf5' },
+                                    { id: 'modification_required', label: 'Mod. Needed', icon: AlertTriangle, color: '#ef4444', bg: '#fef2f2' },
+                                ].map(st => (
+                                    <button 
+                                        key={st.id} 
+                                        type="button" 
+                                        onClick={() => setReplaceForm(f => ({ ...f, status: st.id }))}
+                                        style={{
+                                            padding: '12px', borderRadius: '14px', border: replaceForm.status === st.id ? `2px solid ${st.color}` : '1.5px solid #f1f5f9',
+                                            background: replaceForm.status === st.id ? st.bg : '#fff', color: replaceForm.status === st.id ? st.color : '#94a3b8',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
+                                        }}
+                                    >
+                                        <st.icon size={20} />
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>{st.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '2rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Technical Remarks</label>
+                            <textarea 
+                                value={replaceForm.remarks}
+                                onChange={e => setReplaceForm(f => ({ ...f, remarks: e.target.value }))}
+                                placeholder="Describe the changes or instructions for this version..."
+                                style={{ width: '100%', height: '100px', padding: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', fontSize: '0.9rem', outline: 'none', resize: 'none' }}
+                            />
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={!replaceForm.file}
+                            style={{ 
+                                width: '100%', padding: '16px', borderRadius: '16px', background: !replaceForm.file ? '#cbd5e1' : '#4f46e5', 
+                                border: 'none', color: '#fff', fontSize: '1rem', fontWeight: 800, cursor: replaceForm.file ? 'pointer' : 'not-allowed',
+                                boxShadow: !replaceForm.file ? 'none' : '0 10px 20px -5px rgba(79,70,229,0.3)'
+                            }}
+                        >
+                            Upload Version & Finish Review
+                        </button>
+                    </form>
+                </div>
+            </Modal>
+
             <style>{`
                 aside { z-index: 110 !important; }
                 header { z-index: 105 !important; }
                 .design-card-overlay { opacity: 0; transition: opacity 0.2s ease; }
                 .design-card:hover .design-card-overlay { opacity: 1; }
+
+                .show-mobile { display: none; }
+                
+                @media (max-width: 1200px) {
+                    .project-header-container { flex-direction: column; align-items: flex-start !important; gap: 1.5rem; }
+                    .project-body-grid { grid-template-columns: 1fr !important; }
+                    .overview-top-grid { grid-template-columns: 1fr !important; }
+                    .project-stats-container { 
+                        display: flex !important; 
+                        overflow-x: auto; 
+                        padding-bottom: 12px; 
+                        gap: 12px !important; 
+                        -ms-overflow-style: none;
+                        scrollbar-width: none;
+                    }
+                    .project-stats-container::-webkit-scrollbar { display: none; }
+                    .project-stats-container > div { flex-shrink: 0; width: 180px !important; }
+                    .tab-switcher { margin-bottom: 1rem; }
+                }
+
+                @media (max-width: 650px) {
+                    .project-identity h1 { font-size: 1.5rem !important; }
+                    .project-title-section { flex-direction: row !important; align-items: center !important; gap: 1rem !important; }
+                    .back-btn { width: 36px !important; height: 36px !important; border-radius: 10px !important; }
+                    .project-actions-container { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px !important; }
+                    .project-actions-container button, .project-actions-container a { width: 100% !important; justify-content: center; padding: 12px 0 !important; font-size: 0.85rem !important; border-radius: 14px !important; }
+                    .show-mobile { display: inline-block; }
+                    .hide-mobile { display: none; }
+                    .project-stats-container > div { width: 155px !important; padding: 16px !important; border-radius: 20px !important; }
+                    .project-stats-container h4 { font-size: 1.1rem !important; }
+                    .overview-top-grid > div { border-radius: 20px !important; padding: 20px !important; }
+                    .tab-switcher { border-radius: 14px !important; }
+                }
             `}</style>
         </FigmaLayout>
     );
 }
 
-function DocumentItem({ doc, canEdit, onDelete, onRename }) {
+function DocumentItem({ doc, canEdit, onDelete, onRename, onPreview }) {
     const [isEditing, setIsEditing] = useState(false);
     const [newName, setNewName] = useState(doc.file_name);
 
@@ -804,7 +1178,10 @@ function DocumentItem({ doc, canEdit, onDelete, onRename }) {
                     )}
                 </div>
             </div>
-            <div style={{ display: 'flex', gap: '6px', marginLeft: '12px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <button onClick={onPreview} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0f7ff', color: '#2563eb', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="View">
+                    <Eye size={14} />
+                </button>
                 <a href={`/storage/${doc.file_path}`} download style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
                     <Download size={14} />
                 </a>
@@ -907,23 +1284,23 @@ function DesignCard({ design, canEdit, onDelete, onReplace, onReview, onPreview 
             </div>
 
             {/* Always Visible Actions Footer */}
-            <div style={{ padding: '1rem 1.5rem', background: '#fcfdfe', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ padding: '1rem 1.25rem', background: '#fcfdfe', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
                     <button onClick={() => {
                         if (['dwg', 'dxf', 'cad', 'step', 'obj', 'stl'].includes(ext.toLowerCase())) {
                             window.open(`/cad-viewer.html?url=${encodeURIComponent(window.location.origin + '/storage/' + design.file_path)}&name=${encodeURIComponent(design.file_name || '')}`, '_blank');
                         } else {
                             onPreview();
                         }
-                    }} style={{ padding: '10px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
-                        <Maximize2 size={14} /> View
+                    }} style={{ padding: '10px 14px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+                        <Maximize2 size={13} /> View
                     </button>
-                    <a href={`/storage/${design.file_path}`} download style={{ padding: '10px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', fontSize: '0.85rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
-                        <Download size={14} /> Download
+                    <a href={`/storage/${design.file_path}`} download style={{ padding: '10px 14px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+                        <Download size={13} /> Download
                     </a>
                     {canEdit && (
-                        <button onClick={onReview} style={{ padding: '10px 16px', background: '#4f46e5', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'opacity 0.2s' }}>
-                            <MessageSquare size={14} /> Review File
+                        <button onClick={onReview} style={{ padding: '10px 14px', background: '#4f46e5', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'opacity 0.2s', whiteSpace: 'nowrap' }}>
+                            <MessageSquare size={13} /> Review File
                         </button>
                     )}
                 </div>
@@ -945,14 +1322,14 @@ function DesignCard({ design, canEdit, onDelete, onReplace, onReview, onPreview 
 
 function MiniStat({ label, value, color, icon: Icon }) {
     return (
-        <div style={styles.card}>
+        <div style={{ ...styles.card, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>{label}</p>
-                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={16} />
+                <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{label}</p>
+                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: `${color}15`, color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={14} />
                 </div>
             </div>
-            <h4 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 0' }}>{value}</h4>
+            <h4 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '12px 0 0' }}>{value}</h4>
         </div>
     );
 }

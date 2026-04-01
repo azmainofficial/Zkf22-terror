@@ -6,7 +6,7 @@ import {
     Plus, Search, Eye, Trash2, CheckCircle2, XCircle, Clock,
     Edit, Save, X, Loader2, Filter, RotateCcw, Receipt,
     DollarSign, ChevronDown, Briefcase, Building2, CreditCard,
-    FileCheck, AlertCircle, Calendar
+    FileCheck, AlertCircle, Calendar, Printer
 } from 'lucide-react';
 import Modal from '@/Components/Modal';
 
@@ -262,7 +262,7 @@ export default function Index({ auth, expenses, filters = {}, categories = [], p
                 {/* ── Table ── */}
                 <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '16px', overflow: 'hidden' }}>
                     {/* Head */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1.8fr 1fr 1fr 110px 110px 100px 80px', padding: '10px 20px', background: '#f8fafc', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1.8fr 1fr 1fr 110px 110px 100px 110px', padding: '10px 20px', background: '#f8fafc', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid #f1f5f9' }}>
                         <div>Exp #</div>
                         <div>Title / Vendor</div>
                         <div>Category</div>
@@ -284,7 +284,7 @@ export default function Index({ auth, expenses, filters = {}, categories = [], p
                         const st = getStatus(exp.status);
                         return (
                             <div key={exp.id}
-                                style={{ display: 'grid', gridTemplateColumns: '120px 1.8fr 1fr 1fr 110px 110px 100px 80px', padding: '14px 20px', borderBottom: idx === expenses.data.length - 1 ? 'none' : '1px solid #f8fafc', alignItems: 'center', transition: 'background 0.15s' }}
+                                style={{ display: 'grid', gridTemplateColumns: '120px 1.8fr 1fr 1fr 110px 110px 100px 110px', padding: '14px 20px', borderBottom: idx === expenses.data.length - 1 ? 'none' : '1px solid #f8fafc', alignItems: 'center', transition: 'background 0.15s' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#fafbfc'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
@@ -362,6 +362,11 @@ export default function Index({ auth, expenses, filters = {}, categories = [], p
                                             <Eye size={15} />
                                         </button>
                                     </Link>
+                                    <a href={route('expenses.slip', exp.id)} target="_blank" rel="noreferrer">
+                                        <button style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: '#fef9c3', color: '#d97706', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Print Voucher">
+                                            <Printer size={15} />
+                                        </button>
+                                    </a>
                                     <button onClick={() => confirm('Delete this expense?') && router.delete(route('expenses.destroy', exp.id))}
                                         style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: '#fff1f2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Delete">
                                         <Trash2 size={15} />

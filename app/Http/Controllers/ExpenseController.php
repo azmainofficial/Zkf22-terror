@@ -103,9 +103,23 @@ class ExpenseController extends Controller
     public function show(Expense $expense)
     {
         $expense->load(['category', 'project', 'approver']);
+        $design = \App\Models\SlipDesign::where('type', 'expense')->where('is_active', true)->first();
+        
+        $appName = \App\Models\Setting::get('app_name', 'ZK Base Ltd.');
+        $appLogo = \App\Models\Setting::get('app_logo');
 
         return Inertia::render('Finance/Expenses/Show', [
             'expense' => $expense,
+            'company' => [
+                'name'      => $design?->company_name    ?: $appName,
+                'address'   => $design?->company_address ?: 'Corporate Office',
+                'tagline'   => $design?->company_tagline ?: '',
+                'logo'      => $design?->header_logo     ? '/storage/' . $design->header_logo
+                             : ($appLogo                 ? '/storage/' . $appLogo : null),
+                'accent'    => $design?->accent_color    ?: '#ef4444',
+                'font'      => $design?->font_family     ?: 'Inter',
+            ],
+            'slipDesign' => $design,
         ]);
     }
 
@@ -276,6 +290,34 @@ class ExpenseController extends Controller
         return \Illuminate\Support\Facades\Response::make($csv, 200, [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+    public function slip(Expense $expense)
+    {
+        $expense->load(['category', 'project', 'approver']);
+
+        $design = \App\Models\SlipDesign::where('type', 'expense')
+            ->where('is_active', true)
+            ->first();
+
+        $appName = \App\Models\Setting::get('app_name', 'ZK Base Ltd.');
+        $appLogo = \App\Models\Setting::get('app_logo');
+
+        return Inertia::render('Finance/Expenses/Slip', [
+            'expense' => $expense,
+            'company' => [
+                'name'      => $design?->company_name    ?: $appName,
+                'address'   => $design?->company_address ?: 'Corporate Office',
+                'tagline'   => $design?->company_tagline ?: '',
+                'logo'      => $design?->header_logo     ? '/storage/' . $design->header_logo
+                             : ($appLogo                 ? '/storage/' . $appLogo : null),
+                'watermark' => $design?->watermark_image ? '/storage/' . $design->watermark_image : null,
+                'accent'    => $design?->accent_color    ?: '#ef4444',
+                'font'      => $design?->font_family     ?: 'Inter',
+                'footer'    => $design?->footer_text     ?: '',
+                'show_sig'  => $design?->show_signature_lines ?? true,
+                'bank'      => $design?->show_bank_details ? $design->bank_details : null,
+            ],
         ]);
     }
 }

@@ -13,6 +13,7 @@ import {
     Tooltip, ResponsiveContainer, BarChart, Bar, 
     Cell, PieChart, Pie
 } from 'recharts';
+import { t } from '../Lang/translation';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -48,54 +49,54 @@ export default function Dashboard({ auth, sales = {}, project_status = [], recen
     }, []);
 
     const quickLinks = [
-        { label: 'View Projects', icon: Briefcase, color: '#4f46e5', bg: '#f5f3ff', href: route('projects.index') },
-        { label: 'Client List', icon: Users, color: '#10b981', bg: '#f0fdf4', href: route('clients.index') },
-        { label: 'Payments', icon: CreditCard, color: '#f59e0b', bg: '#fffbeb', href: route('payments.index') },
-        { label: 'Expenses', icon: Wallet, color: '#ef4444', bg: '#fef2f2', href: route('expenses.index') },
-        { label: 'Reports', icon: FileText, color: '#8b5cf6', bg: '#f5f3ff', href: route('reports.index') },
+        { label: t('view_projects'), icon: Briefcase, color: '#4f46e5', bg: '#f5f3ff', href: route('projects.index') },
+        { label: t('client_list'), icon: Users, color: '#10b981', bg: '#f0fdf4', href: route('clients.index') },
+        { label: t('payments_shortcut'), icon: CreditCard, color: '#f59e0b', bg: '#fffbeb', href: route('payments.index') },
+        { label: t('expenses_shortcut'), icon: Wallet, color: '#ef4444', bg: '#fef2f2', href: route('expenses.index') },
+        { label: t('reports_shortcut'), icon: FileText, color: '#8b5cf6', bg: '#f5f3ff', href: route('reports.index') },
     ];
 
     return (
         <FigmaLayout user={auth.user}>
-            <Head title="Business Dashboard" />
+            <Head title={t('dashboard')} />
 
             <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '4rem' }}>
                 
                 {/* ── HEADER ── */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
+                <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
                     <div>
                         <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>
-                            Enterprise Hub
+                            {t('enterprise_hub')}
                         </h1>
                         <p style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500, margin: '4px 0 0' }}>
-                            Business overview for {today_date} • {currentTime}
+                            {t('business_overview_for')} {today_date} • {currentTime}
                         </p>
                     </div>
                 </div>
 
                 {/* ── KPI GRID ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
-                    <MiniStat icon={DollarSign} label="Monthly Sales" value={`৳${s.monthly_revenue?.toLocaleString()}`} trend={s.growth} color="#4f46e5" />
-                    <MiniStat icon={ShoppingCart} label="Today's Sales" value={`৳${s.today_revenue?.toLocaleString()}`} trend={s.daily_growth} color="#10b981" />
-                    <MiniStat icon={Briefcase} label="Acting Projects" value={project_status.reduce((a,b)=>a+b.value,0)} trend="Running" color="#f59e0b" />
-                    <MiniStat icon={Activity} label="System Status" value="Online" trend="Stable" color="#8b5cf6" />
+                <div className="dashboard-kpi-grid">
+                    <MiniStat icon={DollarSign} label={t('monthly_sales')} value={`৳${s.monthly_revenue?.toLocaleString()}`} trend={s.growth} color="#4f46e5" />
+                    <MiniStat icon={ShoppingCart} label={t('todays_sales')} value={`৳${s.today_revenue?.toLocaleString()}`} trend={s.daily_growth} color="#10b981" />
+                    <MiniStat icon={Briefcase} label={t('acting_projects')} value={project_status.reduce((a,b)=>a+b.value,0)} trend="Running" color="#f59e0b" />
+                    <MiniStat icon={Activity} label={t('system_status')} value="Online" trend="Stable" color="#8b5cf6" />
                 </div>
 
                 {/* ── CORE CONTENT ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div className="dashboard-core-grid">
                     
                     {/* Sales Performance Chart */}
                     <div style={styles.card}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Revenue Performance</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>Tracking sales for the last 15 days</p>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{t('revenue_performance')}</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>{t('tracking_sales_15_days')}</p>
                             </div>
                             <Link href={route('reports.index')} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>
-                                Full Report <ChevronRight size={14} />
+                                {t('full_report')} <ChevronRight size={14} />
                             </Link>
                         </div>
-                        <div style={{ height: '350px' }}>
+                        <div style={{ height: '350px', minWidth: 0, minHeight: 0 }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={s.daily_analytics || []}>
                                     <defs>
@@ -119,7 +120,7 @@ export default function Dashboard({ auth, sales = {}, project_status = [], recen
                         
                         {/* Quick Links */}
                         <div style={styles.card}>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.5rem' }}>Shortcuts</h3>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.5rem' }}>{t('shortcuts')}</h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '12px' }}>
                                 {quickLinks.map((link, i) => (
                                     <Link key={i} href={link.href} className="shortcut-link" style={{ 
@@ -138,7 +139,7 @@ export default function Dashboard({ auth, sales = {}, project_status = [], recen
 
                         {/* Project Breakdown */}
                         <div style={styles.card}>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.5rem' }}>Project Status</h3>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.5rem' }}>{t('project_status_label')}</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {project_status.map((item, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '12px' }}>
@@ -155,15 +156,15 @@ export default function Dashboard({ auth, sales = {}, project_status = [], recen
                 </div>
 
                 {/* ── SECONDARY ROW ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
+                <div className="dashboard-secondary-grid">
                     
                     {/* Activity Log */}
                     <div style={styles.card}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <History size={18} color="#4f46e5" /> Recent Actions
+                                <History size={18} color="#4f46e5" /> {t('recent_actions')}
                             </h3>
-                            <Link href={route('audit-logs.index')} style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>View All History</Link>
+                            <Link href={route('audit-logs.index')} style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}>{t('view_all_history')}</Link>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#f1f5f9', borderRadius: '12px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
                             {recent_activity.map((log, i) => (
@@ -183,9 +184,9 @@ export default function Dashboard({ auth, sales = {}, project_status = [], recen
                     {/* Sales Trend Bar Chart */}
                     <div style={styles.card}>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <BarChart3 size={18} color="#4f46e5" /> Year Progress
+                            <BarChart3 size={18} color="#4f46e5" /> {t('year_progress')}
                         </h3>
-                        <div style={{ height: '250px' }}>
+                        <div style={{ height: '250px', minWidth: 0, minHeight: 0 }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={s.revenue_trend || []}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -203,6 +204,21 @@ export default function Dashboard({ auth, sales = {}, project_status = [], recen
             </div>
 
             <style>{`
+                .dashboard-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+                .dashboard-core-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+                .dashboard-secondary-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem; }
+
+                @media (max-width: 1200px) {
+                    .dashboard-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+                    .dashboard-core-grid, .dashboard-secondary-grid { grid-template-columns: 1fr; }
+                    .dashboard-header { flex-direction: column; align-items: flex-start !important; gap: 1.5rem; }
+                }
+
+                @media (max-width: 650px) {
+                    .dashboard-kpi-grid { grid-template-columns: 1fr; }
+                    .dashboard-header h1 { font-size: 1.5rem !important; }
+                }
+
                 .shortcut-link:hover { transform: translateY(-3px); background: #fff !important; box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.05); border-color: #4f46e5 !important; }
                 .shortcut-link:hover span { color: #4f46e5 !important; }
             `}</style>

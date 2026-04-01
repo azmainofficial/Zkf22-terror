@@ -97,15 +97,15 @@ export default function Create({ auth, brands=[], suppliers=[], projects=[], cli
                                 <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
                                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
                                         <div>
-                                            {lbl(t('quantity_in_stock'),true)}
+                                            {lbl(t('quantity'),true)}
                                             <Fld icon={Layers} error={errors.quantity_in_stock}>
                                                 <input type="number" min="0" value={data.quantity_in_stock} onChange={e=>setData('quantity_in_stock',e.target.value)} placeholder="0" style={{...fs,textAlign:'right'}} onFocus={oF} onBlur={oB} required/>
                                             </Fld>
                                         </div>
                                         <div>
-                                            {lbl(t('price_per_unit'),true)}
+                                            {lbl(t('price_per_unit'))}
                                             <Fld icon={DollarSign} error={errors.unit_price}>
-                                                <input type="number" min="0" step="0.01" value={data.unit_price} onChange={e=>setData('unit_price',e.target.value)} placeholder="0.00" style={{...fs,textAlign:'right'}} onFocus={oF} onBlur={oB} required/>
+                                                <input type="number" min="0" step="0.01" value={data.unit_price} onChange={e=>setData('unit_price',e.target.value)} placeholder="0.00" style={{...fs,textAlign:'right'}} onFocus={oF} onBlur={oB}/>
                                             </Fld>
                                         </div>
                                     </div>
@@ -135,8 +135,8 @@ export default function Create({ auth, brands=[], suppliers=[], projects=[], cli
 
                         {/* RIGHT */}
                         <div style={{display:'flex',flexDirection:'column',gap:'1.25rem'}}>
-                            <Card title={t('supplier')} sub={t('supplier')} icon={Truck} acc="#3b82f6">
-                                <select value={data.supplier_id} onChange={e=>setData('supplier_id',e.target.value)} style={{...fni,appearance:'none',cursor:'pointer',width:'100%',boxSizing:'border-box'}} onFocus={oF} onBlur={oB} required>
+                            <Card title={t('supplier')} sub={t('supplier_optional')} icon={Truck} acc="#3b82f6">
+                                <select value={data.supplier_id} onChange={e=>setData('supplier_id',e.target.value)} style={{...fni,appearance:'none',cursor:'pointer',width:'100%',boxSizing:'border-box'}} onFocus={oF} onBlur={oB}>
                                     <option value="">{t('no_supplier_direct')}</option>
                                     {suppliers.map(s=><option key={s.id} value={s.id}>{s.company_name}</option>)}
                                 </select>

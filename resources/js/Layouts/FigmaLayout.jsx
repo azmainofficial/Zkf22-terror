@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { t, getLanguage, setLanguage } from '../Lang/translation';
 import {
     Squares2X2Icon,
@@ -32,7 +32,10 @@ import {
     BanknotesIcon,
     TagIcon,
     AdjustmentsHorizontalIcon,
-    TableCellsIcon
+    TableCellsIcon,
+    BellIcon,
+    CheckIcon,
+    EyeIcon
 } from '@heroicons/react/24/outline';
 
 const EXPANDED_W = 260;
@@ -113,6 +116,10 @@ export default function FigmaLayout({ children }) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
     const [showFlash, setShowFlash] = useState(false);
+    const [notifOpen, setNotifOpen] = useState(false);
+
+    const notifications = auth?.notifications || [];
+    const unreadCount = auth?.unread_count || 0;
 
     useEffect(() => {
         if (flash?.success || flash?.error) {
@@ -132,18 +139,18 @@ export default function FigmaLayout({ children }) {
 
     const navigation = [
         { title: 'Intelligence', items: [
-            { name: t('dashboard'), icon: HomeIcon, href: route('dashboard'), active: isActive('/dashboard'), show: can('view_dashboard') },
-            { name: t('reports_section'), icon: ChartBarIcon, href: route('reports.index'), active: isActive('/reports'), show: can('view_audit_logs') },
+            { name: t('Dashboard'), icon: HomeIcon, href: route('dashboard'), active: isActive('/dashboard'), show: can('view_dashboard') },
+            { name: t('Reports section'), icon: ChartBarIcon, href: route('reports.index'), active: isActive('/reports'), show: can('view_audit_logs') },
         ].filter(i => i.show) },
         { title: 'Portfolio', items: [
-            { name: t('projects'), icon: FolderIcon, href: route('projects.index'), active: isActive('/projects'), show: can('view_projects') },
-            { name: t('clients'), icon: UserCircleIcon, href: route('clients.index'), active: isActive('/clients'), show: can('view_clients') },
-            { name: t('inventory'), icon: CubeIcon, href: route('inventory.index'), active: isActive('/inventory'), show: can('view_inventory') },
+            { name: t('Projects'), icon: FolderIcon, href: route('projects.index'), active: isActive('/projects'), show: can('view_projects') },
+            { name: t('Clients'), icon: UserCircleIcon, href: route('clients.index'), active: isActive('/clients'), show: can('view_clients') },
+            { name: t('Inventory'), icon: CubeIcon, href: route('inventory.index'), active: isActive('/inventory'), show: can('view_inventory') },
         ].filter(i => i.show) },
         { title: 'Finance', items: [
-            { name: t('payments'), icon: PaymentIcon, href: route('payments.index'), active: isActive('/payments'), show: can('view_payments') },
-            { name: t('money'), icon: CurrencyDollarIcon, href: route('expenses.index'), active: isActive('/expenses'), show: can('view_payroll') },
-            { name: t('suppliers'), icon: TruckIcon, href: route('suppliers.index'), active: isActive('/suppliers'), show: can('view_suppliers') },
+            { name: t('Payments'), icon: PaymentIcon, href: route('payments.index'), active: isActive('/payments'), show: can('view_payments') },
+            { name: t('Money'), icon: CurrencyDollarIcon, href: route('expenses.index'), active: isActive('/expenses'), show: can('view_payroll') },
+            { name: t('Suppliers'), icon: TruckIcon, href: route('suppliers.index'), active: isActive('/suppliers'), show: can('view_suppliers') },
         ].filter(i => i.show) },
         { title: 'Operations', items: [
             { 
@@ -151,23 +158,23 @@ export default function FigmaLayout({ children }) {
                 active: isActive('/employees') || isActive('/attendance') || isActive('/payroll') || isActive('/shifts') || isActive('/leaves'),
                 show: can('view_employees') || can('view_attendance') || can('view_payroll'),
                 children: [
-                    { name: t('my_team'), href: route('employees.index'), active: isActive('/employees'), show: can('view_employees') },
-                    { name: t('attendance'), href: route('attendance.index'), active: isActive('/attendance'), show: can('view_attendance') },
-                    { name: t('payroll'), href: route('payroll.index'), active: isActive('/payroll'), show: can('view_payroll') },
-                    { name: t('schedule'), href: route('shifts.index'), active: isActive('/shifts'), show: can('view_attendance') },
-                    { name: t('leaves_holidays'), href: route('leaves.index'), active: isActive('/leaves'), show: can('view_attendance') },
+                    { name: t('My Team'), href: route('employees.index'), active: isActive('/employees'), show: can('view_employees') },
+                    { name: t('Attendance'), href: route('attendance.index'), active: isActive('/attendance'), show: can('view_attendance') },
+                    { name: t('Payroll'), href: route('payroll.index'), active: isActive('/payroll'), show: can('view_payroll') },
+                    { name: t('Schedule'), href: route('shifts.index'), active: isActive('/shifts'), show: can('view_attendance') },
+                    { name: t('Leaves Holidays'), href: route('leaves.index'), active: isActive('/leaves'), show: can('view_attendance') },
                 ].filter(c => c.show)
             },
             { 
-                name: t('admin'), icon: Cog6ToothIcon, href: '#', 
+                name: t('Settings'), icon: Cog6ToothIcon, href: '#', 
                 active: isActive('/settings') || isActive('/brands') || isActive('/units') || isActive('/roles') || isActive('/users'),
                 show: can('view_settings') || can('view_roles') || can('view_users'),
                 children: [
-                    { name: t('users'), href: route('users.index'), active: isActive('/users'), show: can('view_users') },
-                    { name: t('roles'), href: route('roles.index'), active: isActive('/roles'), show: can('view_roles') },
-                    { name: t('settings'), href: route('settings.index'), active: isActive('/settings'), show: can('view_settings') },
-                    { name: t('brands'), href: route('brands.index'), active: isActive('/brands'), show: can('view_settings') },
-                    { name: t('units'), href: route('units.index'), active: isActive('/units'), show: can('view_settings') },
+                    { name: t('Users'), href: route('users.index'), active: isActive('/users'), show: can('view_users') },
+                    { name: t('Roles'), href: route('roles.index'), active: isActive('/roles'), show: can('view_roles') },
+                    { name: t('Main Settings'), href: route('settings.index'), active: isActive('/settings'), show: can('view_settings') },
+                    { name: t('Brands'), href: route('brands.index'), active: isActive('/brands'), show: can('view_settings') },
+                    { name: t('Units'), href: route('units.index'), active: isActive('/units'), show: can('view_settings') },
                 ].filter(c => c.show)
             },
         ].filter(i => i.show) }
@@ -273,7 +280,75 @@ export default function FigmaLayout({ children }) {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                        <button onClick={() => setLanguage(getLanguage() === 'en' ? 'bn' : 'en')} style={{ background: '#fff', border: '1px solid #f1f5f9', padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, color: '#4f46e5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ position: 'relative' }}>
+                            <button 
+                                onClick={() => setNotifOpen(!notifOpen)}
+                                style={{ background: '#fff', border: '1px solid #f1f5f9', padding: '10px', borderRadius: '12px', color: unreadCount > 0 ? '#4f46e5' : '#94a3b8', cursor: 'pointer', position: 'relative' }}
+                            >
+                                <BellIcon style={{ width: 22, height: 22 }} />
+                                {unreadCount > 0 && (
+                                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '10px', border: '2px solid #fff' }}>
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            {notifOpen && (
+                                <div style={{ position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9', zIndex: 100, overflow: 'hidden' }}>
+                                    <div style={{ padding: '16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>System Alerts</p>
+                                        {unreadCount > 0 && (
+                                            <button onClick={() => {
+                                                setNotifOpen(false);
+                                                router.post(route('notifications.read-all'), {}, { preserveScroll: true });
+                                            }} style={{ background: 'none', border: 'none', fontSize: '0.7rem', fontWeight: 700, color: '#4f46e5', cursor: 'pointer' }}>Mark all read</button>
+                                        )}
+                                    </div>
+                                    <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                                        {notifications.length > 0 ? notifications.map(n => (
+                                            <div 
+                                                key={n.id} 
+                                                onClick={() => {
+                                                    setNotifOpen(false);
+                                                    router.post(route('notifications.read', n.id), {}, { preserveScroll: true });
+                                                }}
+                                                style={{ 
+                                                    padding: '12px 16px', borderBottom: '1px solid #f8fafc', background: n.read_at ? '#fff' : '#f5f3ff', 
+                                                    transition: 'all 0.2s', cursor: 'pointer' 
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = n.read_at ? '#fff' : '#f5f3ff'}
+                                            >
+                                                <div style={{ display: 'flex', gap: '12px' }}>
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: n.data.status === 'approved' ? '#ecfdf5' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: n.data.status === 'approved' ? '#10b981' : '#ef4444', flexShrink: 0 }}>
+                                                        {n.data.status === 'approved' ? <CheckIcon style={{ width: 16, height: 16 }} /> : <XMarkIcon style={{ width: 16, height: 16 }} />}
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: n.read_at ? 500 : 700, color: '#1e293b', lineHeight: 1.4 }}>{n.data.message}</p>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                                                            <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>{new Date(n.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                                <EyeIcon style={{ width: 14, height: 14, color: '#4f46e5', opacity: 0.8 }} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )) : (
+                                            <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                <BellIcon style={{ width: 32, height: 32, margin: '0 auto 8px', opacity: 0.2 }} />
+                                                <p style={{ fontSize: '0.8rem', fontWeight: 500 }}>No recent alerts</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={{ padding: '12px', textAlign: 'center', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
+                                        <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>Last 5 important updates</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <button onClick={() => setLanguage(getLanguage() === 'en' ? 'bn' : 'en')} style={{ background: '#fff', border: '1px solid #f1f5f9', padding: '10px 16px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, color: '#4f46e5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {getLanguage() === 'en' ? 'BN' : 'EN'}
                         </button>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '1.25rem', borderLeft: '1px solid #f1f5f9' }}>

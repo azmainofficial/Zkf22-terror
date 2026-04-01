@@ -141,7 +141,10 @@ class PayrollController extends Controller
             // Cumulative Leave and Holiday stats
             $totalLeaveTaken = \App\Models\LeaveApplication::where('employee_id', $employee->id)
                 ->where('status', 'approved')
-                ->sum('total_days');
+                ->get()
+                ->sum(function($leave) {
+                    return Carbon::parse($leave->start_date)->diffInDays(Carbon::parse($leave->end_date)) + 1;
+                });
                 
             $yearlyHolidays = \App\Models\Holiday::whereYear('date', $year)->count();
 
@@ -259,6 +262,28 @@ class PayrollController extends Controller
                 'reference_number' => 'PAYROLL-' . $payroll->year . '-' . str_pad($payroll->month, 2, '0', STR_PAD_LEFT) . '-EMP' . $payroll->employee_id,
                 'notes' => "Payroll Salary: {$employeeName} - {$monthName} {$payroll->year}",
             ]);
+
+            $payrollCategory = \App\Models\ExpenseCategory::firstOrCreate(
+                ['name' => 'Payroll'],
+                [
+                    'code' => 'PAYROLL',
+                    'description' => 'Employee Salary & Payroll',
+                    'color' => '#4f46e5',
+                    'is_active' => true
+                ]
+            );
+
+            \App\Models\Expense::create([
+                'expense_category_id' => $payrollCategory->id,
+                'title' => "Payroll Salary: {$employeeName} ({$monthName} {$payroll->year})",
+                'description' => "Salary payment for {$employeeName} for the month of {$monthName} {$payroll->year}. Includes all deductions and allowances.",
+                'amount' => $payroll->total,
+                'expense_date' => $payroll->payment_date ?? now(),
+                'payment_method' => $payroll->payment_method ?? 'cash',
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
         }
 
         $payroll->save();
@@ -367,6 +392,44 @@ class PayrollController extends Controller
             'payrolls' => $payrolls,
             'month' => (int) $month,
             'year' => (int) $year,
+        ]);
+    }
+
+    public function slip(Request $request, Payroll $payroll)
+    {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('view_payroll')) {
+            abort(403, 'Unauthorized access to salary slip.');
+        }
+
+        $payroll->load('employee');
+        $monthName = Carbon::create($payroll->year, $payroll->month, 1)->format('F');
+
+        // Load the active payroll SlipDesign if one exists
+        $design = \App\Models\SlipDesign::where('type', 'payroll')
+            ->where('is_active', true)
+            ->first();
+
+        // Fallback to app settings for company info
+        $appName    = \App\Models\Setting::get('app_name', 'ZK Base Ltd.');
+        $appLogo    = \App\Models\Setting::get('app_logo');
+
+        return Inertia::render('Employees/Payroll/Slip', [
+            'payroll'   => $payroll,
+            'monthName' => $monthName,
+            'design'    => $design,
+            'company'   => [
+                'name'     => $design?->company_name    ?: $appName,
+                'address'  => $design?->company_address ?: 'Corporate Office',
+                'tagline'  => $design?->company_tagline ?: '',
+                'logo'     => $design?->header_logo     ? '/storage/' . $design->header_logo
+                            : ($appLogo               ? '/storage/' . $appLogo : null),
+                'watermark'=> $design?->watermark_image ? '/storage/' . $design->watermark_image : null,
+                'accent'   => $design?->accent_color    ?: '#4f46e5',
+                'font'     => $design?->font_family     ?: 'Inter',
+                'footer'   => $design?->footer_text     ?: '',
+                'show_sig' => $design?->show_signature_lines ?? true,
+                'bank'     => $design?->show_bank_details ? $design->bank_details : null,
+            ],
         ]);
     }
 }

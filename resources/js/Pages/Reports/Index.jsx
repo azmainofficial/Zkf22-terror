@@ -185,7 +185,7 @@ export default function ReportsIndex({ auth, summary, daily_data, monthly_data, 
                                     <Calendar size={16} color="#2563eb" />
                                     <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('daily_transaction_overview')}</h3>
                                 </div>
-                                <div style={{ height: '280px' }}>
+                                <div style={{ height: '280px', minWidth: 0, minHeight: 0 }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={daily_data} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
                                             <defs>
@@ -216,7 +216,7 @@ export default function ReportsIndex({ auth, summary, daily_data, monthly_data, 
                                     <TrendingUp size={16} color="#2563eb" />
                                     <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>{t('monthly_comparison')}</h3>
                                 </div>
-                                <div style={{ height: '280px' }}>
+                                <div style={{ height: '280px', minWidth: 0, minHeight: 0 }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={monthly_data} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />

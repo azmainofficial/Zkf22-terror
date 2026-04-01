@@ -207,7 +207,7 @@ export default function Index({ auth, payrolls, filters, stats }) {
                         <div style={{ width: '85px', textAlign: 'center' }}>
                             <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Status</span>
                         </div>
-                        <div style={{ width: '80px', textAlign: 'right' }}>
+                        <div style={{ width: '110px', textAlign: 'right' }}>
                             <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase' }}>Action</span>
                         </div>
                     </div>
@@ -305,8 +305,11 @@ export default function Index({ auth, payrolls, filters, stats }) {
                                     </div>
 
                                     {/* ACTIONS */}
-                                    <div style={{ width: '80px', display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                    <div style={{ width: '110px', display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                                         <button onClick={() => openEditModal(payroll)} style={styles.actionBtn('#f8fafc', '#64748b')} title="Override"><Edit size={16} /></button>
+                                        <Link href={route('payroll.slip', payroll.id)} style={styles.actionBtn('#f0fdf4', '#10b981')} title="Print Slip">
+                                            <Printer size={16} />
+                                        </Link>
                                         {payroll.status === 'pending' && (
                                             <button onClick={() => markAsPaid(payroll.id)} style={styles.actionBtn('#eff6ff', '#4f46e5')} title="Verify Discharge"><ShieldCheck size={18} /></button>
                                         )}

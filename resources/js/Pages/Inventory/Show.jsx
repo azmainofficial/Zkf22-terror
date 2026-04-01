@@ -87,9 +87,9 @@ export default function Show({ auth, item }) {
 
                 {/* ── METRIC STRIP ── */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
-                    <MiniStat label="Total Stock Value" value={fmt(totalVal)} color="#4f46e5" icon={Wallet} />
-                    <MiniStat label="In Stock Qty" value={`${item.quantity_in_stock} ${item.unit}`} color="#10b981" icon={Package} />
-                    <MiniStat label="Price Per Piece" value={fmt(item.unit_price)} color="#8b5cf6" icon={Tag} />
+                    <MiniStat label={t('total_stock_value')} value={fmt(totalVal)} color="#4f46e5" icon={Wallet} />
+                    <MiniStat label={t('quantity')} value={`${item.quantity_in_stock} ${item.unit || ''}`} color="#10b981" icon={Package} />
+                    <MiniStat label={t('price_per_unit')} value={fmt(item.unit_price)} color="#8b5cf6" icon={Tag} />
                 </div>
 
                 {/* ── CORE GRID ── */}

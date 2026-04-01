@@ -274,9 +274,9 @@ export default function Index({ auth, payments, filters, total_incoming, total_o
                                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                                             {transaction.source === 'payment' ? (
                                                 <>
-                                                    <Link href={route('payments.show', transaction.id)}>
-                                                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} title={t('view_details')}><Eye size={17} /></button>
-                                                    </Link>
+                                                    <a href={route('payments.slip', transaction.id)} target="_blank" rel="noreferrer">
+                                                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#10b981' }} title="Print Receipt"><Printer size={17} /></button>
+                                                    </a>
                                                     <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }} title={t('delete')} onClick={() => handleDelete(transaction.id)}>
                                                         <Trash2 size={17} />
                                                     </button>
@@ -286,6 +286,9 @@ export default function Index({ auth, payments, filters, total_incoming, total_o
                                                     <Link href={route('expenses.show', transaction.id)}>
                                                         <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} title={t('view_details')}><Eye size={17} /></button>
                                                     </Link>
+                                                    <a href={route('expenses.slip', transaction.id)} target="_blank" rel="noreferrer">
+                                                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d97706' }} title="Print Voucher"><Printer size={17} /></button>
+                                                    </a>
                                                 </>
                                             )}
                                         </div>

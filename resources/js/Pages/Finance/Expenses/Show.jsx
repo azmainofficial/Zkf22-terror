@@ -65,7 +65,9 @@ const badgeStyle = (status) => {
     };
 };
 
-export default function Show({ auth, expense }) {
+export default function Show({ auth, expense, company, slipDesign }) {
+    const accent = company?.accent || '#6366f1';
+    
     const handleDelete = () => {
         if (confirm(t('delete_confirm'))) {
             router.delete(route('expenses.destroy', expense.id));
@@ -118,7 +120,25 @@ export default function Show({ auth, expense }) {
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <button onClick={() => window.print()} style={{ height: '48px', padding: '0 1.5rem', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: '12px', color: '#64748b', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Printer size={18} />
-                            {t('print')}
+                            {t('print')} Info
+                        </button>
+                        <button 
+                            onClick={() => {
+                                const iframe = document.createElement('iframe');
+                                iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+                                document.body.appendChild(iframe);
+                                iframe.src = route('expenses.slip', expense.id);
+                                iframe.onload = () => {
+                                    setTimeout(() => {
+                                        iframe.contentWindow.print();
+                                        setTimeout(() => document.body.removeChild(iframe), 1000);
+                                    }, 500);
+                                };
+                            }}
+                            style={{ height: '48px', padding: '0 1.5rem', background: '#d97706', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <Receipt size={18} />
+                            Print Voucher
                         </button>
                     </div>
                 </div>
@@ -129,13 +149,13 @@ export default function Show({ auth, expense }) {
                         <div style={cardStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
                                 <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#f5f3ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: `${accent}15`, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Wallet size={32} />
                                     </div>
                                     <div>
                                         <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e1b4b', margin: '0 0 4px' }}>{expense.title}</h2>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#6366f1' }}>{expense.category?.name || t('uncategorized')}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: accent }}>{expense.category?.name || t('uncategorized')}</span>
                                             <span style={{ color: '#cbd5e1' }}>•</span>
                                             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(expense.expense_date).toLocaleDateString()}</span>
                                         </div>
@@ -236,7 +256,7 @@ export default function Show({ auth, expense }) {
                         {/* Receipt Card */}
                         <div style={cardStyle}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
-                                <Receipt size={18} color="#6366f1" />
+                                <Receipt size={18} color={accent} />
                                 <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1e1b4b', margin: 0 }}>{t('receipt')}</h3>
                             </div>
 

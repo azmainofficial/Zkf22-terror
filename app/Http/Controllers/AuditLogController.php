@@ -10,6 +10,16 @@ use Illuminate\Support\Facades\Response;
 
 class AuditLogController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (!$request->user() || !$request->user()->isAdmin()) {
+                abort(403, 'Strictly Admin Only. You do not have permission to view system audit logs.');
+            }
+            return $next($request);
+        });
+    }
+
     /**
      * Display a listing of the resource.
      */

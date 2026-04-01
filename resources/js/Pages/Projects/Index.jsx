@@ -57,7 +57,7 @@ export default function Index({ auth, projects, filters, stats }) {
             <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '4rem' }}>
                 
                 {/* ── HEADER ── */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
+                <div className="projects-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>
                             Projects
@@ -75,14 +75,15 @@ export default function Index({ auth, projects, filters, stats }) {
                                 color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer',
                                 boxShadow: '0 4px 12px rgba(79,70,229,0.2)'
                             }}>
-                                <Plus size={18} /> New Project
+                                <Plus size={18} /> <span className="hide-mobile">New Project</span>
+                                <span className="show-mobile">New</span>
                             </button>
                         </Link>
                     )}
                 </div>
 
                 {/* ── STATS SUMMARY ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                <div className="projects-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
                     <MiniStat label="Total Projects" value={stats.all} active={status === 'All'} onClick={() => setStatus('All')} color="#4f46e5" />
                     <MiniStat label="Active" value={stats.ongoing} active={status === 'ongoing'} onClick={() => setStatus('ongoing')} color="#4f46e5" />
                     <MiniStat label="Finished" value={stats.completed} active={status === 'completed'} onClick={() => setStatus('completed')} color="#10b981" />
@@ -91,14 +92,14 @@ export default function Index({ auth, projects, filters, stats }) {
                 </div>
 
                 {/* ── SEARCH & FILTER ── */}
-                <div style={{ ...styles.card, padding: '16px', display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
+                <div className="filter-bar" style={{ ...styles.card, padding: '16px', display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <div style={{ position: 'relative', flex: 2 }}>
                         <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                         <input
                             type="text"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            placeholder="Find a project by name..."
+                            placeholder="Find a project..."
                             style={{
                                 width: '100%', padding: '12px 16px 12px 48px',
                                 background: '#f8fafc', border: '1px solid #f1f5f9',
@@ -107,13 +108,13 @@ export default function Index({ auth, projects, filters, stats }) {
                             }}
                         />
                     </div>
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
                         <Filter size={16} color="#64748b" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                         <select
                             value={status}
                             onChange={e => setStatus(e.target.value)}
                             style={{
-                                padding: '12px 40px 12px 44px', background: '#f8fafc', 
+                                width: '100%', padding: '12px 40px 12px 44px', background: '#f8fafc', 
                                 border: '1px solid #f1f5f9', borderRadius: '12px', 
                                 fontSize: '0.9rem', fontWeight: 600, color: '#475569',
                                 appearance: 'none', outline: 'none', cursor: 'pointer'
@@ -131,8 +132,8 @@ export default function Index({ auth, projects, filters, stats }) {
                 </div>
 
                 {/* ── PROJECT LIST ── */}
-                <div style={styles.card}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 120px 140px 140px', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ ...styles.card, padding: '0', background: 'transparent', border: 'none' }}>
+                    <div className="project-table-header" style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1.5fr) 1fr 120px 140px 140px', padding: '0 24px 1rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         <div style={{ paddingLeft: '8px' }}>Project Detail</div>
                         <div>Client Reference</div>
                         <div style={{ textAlign: 'center' }}>Status</div>
@@ -145,7 +146,7 @@ export default function Index({ auth, projects, filters, stats }) {
                             const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.pending;
                             return (
                                 <div key={p.id} className="project-row" style={{ 
-                                    display: 'grid', gridTemplateColumns: '1.5fr 1fr 120px 140px 140px', 
+                                    display: 'grid', gridTemplateColumns: 'minmax(200px, 1.5fr) 1fr 120px 140px 140px', 
                                     alignItems: 'center', padding: '16px 8px', borderRadius: '12px',
                                     transition: 'all 0.2s', borderBottom: i === projects.data.length - 1 ? 'none' : '1px solid #f8fafc'
                                 }}>
@@ -241,8 +242,40 @@ export default function Index({ auth, projects, filters, stats }) {
             </div>
 
             <style>{`
-                .project-row:hover { background: #f8fafc !important; }
-                .project-row:hover h3 { color: #4f46e5 !important; }
+                .project-row { background: #fff; border: 1px solid #f1f5f9; margin-bottom: 12px; }
+                .project-row:hover { border-color: #4f46e5; background: #f8fafc !important; }
+                
+                .show-mobile { display: none; }
+                
+                @media (max-width: 1100px) {
+                    .project-table-header { display: none !important; }
+                    .dashboard-kpi-grid, .projects-stats-grid { 
+                        display: flex !important; 
+                        overflow-x: auto; 
+                        padding-bottom: 10px; 
+                        gap: 12px !important;
+                        -ms-overflow-style: none;
+                        scrollbar-width: none;
+                    }
+                    .projects-stats-grid::-webkit-scrollbar { display: none; }
+                    .stat-card { flex-shrink: 0; width: 140px !important; }
+                    
+                    .project-row { 
+                        grid-template-columns: 1fr !important; 
+                        gap: 12px; 
+                        padding: 20px !important;
+                        border-radius: 20px !important;
+                    }
+                    .project-row > div { text-align: left !important; justify-content: flex-start !important; }
+                    .filter-bar { flex-direction: column; align-items: stretch !important; border-radius: 20px !important; }
+                }
+
+                @media (max-width: 600px) {
+                    .projects-header { flex-direction: column; align-items: flex-start !important; gap: 1rem; margin-bottom: 1.5rem !important; }
+                    .projects-header h1 { font-size: 1.75rem !important; }
+                    .show-mobile { display: inline-block; }
+                    .hide-mobile { display: none; }
+                }
             `}</style>
         </FigmaLayout>
     );
@@ -252,16 +285,17 @@ function MiniStat({ label, value, color, active, onClick }) {
     return (
         <div 
             onClick={onClick}
+            className="stat-card"
             style={{ 
-                ...styles.card, padding: '20px', cursor: 'pointer',
+                ...styles.card, padding: '16px', cursor: 'pointer',
                 border: active ? `2px solid ${color}` : '1px solid #f1f5f9',
                 background: active ? `${color}05` : '#fff',
-                transform: active ? 'scale(1.02)' : 'none',
-                boxShadow: active ? '0 10px 15px -3px rgba(79, 70, 229, 0.1)' : 'none'
+                transition: 'all 0.2s',
+                minWidth: '120px'
             }}
         >
-            <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, margin: 0 }}>{label}</p>
-            <h4 style={{ fontSize: '1.5rem', fontWeight: 800, color: active ? color : '#0f172a', margin: '4px 0 0' }}>{value}</h4>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{label}</p>
+            <h4 style={{ fontSize: '1.25rem', fontWeight: 900, color: active ? color : '#0f172a', margin: '2px 0 0' }}>{value}</h4>
         </div>
     );
 }

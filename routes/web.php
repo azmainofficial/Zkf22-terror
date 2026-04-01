@@ -61,7 +61,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware(['auth', 'log_activity'])->group(function () {
+Route::middleware(['auth', 'log_activity', \App\Http\Middleware\AutoAuthorize::class])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -76,6 +76,7 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::delete('projects/{project}/designs/{design}', [ProjectController::class, 'destroyDesign'])->name('projects.designs.destroy');
     Route::post('projects/{project}/designs/{design}/replace', [ProjectController::class, 'replaceDesign'])->name('projects.designs.replace');
     Route::patch('projects/{project}/designs/{design}/status', [ProjectController::class, 'updateReviewStatus'])->name('projects.designs.updateReview');
+    Route::post('projects/{project}/documents', [ProjectController::class, 'uploadDocument'])->name('projects.documents.upload');
     Route::delete('projects/{project}/documents/{document}', [ProjectController::class, 'destroyDocument'])->name('projects.documents.destroy');
     Route::patch('projects/{project}/documents/{document}/rename', [ProjectController::class, 'renameDocument'])->name('projects.documents.rename');
 
@@ -107,6 +108,7 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::get('payroll/sheet', [PayrollController::class, 'salarySheet'])->name('payroll.sheet');
     Route::get('payroll/export/excel', [PayrollController::class, 'export'])->name('payroll.export');
     Route::post('payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
+    Route::get('payroll/{payroll}/slip', [PayrollController::class, 'slip'])->name('payroll.slip');
     Route::resource('payroll', PayrollController::class);
 
     // Clients & Brands
@@ -128,8 +130,10 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::resource('invoices', InvoiceController::class);
     Route::get('payments/export/excel', [PaymentController::class, 'exportToExcel'])->name('payments.export.excel');
     Route::get('payments/{payment}/export', [PaymentController::class, 'exportPaymentToExcel'])->name('payments.export');
+    Route::get('payments/{payment}/slip', [PaymentController::class, 'slip'])->name('payments.slip');
     Route::resource('payments', PaymentController::class);
     Route::get('expenses/export/excel', [ExpenseController::class, 'exportToExcel'])->name('expenses.export.excel');
+    Route::get('expenses/{expense}/slip', [ExpenseController::class, 'slip'])->name('expenses.slip');
     Route::resource('expenses', ExpenseController::class);
     Route::post('expenses/{expense}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
     Route::post('expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
@@ -155,6 +159,7 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::resource('slip-designs', SlipDesignController::class);
     Route::post('slip-designs/{slipDesign}/toggle', [SlipDesignController::class, 'toggleStatus'])->name('slip-designs.toggle');
+    Route::post('slip-designs/{slipDesign}/duplicate', [SlipDesignController::class, 'duplicate'])->name('slip-designs.duplicate');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/daily', [ReportController::class, 'exportDaily'])->name('reports.export.daily');
     Route::get('/reports/export/monthly', [ReportController::class, 'exportMonthly'])->name('reports.export.monthly');
@@ -184,6 +189,25 @@ Route::middleware(['auth', 'log_activity'])->group(function () {
         Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
         Route::get('audit-logs/export/csv', [AuditLogController::class, 'export'])->name('audit-logs.export');
     });
+
+    // Notifications
+    Route::post('notifications/{id}/read', function ($id) {
+        $notification = auth()->user()->notifications()->where('id', $id)->first();
+        if ($notification) {
+            $notification->markAsRead();
+            $link = $notification->data['link'] ?? null;
+            if ($link) return redirect($link);
+        }
+        return back();
+    })->name('notifications.read');
+
+    Route::post('notifications/read-all', function () {
+        \Illuminate\Support\Facades\DB::table('notifications')
+            ->where('notifiable_id', auth()->id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+        return back();
+    })->name('notifications.read-all');
 });
 
 // ZKTeco ADMS Routes

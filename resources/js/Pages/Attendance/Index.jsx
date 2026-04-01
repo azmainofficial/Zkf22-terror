@@ -118,9 +118,11 @@ export default function AttendanceIndex({ auth, employees, filters }) {
 
                 {/* ── ATTENDANCE LIST ── */}
                 <div style={styles.card}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 1.5fr) 130px 1.5fr 200px 80px', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(230px, 1.5fr) 120px 120px 120px 1.2fr 180px 60px', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         <div style={{ paddingLeft: '8px' }}>Team Member</div>
                         <div style={{ textAlign: 'center' }}>Status</div>
+                        <div style={{ textAlign: 'center' }}>Entry & Exit</div>
+                        <div style={{ textAlign: 'center' }}>Availability</div>
                         <div>Daily Logs (IN → OUT)</div>
                         <div style={{ textAlign: 'center' }}>Monthly Performance</div>
                         <div style={{ textAlign: 'right' }}>Logs</div>
@@ -132,7 +134,7 @@ export default function AttendanceIndex({ auth, employees, filters }) {
                             const monthly = emp.monthly_summary;
                             return (
                                 <div key={i} className="attendance-row" style={{ 
-                                    display: 'grid', gridTemplateColumns: 'minmax(250px, 1.5fr) 130px 1.5fr 200px 80px', 
+                                    display: 'grid', gridTemplateColumns: 'minmax(230px, 1.5fr) 120px 120px 120px 1.2fr 180px 60px', 
                                     alignItems: 'center', padding: '16px 8px', borderRadius: '12px',
                                     transition: 'all 0.2s', borderBottom: i === employees.data.length - 1 ? 'none' : '1px solid #f8fafc'
                                 }}>
@@ -158,6 +160,30 @@ export default function AttendanceIndex({ auth, employees, filters }) {
                                         }}>
                                             <sc.icon size={12} /> {sc.label.toUpperCase()}
                                         </div>
+                                    </div>
+
+                                    {/* ENTRY & EXIT */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                        {emp.entry_time ? (
+                                            <>
+                                                <div style={{ background: '#f0fdf4', color: '#10b981', padding: '2px 8px', borderRadius: '6px' }}>IN: {emp.entry_time}</div>
+                                                <div style={{ background: '#fef2f2', color: '#ef4444', padding: '2px 8px', borderRadius: '6px' }}>OUT: {emp.exit_time || '--:--'}</div>
+                                            </>
+                                        ) : (
+                                            <span style={{ color: '#cbd5e1' }}>-- : --</span>
+                                        )}
+                                    </div>
+
+                                    {/* AVAILABILITY */}
+                                    <div style={{ textAlign: 'center', fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                                        {emp.availability_mins > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                <span>{Math.floor(emp.availability_mins / 60)}h {emp.availability_mins % 60}m</span>
+                                                <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>AVAILABLE</span>
+                                            </div>
+                                        ) : (
+                                            <span style={{ color: '#cbd5e1' }}>--</span>
+                                        )}
                                     </div>
 
                                     {/* CLOUD LOGS */}

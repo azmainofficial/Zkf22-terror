@@ -126,7 +126,8 @@ class PaymentController extends Controller
                 invoice_id, 
                 notes,
                 NULL as expense_category_id, 
-                'payment' as source
+                'payment' as source,
+                created_at
             ")
             ->with(['client:id,name,company_name', 'project:id,title', 'invoice:id,invoice_number']);
 
@@ -144,7 +145,8 @@ class PaymentController extends Controller
                 NULL as invoice_id, 
                 expense_category_id, 
                 description as notes,
-                'expense' as source
+                'expense' as source,
+                created_at
             ")
             ->with(['project:id,title', 'category:id,name']);
 
@@ -194,7 +196,14 @@ class PaymentController extends Controller
         $payments = $paymentsQuery->get();
         $expenses = $expensesQuery->get();
 
-        $merged = $payments->concat($expenses)->sortByDesc('date');
+        $merged = $payments->concat($expenses)
+            ->sortByDesc(function ($item) {
+                // Sort by created_at timestamp desc (newest entry first)
+                $createdAt = $item->created_at ? \Carbon\Carbon::parse($item->created_at)->timestamp : 0;
+                $date      = $item->date       ? \Carbon\Carbon::parse($item->date)->timestamp       : 0;
+                // Primary: payment/expense date desc, Secondary: created_at desc
+                return $date * 1000000 + $createdAt;
+            });
 
         $page = $request->input('page', 1);
         $perPage = 15;
@@ -287,9 +296,21 @@ class PaymentController extends Controller
         $payment->load(['invoice.client', 'client', 'project']);
         $design = \App\Models\SlipDesign::where('type', 'payment')->where('is_active', true)->first();
 
+        // Calculate project due: budget minus total completed payments for this project
+        $projectDue = null;
+        if ($payment->project) {
+            $totalPaid = Payment::where('project_id', $payment->project_id)
+                ->where('payment_type', 'incoming')
+                ->where('status', 'completed')
+                ->sum('amount');
+            $projectBudget = $payment->project->budget ?? 0;
+            $projectDue = max(0, $projectBudget - $totalPaid);
+        }
+
         return Inertia::render('Finance/Payments/Show', [
             'payment' => $payment,
             'slipDesign' => $design,
+            'projectDue' => $projectDue,
         ]);
     }
 
@@ -399,5 +420,45 @@ class PaymentController extends Controller
         $payment->delete();
 
         return response()->json(['message' => 'Payment deleted successfully']);
+    }
+    public function slip(Payment $payment)
+    {
+        $payment->load(['invoice.client', 'client', 'project']);
+
+        $design = \App\Models\SlipDesign::where('type', 'payment')
+            ->where('is_active', true)
+            ->first();
+
+        $appName = \App\Models\Setting::get('app_name', 'ZK Base Ltd.');
+        $appLogo = \App\Models\Setting::get('app_logo');
+
+        // Calculate project due: project budget minus total completed incoming payments
+        $projectDue = null;
+        if ($payment->project) {
+            $totalPaid = Payment::where('project_id', $payment->project_id)
+                ->where('payment_type', 'incoming')
+                ->where('status', 'completed')
+                ->sum('amount');
+            $projectBudget = $payment->project->budget ?? 0;
+            $projectDue = max(0, $projectBudget - $totalPaid);
+        }
+
+        return Inertia::render('Finance/Payments/Slip', [
+            'payment'    => $payment,
+            'projectDue' => $projectDue,
+            'company'    => [
+                'name'      => $design?->company_name    ?: $appName,
+                'address'   => $design?->company_address ?: 'Corporate Office',
+                'tagline'   => $design?->company_tagline ?: '',
+                'logo'      => $design?->header_logo     ? '/storage/' . $design->header_logo
+                             : ($appLogo                 ? '/storage/' . $appLogo : null),
+                'watermark' => $design?->watermark_image ? '/storage/' . $design->watermark_image : null,
+                'accent'    => $design?->accent_color    ?: '#10b981',
+                'font'      => $design?->font_family     ?: 'Inter',
+                'footer'    => $design?->footer_text     ?: '',
+                'show_sig'  => $design?->show_signature_lines ?? true,
+                'bank'      => $design?->show_bank_details ? $design->bank_details : null,
+            ],
+        ]);
     }
 }

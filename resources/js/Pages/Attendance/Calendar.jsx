@@ -56,7 +56,8 @@ export default function AttendanceCalendar({ auth, attendances = {}, leaves = []
     const monthName = new Date(year, monthIndex).toLocaleString('default', { month: 'long' });
 
     const getHolidaysForDate = (dateStr) => {
-        const date = new Date(dateStr);
+        const [y, m, d] = dateStr.split('-');
+        const date = new Date(y, m - 1, d); // Local time parsing
         const dow = date.getDay();
         return holidays.filter(h => (h.is_recurring_weekly && h.day_of_week == dow) || (!h.is_recurring_weekly && h.date === dateStr));
     };
@@ -180,19 +181,19 @@ export default function AttendanceCalendar({ auth, attendances = {}, leaves = []
                                                 {leave && !isHoliday && (
                                                     <StatusBadge bg={COLORS.success} text="Vacation" />
                                                 )}
-                                                {att && att.status !== 'absent' && (
+                                                {att && att.status !== 'absent' && att.status !== 'holiday' && att.status !== 'leave' && (
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 900, color: '#94a3b8', marginBottom: '2px' }}>
-                                                            <span>WORKED</span>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.55rem', fontWeight: 900, color: '#94a3b8', marginBottom: '2px' }}>
+                                                            <span>AVAILABILITY</span>
                                                             <span style={{ color: COLORS.primary }}>
                                                                 {Math.floor(att.total_worked_minutes / 60)}h {att.total_worked_minutes % 60}m
                                                             </span>
                                                         </div>
-                                                        <LogBadge icon={LogIn} color={COLORS.success} time={att.clock_in?.substring(0, 5)} />
-                                                        <LogBadge icon={LogOut} color={COLORS.danger} time={att.clock_out ? att.clock_out.substring(0, 5) : '--:--'} />
+                                                        <LogBadge icon={LogIn} color={COLORS.success} time={'Entry: ' + (att.clock_in?.substring(0, 5) || '--:--')} />
+                                                        <LogBadge icon={LogOut} color={COLORS.danger} time={'Exit: ' + (att.clock_out ? att.clock_out.substring(0, 5) : '--:--')} />
                                                     </div>
                                                 )}
-                                                {att && att.status === 'absent' && (
+                                                {att && att.status === 'absent' && !isHoliday && !leave && (
                                                     <StatusBadge bg={COLORS.danger} text="ABSENT" />
                                                 )}
                                                 {!att && !isHoliday && !leave && (

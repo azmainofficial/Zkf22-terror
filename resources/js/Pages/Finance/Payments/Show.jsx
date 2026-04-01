@@ -7,7 +7,7 @@ import {
     Download, ArrowDownLeft, ShieldCheck,
 } from 'lucide-react';
 
-export default function Show({ auth, payment, slipDesign }) {
+export default function Show({ auth, payment, slipDesign, projectDue }) {
     const { settings } = usePage().props;
     
     useEffect(() => {
@@ -45,6 +45,23 @@ export default function Show({ auth, payment, slipDesign }) {
                     </div>
                     
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button 
+                            onClick={() => {
+                                const iframe = document.createElement('iframe');
+                                iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';
+                                document.body.appendChild(iframe);
+                                iframe.src = route('payments.slip', payment.id);
+                                iframe.onload = () => {
+                                    setTimeout(() => {
+                                        iframe.contentWindow.print();
+                                        setTimeout(() => document.body.removeChild(iframe), 1000);
+                                    }, 500);
+                                };
+                            }}
+                            style={{ height: '44px', padding: '0 1.25rem', background: '#10b981', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}
+                        >
+                            <Printer size={16} /> Print Slip
+                        </button>
                         <button onClick={() => window.print()} style={{ height: '44px', padding: '0 1.25rem', background: '#1e1b4b', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                             <Printer size={16} /> Print Receipt
                         </button>
@@ -63,17 +80,19 @@ export default function Show({ auth, payment, slipDesign }) {
                     border: '1px solid #f1f5f9' 
                 }} className="print:shadow-none print:border-none print:m-0">
                     
-                    {/* Header: Black Header matching the design */}
-                    <div style={{ background: '#000', color: '#fff', padding: '3.5rem 4rem' }}>
+                    {/* Header: Brand-matching header */}
+                    <div style={{ background: slipDesign?.accent_color || '#000', color: '#fff', padding: '3.5rem 4rem' }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.9, margin: '0 0 1rem' }}>PAYMENT RECEIPT</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            {settings?.app_logo && (
+                            {slipDesign?.header_logo ? (
+                                <img src={`/storage/${slipDesign.header_logo}`} style={{ height: '52px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} alt="Logo" />
+                            ) : settings?.app_logo && (
                                 <img src={`/storage/${settings.app_logo}`} style={{ height: '52px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} alt="Logo" />
                             )}
-                            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.03em' }}>{settings?.app_name || 'ZK Base Corp'}</h2>
+                            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.03em' }}>{slipDesign?.company_name || settings?.app_name || 'ZK Base Corp'}</h2>
                         </div>
                         <p style={{ fontSize: '0.9rem', fontWeight: 500, opacity: 0.7, margin: 0, letterSpacing: '0.02em' }}>
-                            {slipDesign?.address || '123 Innovation Blvd, Techville, CA 54321 | (555) 123-4567'}
+                            {slipDesign?.company_address || '123 Innovation Blvd, Techville, CA 54321 | (555) 123-4567'}
                         </p>
                     </div>
 
@@ -161,6 +180,19 @@ export default function Show({ auth, payment, slipDesign }) {
                                     <td style={{ padding: '15px 18px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', borderRight: '1px solid rgba(255,255,255,0.1)' }}>TOTAL AMOUNT DUE</td>
                                     <td style={{ padding: '15px 18px', textAlign: 'right', fontSize: '1.25rem', fontWeight: 950 }}>{fmt(payment.amount)}</td>
                                 </tr>
+                                {projectDue !== null && payment.project && (
+                                    <tr style={{ background: projectDue > 0 ? '#fffbeb' : '#f0fdf4', borderTop: '2px solid #e5e7eb' }}>
+                                        <td colSpan="2" style={{ padding: '12px 18px', fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, borderRight: '1px solid #e5e7eb' }}>
+                                            Project: <strong style={{ color: '#1e293b' }}>{payment.project.title}</strong>
+                                        </td>
+                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 900, textTransform: 'uppercase', borderRight: '1px solid #e5e7eb', color: projectDue > 0 ? '#b45309' : '#15803d' }}>
+                                            {projectDue > 0 ? 'PROJECT BALANCE DUE' : 'PROJECT FULLY PAID'}
+                                        </td>
+                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontSize: '1.05rem', fontWeight: 900, color: projectDue > 0 ? '#b45309' : '#15803d' }}>
+                                            {projectDue > 0 ? fmt(projectDue) : '✓ PAID'}
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
