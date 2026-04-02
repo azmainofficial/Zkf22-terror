@@ -227,10 +227,12 @@ export default function Index({ auth, payrolls, filters, stats }) {
                                     {/* IDENTITY */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1.5, minWidth: '160px' }}>
                                         <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 950, color: '#6366f1' }}>
-                                            {payroll.employee.first_name?.[0]}
+                                            {payroll.employee?.first_name?.[0] || 'E'}
                                         </div>
                                         <div>
-                                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{payroll.employee.first_name} {payroll.employee.last_name}</p>
+                                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {payroll.employee ? `${payroll.employee.first_name} ${payroll.employee.last_name}` : 'Unnamed Employee'}
+                                            </p>
                                             <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
                                                 <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>P:{payroll.present_days}</span>
                                                 <span style={{ background: '#fff1f2', color: '#e11d48', fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>A:{payroll.absent_days}</span>
