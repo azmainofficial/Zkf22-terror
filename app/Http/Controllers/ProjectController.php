@@ -133,7 +133,7 @@ class ProjectController extends Controller
 
     public function uploadDesign(Request $request, Project $project)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_project_designs')) {
             abort(403, 'Unauthorized operation: Upload Design.');
         }
 
@@ -159,7 +159,7 @@ class ProjectController extends Controller
 
     public function uploadDocument(Request $request, Project $project)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_project_documents')) {
             abort(403, 'Unauthorized operation: Upload Documentation.');
         }
 
@@ -274,11 +274,11 @@ class ProjectController extends Controller
 
     public function destroyDesign(Request $request, Project $project, \App\Models\ProjectDesign $design)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_project_designs')) {
             abort(403, 'Unauthorized operation: Delete Design File.');
         }
 
-        if ($design->project_id !== $project->id) {
+        if ($design->project_id != $project->id) {
             abort(403, 'This file does not belong to the specified project.');
         }
 
@@ -292,11 +292,11 @@ class ProjectController extends Controller
 
     public function replaceDesign(Request $request, Project $project, \App\Models\ProjectDesign $design)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_project_designs')) {
             abort(403, 'Unauthorized operation: Replace Design File.');
         }
 
-        if ($design->project_id !== $project->id) {
+        if ($design->project_id != $project->id) {
             abort(403, 'This file does not belong to the specified project.');
         }
 
@@ -339,11 +339,11 @@ class ProjectController extends Controller
 
     public function updateReviewStatus(Request $request, Project $project, \App\Models\ProjectDesign $design)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_project_designs')) {
             abort(403, 'Unauthorized operation: Update Review Status.');
         }
 
-        if ($design->project_id !== $project->id) {
+        if ($design->project_id != $project->id) {
             abort(403, 'This design does not belong to the specified project.');
         }
 
@@ -372,11 +372,11 @@ class ProjectController extends Controller
 
     public function destroyDocument(Request $request, Project $project, \App\Models\ProjectDocument $document)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_project_documents')) {
             abort(403, 'Unauthorized operation: Delete Document.');
         }
 
-        if ($document->project_id !== $project->id) {
+        if ($document->project_id != $project->id) {
             abort(403, 'This document does not belong to the specified project.');
         }
 
@@ -391,8 +391,12 @@ class ProjectController extends Controller
 
     public function renameDocument(Request $request, Project $project, \App\Models\ProjectDocument $document)
     {
-        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_projects')) {
+        if (!$request->user()->isAdmin() && !$request->user()->hasPermission('edit_project_documents')) {
             abort(403, 'Unauthorized operation: Rename Document.');
+        }
+
+        if ($document->project_id != $project->id) {
+            abort(403, 'This document does not belong to the specified project.');
         }
 
         $validated = $request->validate([
